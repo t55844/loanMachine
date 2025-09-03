@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VendingMachine dApp</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🍬 VendingMachine dApp</h1>
+        
+        <!-- Connect Wallet Button -->
+        <button id="connectWallet">Connect Wallet</button>
+        <div id="walletInfo" style="display: none;">
+            <p>Connected: <span id="walletAddress"></span></p>
+            <p>Balance: <span id="ethBalance"></span> ETH</p>
+        </div>
+
+        <!-- Donation Section -->
+        <div class="section">
+            <h2>Donate</h2>
+            <input type="number" id="donationAmount" placeholder="ETH amount" step="0.01">
+            <button id="donateBtn">Donate ETH</button>
+        </div>
+
+        <!-- Borrow Section -->
+        <div class="section">
+            <h2>Borrow</h2>
+            <input type="number" id="borrowAmount" placeholder="ETH amount" step="0.01">
+            <button id="borrowBtn">Borrow ETH</button>
+        </div>
+
+        <!-- Repay Section -->
+        <div class="section">
+            <h2>Repay</h2>
+            <input type="number" id="repayAmount" placeholder="ETH amount" step="0.01">
+            <button id="repayBtn">Repay ETH</button>
+        </div>
+
+        <!-- Contract Info -->
+        <div class="section">
+            <h2>Contract Info</h2>
+            <button id="refreshBtn">Refresh Data</button>
+            <div id="contractInfo">
+                <p>Total Donations: <span id="totalDonations">0</span> ETH</p>
+                <p>Total Borrowed: <span id="totalBorrowed">0</span> ETH</p>
+                <p>Available Balance: <span id="availableBalance">0</span> ETH</p>
+                <p>Your Donations: <span id="userDonations">0</span> ETH</p>
+                <p>Your Borrowings: <span id="userBorrowings">0</span> ETH</p>
+            </div>
+        </div>
+
+        <!-- Transaction Status -->
+        <div id="status"></div>
+    </div>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
