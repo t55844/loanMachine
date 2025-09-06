@@ -1,42 +1,106 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Global Reset & Fonts */
+body, #root {
+  margin: 0;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  background: #1F1F1F; /* Dark main background */
+  color: #E0E0E0;       /* Light text */
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* App Container */
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 40px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
+/* Card Layout */
 .card {
-  padding: 2em;
+  background: #3A3A3A;  /* Lighter than body */
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  max-width: 720px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid #555555;
+  flex: auto;
+  flex-direction: column;
 }
 
-.read-the-docs {
-  color: #888;
+.graphBlock {
+  background: #3A3A3A;  /* Lighter than body */
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  border: 1px solid #555555;
+  flex: auto;
+  flex-direction: column;
+  
+}
+
+/* Titles */
+h1, h2, h3 {
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 26px;
+  color: #4A6FA5; /* Accent for main title */
+}
+
+h2 {
+  font-size: 20px;
+  color: #E0E0E0;
+}
+
+/* Stats Section */
+.stats-box {
+  background: #4A4A4A; /* Slightly lighter than card */
+  border: 1px solid #555555;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  text-align: left;
+  font-size: 15px;
+}
+
+.stats-grid strong {
+  color: #4A6FA5; /* Accent for monetary values */
+}
+
+/* Buttons */
+.button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: white;
+  font-size: 14px;
+  margin: 6px;
+  transition: background 0.2s ease;
+}
+
+/* Button Variants */
+.button-primary {
+  background: #4A6FA5;
+}
+.button-primary:hover {
+  background: #3A5A84;
+}
+
+.button-danger {
+  background: #C62828;
+}
+.button-danger:hover {
+  background: #8E0000;
 }

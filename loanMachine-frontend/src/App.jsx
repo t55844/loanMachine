@@ -1,29 +1,32 @@
 import { useState } from "react";
 import WalletConnect from "./loan-interaction/WalletConnect";
 import ContractInfo from "./loan-interaction/ContractInfo";
+import UserStats from "./loan-interaction/UserStats";
 import Donate from "./loan-interaction/Donate";
 import Borrow from "./loan-interaction/Borrow";
 import Repay from "./loan-interaction/Repay";
-import UserStats from "./loan-interaction/UserStats";
+import WalletDistribution from "./showingInformations/WalletDistribution"
+import "./App.css";
 
-function App() {
+export default function App() {
   const [account, setAccount] = useState(null);
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl mb-4">Loan Machine DApp</h1>
-      <WalletConnect setAccount={setAccount} />
-      {account && (
-        <>
-          <ContractInfo account={account} />
-          <UserStats account={account} />
-          <Donate account={account} />
-          <Borrow account={account} />
-          <Repay account={account} />
-        </>
-      )}
+    <div className="app-container">
+      <div className="card">
+        <h1>Loan Machine DApp</h1>
+        <WalletDistribution />
+        <ContractInfo />
+        <WalletConnect setAccount={setAccount} />
+        {account && (
+          <div className="section">
+            <UserStats account={account} />
+            <Donate account={account} />
+            <Borrow account={account} />
+            <Repay account={account} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-export default App;

@@ -17,11 +17,12 @@ function Borrow({ account }) {
     alert("Empréstimo realizado!");
   }
 
-  return (
-    <button onClick={handleBorrow} className="bg-yellow-500 text-white px-4 py-2 rounded mr-2">
-      Emprestar
-    </button>
-  );
+ return (
+  <button onClick={handleBorrow} className="button button-yellow">
+    Emprestar
+  </button>
+);
+
 }
 
 export default Borrow;

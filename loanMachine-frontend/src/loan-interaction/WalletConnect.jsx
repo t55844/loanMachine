@@ -1,25 +1,17 @@
-import { ethers } from "ethers";
-
-function WalletConnect({ setAccount }) {
+export default function WalletConnect({ setAccount }) {
   async function connectWallet() {
     if (window.ethereum) {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-      const address = await signer.getAddress();
-      setAccount(address);
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      setAccount(accounts[0]);
     } else {
-      alert("MetaMask não detectado!");
+      alert("MetaMask not found!");
     }
   }
 
-  return (
-    <div className="mb-4">
-      <button onClick={connectWallet} className="bg-blue-500 text-white px-4 py-2 rounded">
-        Conectar Carteira
-      </button>
-    </div>
-  );
-}
+ return (
+  <button onClick={connectWallet} className="button button-blue">
+    Connect Wallet
+  </button>
+);
 
-export default WalletConnect;
+}

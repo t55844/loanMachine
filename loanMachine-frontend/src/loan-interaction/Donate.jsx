@@ -17,11 +17,11 @@ function Donate({ account }) {
     alert("Doação enviada!");
   }
 
-  return (
-    <button onClick={handleDonate} className="bg-green-500 text-white px-4 py-2 rounded mr-2">
-      Doar
-    </button>
-  );
+return (
+  <button onClick={handleDonate} className="button button-green">
+    Doar
+  </button>
+);
 }
 
 export default Donate;
