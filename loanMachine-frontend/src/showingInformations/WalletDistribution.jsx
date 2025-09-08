@@ -47,23 +47,6 @@ export default function WalletDistribution() {
     fetchWalletData();
   }, []);
 
-   useEffect(() => {
-    // Mock data for testing
-    const mockDonations = [
-      { wallet: "0x1234...abcd", value: 3.5 },
-      { wallet: "0x5678...efgh", value: 2 },
-      { wallet: "0x9abc...ijkl", value: 1.5 },
-    ];
-
-    const mockBorrowings = [
-      { wallet: "0x1111...aaaa", value: 4 },
-      { wallet: "0x2222...bbbb", value: 1 },
-      { wallet: "0x3333...cccc", value: 2.5 },
-    ];
-
-    setDonationsData(mockDonations);
-    setBorrowingsData(mockBorrowings);
-  }, []);
 
   return (
     <div className="graphBlock">
