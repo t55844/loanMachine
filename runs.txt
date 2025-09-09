@@ -1,2 +1,20 @@
+----BLOCKCHAIN
 npx hardhat node
+npx hardhat run scripts/deploy.js --network localhost 
+0x5FbDB2315678afecb367f032d93F642f64180aa3
+
+----DOCKER GRAPHQL NODE
+docker compose up
+graph create --node http://localhost:8020/ loan-machine
+graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 loan-machine
+
+graph codegen
+graph build
+graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 loan-machine
+
+cd scripts/graphql/
+
+docker compose down
+
+----FRONT-END
 npm run dev

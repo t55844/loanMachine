@@ -1,0 +1,42 @@
+
+â	Ú	dataSources:
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmaptcHYP6KpzbRsM7udfj4236c34R1H6YewzLdNtNPoi5
+          name: LoanMachine
+      apiVersion: 0.0.6
+      entities:
+        - Donation
+        - Borrow
+        - Repayment
+        - User
+      eventHandlers:
+        - event: Donated(indexed address,uint256,uint256)
+          handler: handleDonated
+        - event: Borrowed(indexed address,uint256,uint256)
+          handler: handleBorrowed
+        - event: Repaid(indexed address,uint256,uint256)
+          handler: handleRepaid
+        - event: NewDonor(indexed address)
+          handler: handleNewDonor
+        - event: NewBorrower(indexed address)
+          handler: handleNewBorrower
+      file:
+        /: /ipfs/QmdRk2g5UdN4TzBg6gP9MsaxTmUmtL9EWEisDw1VAPZgWH
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: LoanMachine
+    network: '31337'
+    source:
+      abi: LoanMachine
+      address: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+      startBlock: 0
+description: LoanMachine contract indexing
+repository: https://github.com/your-repo/loan-machine-subgraph
+schema:
+  file:
+    /: /ipfs/QmQWgcNUiMNtzByJ89QWgHf6Gkue7VEcTWqzyCrTD4DSjv
+specVersion: 0.0.4
+Ú	

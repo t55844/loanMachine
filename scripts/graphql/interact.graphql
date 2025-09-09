@@ -1,0 +1,33 @@
+# Get all donations from a specific user
+query GetUserDonations {
+  donations(where: { donor: "0x1234..." }) {
+    amount
+    timestamp
+    totalDonation
+  }
+}
+
+# Get user profile with all activity
+query GetUserProfile {
+  user(id: "0x1234...") {
+    totalDonated
+    totalBorrowed
+    currentDebt
+    donations(first: 10, orderBy: timestamp, orderDirection: desc) {
+      amount
+      timestamp
+    }
+    borrows(first: 5, orderBy: timestamp, orderDirection: desc) {
+      amount
+      timestamp
+    }
+  }
+}
+
+# Get top donors
+query GetTopDonors {
+  users(orderBy: totalDonated, orderDirection: desc, first: 10) {
+    id
+    totalDonated
+  }
+}
