@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-const RPC_URL = "http://127.0.0.1:8545";
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const RPC_URL = import.meta.env.VITE_RPC_URL;
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+
 const ABI = [
-  "function totalDonations() view returns (uint256)",
-  "function totalBorrowed() view returns (uint256)",
-  "function availableBalance() view returns (uint256)",
+  "function getTotalDonations() view returns (uint256)",
+  "function getTotalBorrowed() view returns (uint256)",
+  "function getAvailableBalance() view returns (uint256)",
   "function getContractBalance() view returns (uint256)"
 ];
 
@@ -19,9 +20,9 @@ export default function ContractInfo() {
         const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
         const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
         const [d, b, a, bal] = await Promise.all([
-          contract.totalDonations(),
-          contract.totalBorrowed(),
-          contract.availableBalance(),
+          contract.getTotalDonations(),
+          contract.getTotalBorrowed(),
+          contract.getAvailableBalance(),
           contract.getContractBalance()
         ]);
         setData({
@@ -37,16 +38,15 @@ export default function ContractInfo() {
     loadData();
   }, []);
 
- return (
-  <div className="stats-box">
-    <h2>Contract Info</h2>
-    <div className="stats-grid">
-      <div><strong>Total Donations:</strong> {data.donations} ETH</div>
-      <div><strong>Total Borrowed:</strong> {data.borrowed} ETH</div>
-      <div><strong>Available Balance:</strong> {data.available} ETH</div>
-      <div><strong>Contract Balance:</strong> {data.balance} ETH</div>
+  return (
+    <div className="stats-box">
+      <h2>Contract Info</h2>
+      <div className="stats-grid">
+        <div><strong>Total Donations:</strong> {data.donations} ETH</div>
+        <div><strong>Total Borrowed:</strong> {data.borrowed} ETH</div>
+        <div><strong>Available Balance:</strong> {data.available} ETH</div>
+        <div><strong>Contract Balance:</strong> {data.balance} ETH</div>
+      </div>
     </div>
-  </div>
-);
-
+  );
 }

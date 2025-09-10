@@ -1,3 +1,5 @@
+version: '3'
+
 services:
   ipfs:
     image: ipfs/go-ipfs:v0.10.0
@@ -22,8 +24,8 @@ services:
   graph-node:
     image: graphprotocol/graph-node:v0.27.0
     ports:
-      - '8000:8000'  # GraphQL HTTP
-      - '8001:8001'  # GraphQL WebSocket
+      - '8000:8000'  # GraphQL
+      - '8001:8001'  # WebSocket
       - '8020:8020'  # Admin API
       - '8030:8030'  # Metrics
       - '8040:8040'  # Status
@@ -33,14 +35,8 @@ services:
       postgres_pass: letmein
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'mainnet:http://host.docker.internal:8545'
+      ethereum: 'localhost:http://host.docker.internal:8545'
       RUST_LOG: info
     depends_on:
       - postgres
       - ipfs
-    command: >
-      graph-node
-      --postgres-url postgresql://graph-node:password@postgres:5432/graph-node
-      --ethereum-rpc mainnet:http://host.docker.internal:8545
-      --ipfs  http://ipfs:5001
-      --node-id default
