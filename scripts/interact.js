@@ -8,14 +8,14 @@ async function main(){
     console.log("Wallets: ",owner.address,user1.address,user2.address,user3.address,user4.address)
 
     //Donate
-    const tx = await contract.connect(user1).donate({value: hre.ethers.utils.parseEther("5") });
+    const tx = await contract.connect(user1).donate({value: hre.ethers.utils.parseEther("1") });
     await tx.wait();
 
-    const tx2 = await contract.connect(user2).donate({value: hre.ethers.utils.parseEther("1") });
+    const tx2 = await contract.connect(user2).donate({value: hre.ethers.utils.parseEther("3") });
     await tx2.wait();
-    const tx3 = await contract.connect(user3).donate({value: hre.ethers.utils.parseEther("2") });
+    const tx3 = await contract.connect(user3).donate({value: hre.ethers.utils.parseEther("1") });
     await tx3.wait();
-    const tx4 = await contract.connect(user4).donate({value: hre.ethers.utils.parseEther("1") });
+    const tx4 = await contract.connect(user4).donate({value: hre.ethers.utils.parseEther("4") });
     await tx4.wait();
 
 

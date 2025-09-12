@@ -1,7 +1,6 @@
 
 
-const SUBGRAPH_URL = import.meta.env.REACT_APP_SUBGRAPH_URL;
-
+const VITE_SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 export async function fetchDonations() {
   const query = `
     {
@@ -13,7 +12,7 @@ export async function fetchDonations() {
       }
     }
   `;
-  const response = await fetch(SUBGRAPH_URL, {
+  const response = await fetch(VITE_SUBGRAPH_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),

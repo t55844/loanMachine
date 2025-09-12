@@ -31,8 +31,10 @@ export default function ContractInfo() {
           available: ethers.utils.formatEther(a),
           balance: ethers.utils.formatEther(bal)
         });
+        console.log(RPC_URL)
+        console.log(CONTRACT_ADDRESS)
       } catch (e) {
-        console.error("Error fetching data:", e);
+        console.log("Error fetching data:", e);
       }
     }
     loadData();
