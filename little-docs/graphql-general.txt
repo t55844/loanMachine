@@ -1,0 +1,378 @@
+
+same explanation but with outher way:
+
+Got it — you want a deep dive into how your Graph subgraph setup works and how all these pieces interact. I'll break it down step by step so you can see exactly what’s happening from the Docker stack → contract events → subgraph indexing → querying data.
+
+1. Docker Compose: Your Graph Stack
+
+The docker-compose.yml file sets up the local Graph Protocol environment with:
+
+IPFS: Stores the subgraph definition and mappings as files.
+
+PostgreSQL: Stores the indexed blockchain data for fast querying.
+
+Graph Node: Core engine that listens to Ethereum events, processes them using mappings, and stores structured data in Postgres.
+
+Flow:
+
+graph-node connects to:
+
+Ethereum RPC (host.docker.internal:8545) to read blockchain events.
+
+IPFS for subgraph metadata.
+
+PostgreSQL for persisting indexed data.
+
+When you deploy your subgraph, graph-node:
+
+Fetches the subgraph.yaml & schema from IPFS.
+
+Listens to the blockchain for the specified contract events.
+
+Saves structured data to PostgreSQL.
+
+2. Subgraph Manifest (subgraph.yaml)
+
+This file defines:
+
+Data source: Which contract, network, and starting block.
+
+Event handlers: Which events trigger indexing.
+
+Entities: Data models defined in schema.graphql.
+
+Example:
+
+dataSources:
+
+- kind: ethereum/contract
+  name: LoanMachine
+  source:
+  address: "0x5FbDB2..." # contract address
+  abi: LoanMachine
+  startBlock: 0
+  mapping:
+  eventHandlers: - event: Donated(indexed address,uint256,uint256)
+  handler: handleDonated
+
+This means:
+
+On every Donated event, run handleDonated() in mapping.ts.
+
+3. Schema (schema.graphql)
+
+The schema defines how data is stored in Postgres.
+For example:
+
+type Donation @entity(immutable: true) {
+id: ID!
+donor: User!
+amount: BigInt!
+timestamp: BigInt!
+totalDonation: BigInt!
+}
+
+Donation becomes a table in Postgres.
+
+@entity means it’s stored as a row whenever Donation is created.
+
+@derivedFrom creates reverse relations (e.g., User → donations).
+
+4. Mappings (mapping.ts)
+
+Mappings are AssemblyScript functions that run when an event is detected.
+Example:
+
+export function handleDonated(event: Donated): void {
+let donation = new Donation(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+donation.donor = event.params.donor.toHexString()
+donation.amount = event.params.amount
+donation.timestamp = event.block.timestamp
+donation.totalDonation = event.params.totalDonation
+donation.save()
+
+let user = User.load(event.params.donor.toHexString())
+if (!user) {
+user = new User(event.params.donor.toHexString())
+user.totalDonated = BigInt.fromI32(0)
+user.totalBorrowed = BigInt.fromI32(0)
+user.currentDebt = BigInt.fromI32(0)
+}
+user.totalDonated = user.totalDonated.plus(event.params.amount)
+user.lastActivity = event.block.timestamp
+user.save()
+}
+
+Process:
+
+The event comes from Ethereum.
+
+Data gets normalized into Donation and User entities.
+
+Saved in Postgres for future queries.
+
+5. Querying the Data
+
+You can now use GraphQL queries at http://localhost:8000/subgraphs/name/...
+
+Examples:
+
+# All donations for a user
+
+query GetUserDonations {
+donations(where: { donor: "0x1234..." }) {
+amount
+timestamp
+}
+}
+
+# Top 10 donors
+
+query GetTopDonors {
+users(orderBy: totalDonated, orderDirection: desc, first: 10) {
+id
+totalDonated
+}
+}
+
+6. Full Lifecycle Overview
+
+Smart contract emits events → Donated, Borrowed, Repaid.
+
+Graph Node listens to these events.
+
+Mappings transform raw blockchain logs into structured entities.
+
+Data gets stored in PostgreSQL.
+
+You query it via GraphQL.
+
+7. How it connects to your frontend graph
+
+If your frontend Pie Chart is empty:
+
+Either the GraphQL query returns no data
+
+Or the event wasn’t emitted/indexed properly
+
+You can debug by:
+
+query {
+donations {
+id
+amount
+}
+}
+
+If this returns empty → your events aren’t being processed.
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+ deep dive into the  2,3 and 4
+O ChatGPT disse:
+
+Perfect — let’s do a deep dive into sections 2, 3, and 4 because those are where most of the magic happens in The Graph:
+
+2: Subgraph Manifest (subgraph.yaml) → defines what to index.
+
+3: Schema (schema.graphql) → defines how data is stored.
+
+4: Mappings (mapping.ts) → defines how data is transformed.
+
+I’ll break each one down with full details, real-world flow, and tips for debugging.
+
+2. Subgraph Manifest (subgraph.yaml)
+
+This file tells Graph Node what to watch on the blockchain and what to do when something happens.
+
+Here’s the key structure from your example:
+
+specVersion: 0.0.4
+description: LoanMachine contract indexing
+repository: https://github.com/your-repo/loan-machine-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: LoanMachine
+    network: localhost
+    source:
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      abi: LoanMachine
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./scripts/graphql/mapping.ts
+      entities:
+        - Donation
+        - Borrow
+        - Repayment
+        - User
+      abis:
+        - name: LoanMachine
+          file: ./scripts/graphql/abis/LoanMachine.json
+      eventHandlers:
+        - event: Donated(indexed address,uint256,uint256)
+          handler: handleDonated
+        - event: Borrowed(indexed address,uint256,uint256)
+          handler: handleBorrowed
+        - event: Repaid(indexed address,uint256,uint256)
+          handler: handleRepaid
+        - event: NewDonor(indexed address)
+          handler: handleNewDonor
+        - event: NewBorrower(indexed address)
+          handler: handleNewBorrower
+
+How it works:
+
+kind: ethereum/contract → We’re watching an Ethereum smart contract.
+
+source → The contract address, ABI, and start block.
+
+eventHandlers → Each event triggers a handler in mapping.ts.
+
+entities → The data types we’ll store (from schema.graphql).
+
+3. Schema (schema.graphql)
+
+This file defines the data models for GraphQL and Postgres.
+
+Example from your schema:
+
+type Donation @entity(immutable: true) {
+  id: ID!
+  donor: User!
+  amount: BigInt!
+  timestamp: BigInt!
+  totalDonation: BigInt!
+}
+
+Key concepts
+
+@entity → Marks this as a table in the database.
+
+immutable: true → Once created, can’t be changed (good for events).
+
+For dynamic values like User that update, use immutable: false.
+
+Relationships
+
+donor: User! → Links Donation → User table by foreign key.
+
+@derivedFrom(field: "donor") on the other side makes reverse relationships.
+
+Types
+
+ID! → Unique primary key.
+
+BigInt! → For Ethereum uint256.
+
+String, Boolean, Bytes, etc. available.
+
+Generated database
+
+The schema above would create a Postgres table like:
+
+id	donor	amount	timestamp	totalDonation
+txhash-1	0x1234...	100	1694600000	500
+4. Mappings (mapping.ts)
+
+This is where blockchain events → entities → Postgres data.
+
+Example from your mapping:
+
+export function handleDonated(event: Donated): void {
+  // 1. Create a new Donation entity
+  let donation = new Donation(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  donation.donor = event.params.donor.toHexString()
+  donation.amount = event.params.amount
+  donation.timestamp = event.block.timestamp
+  donation.totalDonation = event.params.totalDonation
+  donation.save()
+
+  // 2. Update the User entity
+  let user = User.load(event.params.donor.toHexString())
+  if (!user) {
+    user = new User(event.params.donor.toHexString())
+    user.totalDonated = BigInt.fromI32(0)
+    user.totalBorrowed = BigInt.fromI32(0)
+    user.currentDebt = BigInt.fromI32(0)
+  }
+  user.totalDonated = user.totalDonated.plus(event.params.amount)
+  user.lastActivity = event.block.timestamp
+  user.save()
+}
+
+Deep Dive: What happens here
+
+Event triggered → Ethereum emits Donated(donor, amount, totalDonation).
+
+Entity created → new Donation() with a unique ID (txhash-logIndex).
+
+Event parameters saved → donor, amount, timestamp.
+
+Linked entity updated → User table updated with new totals.
+
+Postgres sync → Graph Node writes it to the database automatically.
+
+Real-World Flow
+Ethereum Event
+   ↓
+subgraph.yaml → says: run `handleDonated` when Donated fires
+   ↓
+mapping.ts → saves structured data into Donation + updates User
+   ↓
+schema.graphql → defines table structure in Postgres
+   ↓
+GraphQL endpoint → allows frontend to query Donations & Users
+
+
+resume: 
+1. Schema (schema.graphql)
+
+Your description: Fields and types organized in tables and rows so SQL understands.
+
+Refined explanation:
+
+Defines the data model in a GraphQL-first way.
+
+Each type = a table in Postgres.
+
+Each field = a column in that table.
+
+Relationships (@derivedFrom, User → Donations) are also defined here.
+
+It’s not SQL directly, but Graph Node uses it to generate a relational structure in Postgres automatically.
+
+2. Subgraph Manifest (subgraph.yaml)
+
+Your description: Links blockchain and Graph Node, defines characteristics and events.
+
+Refined explanation:
+
+It’s the configuration file that tells Graph Node:
+
+Which contract to watch.
+
+On which network.
+
+Starting from which block number.
+
+Which events trigger which mappings.
+
+It’s like the bridge between the blockchain world and the indexing logic.
+
+3. Mappings (mapping.ts)
+
+Your description: Pipeline that transforms event values into rows to persist in Postgres.
+
+Refined explanation:
+
+A set of functions (AssemblyScript) that run every time an event fires.
+
+Take raw blockchain logs → convert to structured entities → save in Postgres according to your Schema.
+
+Can also update existing entities, calculate aggregates, or create relationships.

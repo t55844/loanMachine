@@ -92,3 +92,15 @@
 02:45:53.068642 db@open done T·28.100865ms
 04:02:18.338578 db@close closing
 04:02:18.340352 db@close done T·1.830024ms
+=============== Sep 12, 2025 (UTC) ===============
+01:20:46.379123 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+01:20:46.395346 version@stat F·[1 1] S·7KiB[1KiB 6KiB] Sc·[0.25 0.00]
+01:20:46.395716 db@open opening
+01:20:46.396753 journal@recovery F·1
+01:20:46.398160 journal@recovery recovering @20
+01:20:46.414445 memdb@flush created L0@22 N·82 S·6KiB "/F5..OUY,v139":"/pr..TVG,v174"
+01:20:46.416022 version@stat F·[2 1] S·14KiB[7KiB 6KiB] Sc·[0.50 0.00]
+01:20:46.436957 db@janitor F·5 G·0
+01:20:46.437128 db@open done T·41.287225ms
+03:18:09.791101 db@close closing
+03:18:09.793334 db@close done T·2.252575ms
