@@ -1,17 +1,27 @@
+import { useState } from "react";
+
 export default function WalletConnect({ setAccount }) {
-  async function connectWallet() {
-    if (window.ethereum) {
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      setAccount(accounts[0]);
-    } else {
-      alert("MetaMask not found!");
+  const [hash, setHash] = useState("");
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (hash.trim()) {
+      setAccount(hash.trim());
     }
   }
 
- return (
-  <button onClick={connectWallet} className="button button-blue">
-    Connect Wallet
-  </button>
-);
-
+  return (
+    <form onSubmit={handleSubmit} className="wallet-connect">
+      <input
+        type="text"
+        placeholder="Enter wallet hash"
+        value={hash}
+        onChange={(e) => setHash(e.target.value)}
+        className="wallet-input"
+      />
+      <button type="submit" className="wallet-button">
+        Set Wallet
+      </button>
+    </form>
+  );
 }

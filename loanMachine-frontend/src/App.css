@@ -105,3 +105,130 @@ h2 {
 .button-danger:hover {
   background: #8E0000;
 }
+
+/*wallet-connect*/
+
+.wallet-connect {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.wallet-input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  width: 280px;
+}
+
+.wallet-button {
+  background-color: #1e40af; /* blue-800 */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.wallet-button:hover {
+  background-color: #1e3a8a; /* darker blue */
+}
+
+
+/*donate block*/
+
+.donate-block {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.donate-select,
+.donate-input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.donate-input {
+  width: 120px;
+}
+
+.donate-button {
+  background-color: #16a34a; /* green-600 */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.donate-button:hover {
+  background-color: #15803d; /* darker green */
+}
+
+
+/*borrow and repay blocks*/
+
+.borrow-block, .repay-block {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.borrow-select, .repay-select,
+.borrow-input, .repay-input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.borrow-input, .repay-input {
+  width: 120px;
+}
+
+.borrow-button {
+  background-color: #eab308; /* yellow-500 */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.borrow-button:hover {
+  background-color: #ca8a04; /* darker yellow */
+}
+
+.repay-button {
+  background-color: #A54A6F; /* red-600 */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.repay-button:hover {
+  background-color: #a73663; /* darker red */
+}
+
+

@@ -1,0 +1,104 @@
+1. Common Pitfalls & Gotchas
+a) Nonce management issues
+
+Problem: Nonce = transaction sequence number. Two transactions with the same nonce → one replaces the other.
+
+Symptoms: “Nonce too low” errors or stuck transactions.
+
+Fix:
+
+Use await provider.getTransactionCount(address, "latest") for next nonce.
+
+When sending multiple txs quickly, manually track nonces:
+
+let nonce = await provider.getTransactionCount(myAddr);
+await signer.sendTransaction({ to, value, nonce: nonce++ });
+
+b) Chain ID mismatch
+
+Problem: User on wrong chain (e.g., dApp expects Mainnet, wallet on Polygon).
+
+Solution:
+
+Detect chain → prompt wallet to switch with wallet_switchEthereumChain.
+
+For custom networks, use wallet_addEthereumChain.
+
+c) Gas estimation underestimation
+
+estimateGas may fail or underestimate for complex contracts → out-of-gas reverts.
+
+Add a margin:
+
+const gas = await contract.estimateGas.myFunction(...args);
+const tx = await contract.myFunction(...args, { gasLimit: gas.mul(12).div(10) }); // +20%
+
+d) Rate limits on RPC providers
+
+Public RPC endpoints throttle requests → frontend breaks if not cached.
+
+Fix: Cache frequent calls (balances, metadata), batch requests, or use dedicated providers like Infura/Alchemy.
+
+e) Event indexing & reorgs
+
+Chain reorgs may remove blocks → events can disappear.
+
+Fix:
+
+Wait N confirmations before acting.
+
+Use getLogs with block ranges instead of relying only on live on() listeners.
+
+f) Floating gas fees & stuck txs
+
+Transaction with too low gas fee may never confirm.
+
+Fix: Allow replacement with same nonce + higher gas fee.
+
+2. Security Best Practices
+a) Key Management
+
+Never store private keys in frontend code or public repos.
+
+Use MetaMask, WalletConnect, hardware wallets — dApps never touch private keys directly.
+
+b) Contract Verification
+
+Check contract address against known registry or verified source.
+
+Validate ABI integrity before user interaction.
+
+c) Phishing & Signing Attacks
+
+Users may sign malicious messages if not clearly shown.
+
+Always:
+
+Use EIP-712 typed data (structured, human-readable).
+
+Show readable signing prompts, e.g., "Sign to log in" vs raw hex.
+
+d) Least Privilege Principle
+
+For ERC-20 approvals, never approve uint256.max unless needed.
+
+Prefer permit() (EIP-2612) for one-time approvals.
+
+e) Replay Attack Protection
+
+Use chainId (EIP-155) and expiry timestamps for off-chain signatures.
+
+Example: sign messages like I approve action X until 1699999999 on chain 1.
+
+f) Transaction Simulation
+
+Simulate txs (Tenderly, eth_call) before broadcasting to avoid failed tx fees.
+
+------------------------------------------------------------------------------------------------------------------------------------------
+Signing Formats & Security Enhancements
+Format	Use case	Security
+eth_sign (raw)	Basic message signing (not recommended)	Prone to phishing
+personal_sign	Adds prefix to prevent replay across dApps	Safer than raw
+EIP-712 typed data	Structured, human-readable signing	Best UX + phishing protection
+EIP-1271	Contract-based wallets verify signatures	Enables smart contract wallets
+EIP-2612 permit()	Token approvals via signature, no tx fee	Gasless approvals

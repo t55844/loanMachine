@@ -38,7 +38,7 @@ export default function WalletDistribution() {
       <h2>Wallet Distribution</h2>
       <div style={{ flex: 1, minWidth: 300 }}>
         <h3>Donations</h3>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={310}>
           <PieChart>
             <Pie
               data={donationsData}

@@ -17,15 +17,15 @@ export default function App() {
         <h1>Loan Machine DApp</h1>
         <WalletDistribution />
         <ContractInfo />
-        <WalletConnect setAccount={setAccount} />
+       {/* <WalletConnect setAccount={setAccount} />*/}
         {account && (
           <div className="section">
-            <UserStats account={account} />
-            <Donate account={account} />
-            <Borrow account={account} />
-            <Repay account={account} />
           </div>
         )}
+        <UserStats account={account} />
+        <Donate account={account} />
+        <Borrow account={account} />
+        <Repay account={account} />
       </div>
     </div>
   );
