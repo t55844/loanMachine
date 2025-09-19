@@ -1,7 +1,7 @@
 import { useState } from "react";
 import WalletConnect from "./loan-interaction/WalletConnect";
-import ContractInfo from "./loan-interaction/ContractInfo";
-import UserStats from "./loan-interaction/UserStats";
+import ContractOverview from "./showingInformations/ContractOverview";
+import WalletStats from "./showingInformations/WalletStats";
 import Donate from "./loan-interaction/Donate";
 import Borrow from "./loan-interaction/Borrow";
 import Repay from "./loan-interaction/Repay";
@@ -16,16 +16,17 @@ export default function App() {
       <div className="card">
         <h1>Loan Machine DApp</h1>
         <WalletDistribution />
-        <ContractInfo />
        {/* <WalletConnect setAccount={setAccount} />*/}
         {account && (
           <div className="section">
           </div>
         )}
-        <UserStats account={account} />
+        <WalletStats account={account} />
         <Donate account={account} />
         <Borrow account={account} />
         <Repay account={account} />
+        
+        <ContractOverview />
       </div>
     </div>
   );

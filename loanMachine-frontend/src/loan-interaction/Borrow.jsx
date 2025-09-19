@@ -30,7 +30,7 @@ function Borrow() {
 
       const tx = await contract.borrow(ethers.utils.parseEther(amount));
       await tx.wait();
-
+console.log(provider,wallet,signer,contract)
       alert(`Empréstimo de ${amount} ETH realizado pelo ${wallet.name}!`);
     } catch (err) {
       console.error(err);

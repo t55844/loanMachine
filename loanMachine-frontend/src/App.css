@@ -232,3 +232,54 @@ h2 {
 }
 
 
+
+/* ContractOverview */
+
+/* Contract Overview */
+.contract-overview {
+  margin: 20px 0;
+}
+
+.contract-overview h2 {
+  margin-bottom: 12px;
+  color: #E0E0E0;
+  font-size: 22px;
+}
+
+/* Transaction List */
+.transactions-box {
+  background: #4A4A4A;
+  border: 1px solid #555555;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+.transaction-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #555555;
+  font-size: 14px;
+}
+
+.transaction-row:last-child {
+  border-bottom: none;
+}
+
+.transaction-row strong {
+  color: #4A6FA5;
+}
+
+/* Loading & Error States */
+.loading,
+.error {
+  margin-top: 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.error {
+  color: #ff6b6b;
+}
