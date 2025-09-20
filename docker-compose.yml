@@ -6,6 +6,7 @@ services:
       - '5001:5001'
       - '8080:8080'
       - '4001:4001'
+    command: ["daemon", "--init", "--migrate=true"]
     volumes:
       - ./data/ipfs:/data/ipfs
 

@@ -31,6 +31,11 @@ contract loanMachine is ReentrancyGuard {
         uint256 amount,
         uint256 remainingDebt
     );
+
+    event TotalDonationsUpdated(uint256 total);
+    event TotalBorrowedUpdated(uint256 total);
+    event AvailableBalanceUpdated(uint256 total);
+
     event NewDonor(address indexed donor); // For tracking first-time donors
     event NewBorrower(address indexed borrower); // For tracking first-time borrowers
     event BorrowLimitReached(address indexed borrower);
@@ -73,6 +78,8 @@ contract loanMachine is ReentrancyGuard {
 
         // Emit events (CHEAP - ~2000 gas total)
         emit Donated(msg.sender, msg.value, donations[msg.sender]);
+        emit TotalDonationsUpdated(totalDonations);
+        emit AvailableBalanceUpdated(availableBalance);
         if (isNewDonor) {
             emit NewDonor(msg.sender); // Helps off-chain indexers track all donors
         }
@@ -91,6 +98,8 @@ contract loanMachine is ReentrancyGuard {
 
         // Emit events (CHEAP)
         emit Borrowed(msg.sender, _amount, borrowings[msg.sender]);
+        emit TotalBorrowedUpdated(totalBorrowed);
+        emit AvailableBalanceUpdated(availableBalance);
         if (isNewBorrower) {
             emit NewBorrower(msg.sender); // Helps off-chain indexers track all borrowers
         }
@@ -113,6 +122,8 @@ contract loanMachine is ReentrancyGuard {
 
         // Emit event (CHEAP)
         emit Repaid(msg.sender, msg.value, borrowings[msg.sender]);
+        emit TotalBorrowedUpdated(totalBorrowed);
+        emit AvailableBalanceUpdated(availableBalance);
     }
 
     // Check available borrow amount for user

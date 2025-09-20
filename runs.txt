@@ -1,4 +1,6 @@
 ----BLOCKCHAIN
+npx hardhat compile
+npx hardhat node --db ./hardhat_data
 npx hardhat node
 npx hardhat run scripts/deploy.js --network localhost 
 0x5FbDB2315678afecb367f032d93F642f64180aa3
@@ -6,16 +8,26 @@ npx hardhat run scripts/deploy.js --network localhost
 npx hardhat run scripts/interact.js --network localhost 
 
 ----DOCKER GRAPHQL NODE
-docker compose up
-graph create --node http://localhost:8020/ loan-machine
-graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 loan-machine
-
-docker compose down -v
-graph remove --node http://localhost:8020/ loan-machine
 Remove-Item -Recurse -Force .\data\postgres\*
 Remove-Item -Recurse -Force .\data\ipfs\*   
+docker compose up
+graph remove --node http://localhost:8020/ loan-machine
+graph create --node http://localhost:8020/ loan-machine
+graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 loan-machine 
+
+docker compose down -v
+
+
+
+
+Remove-Item -Recurse -Force generated -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+graph codegen --output-dir ./scripts/graphql/generated
+graph build --output-dir ./scripts/graphql/build
 
 cd scripts/graphql/
 
 ----FRONT-END
 npm run dev
+
+http://127.0.0.1:3000/  caso o site não abra por não conseguir conetar

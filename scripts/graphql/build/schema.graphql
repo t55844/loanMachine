@@ -1,4 +1,4 @@
-type Donation @entity(immutable: true) {
+type Donation @entity(immutable: false) {
   id: ID!
   donor: User! # Changed from Bytes to User
   amount: BigInt!
@@ -6,7 +6,7 @@ type Donation @entity(immutable: true) {
   totalDonation: BigInt!
 }
 
-type Borrow @entity(immutable: true) {
+type Borrow @entity(immutable: false) {
   id: ID!
   borrower: User! # Changed from Bytes to User
   amount: BigInt!
@@ -14,7 +14,7 @@ type Borrow @entity(immutable: true) {
   totalBorrowing: BigInt!
 }
 
-type Repayment @entity(immutable: true) {
+type Repayment @entity(immutable: false) {
   id: ID!
   borrower: User! # Changed from Bytes to User
   amount: BigInt!
@@ -31,4 +31,11 @@ type User @entity(immutable: false) {
   donations: [Donation!]! @derivedFrom(field: "donor")
   borrows: [Borrow!]! @derivedFrom(field: "borrower")
   repayments: [Repayment!]! @derivedFrom(field: "borrower")
+}
+
+type Stats @entity(immutable: false) {
+  id: ID!
+  totalDonations: BigInt!
+  totalBorrowed: BigInt!
+  availableBalance: BigInt!
 }

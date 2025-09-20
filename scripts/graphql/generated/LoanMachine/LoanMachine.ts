@@ -10,6 +10,24 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class AvailableBalanceUpdated extends ethereum.Event {
+  get params(): AvailableBalanceUpdated__Params {
+    return new AvailableBalanceUpdated__Params(this);
+  }
+}
+
+export class AvailableBalanceUpdated__Params {
+  _event: AvailableBalanceUpdated;
+
+  constructor(event: AvailableBalanceUpdated) {
+    this._event = event;
+  }
+
+  get total(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+}
+
 export class BorrowLimitReached extends ethereum.Event {
   get params(): BorrowLimitReached__Params {
     return new BorrowLimitReached__Params(this);
@@ -139,6 +157,42 @@ export class Repaid__Params {
 
   get remainingDebt(): BigInt {
     return this._event.parameters[2].value.toBigInt();
+  }
+}
+
+export class TotalBorrowedUpdated extends ethereum.Event {
+  get params(): TotalBorrowedUpdated__Params {
+    return new TotalBorrowedUpdated__Params(this);
+  }
+}
+
+export class TotalBorrowedUpdated__Params {
+  _event: TotalBorrowedUpdated;
+
+  constructor(event: TotalBorrowedUpdated) {
+    this._event = event;
+  }
+
+  get total(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+}
+
+export class TotalDonationsUpdated extends ethereum.Event {
+  get params(): TotalDonationsUpdated__Params {
+    return new TotalDonationsUpdated__Params(this);
+  }
+}
+
+export class TotalDonationsUpdated__Params {
+  _event: TotalDonationsUpdated;
+
+  constructor(event: TotalDonationsUpdated) {
+    this._event = event;
+  }
+
+  get total(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
   }
 }
 

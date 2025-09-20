@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\codigos\\loan-machine\\contracts\\loanMachine.sol": {
-      "lastModificationDate": 1757220729509,
-      "contentHash": "23ca10312669f5bb502a3e548d410602",
+      "lastModificationDate": 1758333186758,
+      "contentHash": "ad65664c7cbb3545606bb6d29e857631",
       "sourceName": "contracts/loanMachine.sol",
       "solcConfig": {
         "version": "0.8.20",

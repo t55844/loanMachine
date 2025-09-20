@@ -2,7 +2,7 @@ specVersion: 0.0.4
 description: LoanMachine contract indexing
 repository: https://github.com/your-repo/loan-machine-subgraph
 schema:
-  file: ./schema.graphql
+  file: ./scripts/graphql/schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: LoanMachine
@@ -35,3 +35,10 @@ dataSources:
           handler: handleNewDonor
         - event: NewBorrower(indexed address)
           handler: handleNewBorrower
+        # aggregate events (new)
+        - event: TotalDonationsUpdated(uint256)
+          handler: handleTotalDonationsUpdated
+        - event: TotalBorrowedUpdated(uint256)
+          handler: handleTotalBorrowedUpdated
+        - event: AvailableBalanceUpdated(uint256)
+          handler: handleAvailableBalanceUpdated

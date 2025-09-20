@@ -35,3 +35,9 @@ dataSources:
           handler: handleNewDonor
         - event: NewBorrower(indexed address)
           handler: handleNewBorrower
+        - event: TotalDonationsUpdated(uint256)
+          handler: handleTotalDonationsUpdated
+        - event: TotalBorrowedUpdated(uint256)
+          handler: handleTotalBorrowedUpdated
+        - event: AvailableBalanceUpdated(uint256)
+          handler: handleAvailableBalanceUpdated
