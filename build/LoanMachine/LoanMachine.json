@@ -1,5 +1,55 @@
 [
   {
+    "inputs": [],
+    "name": "BorrowNotExpired",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InsufficientDonationBalance",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InsufficientFunds",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidAmount",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidCoveragePercentage",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanNotAvailable",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MinimumDonationRequired",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NoActiveBorrowing",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OverCoverage",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RepaymentExceedsBorrowed",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -73,6 +123,69 @@
       }
     ],
     "name": "Donated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "coverageAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "LoanCovered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "LoanFunded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "LoanRequisitionCreated",
     "type": "event"
   },
   {
@@ -169,6 +282,30 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "borrowerRequisitions",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "_user",
         "type": "address"
       },
@@ -187,6 +324,53 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "coveragePercentage",
+        "type": "uint32"
+      }
+    ],
+    "name": "coverLoan",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_minimumCoverage",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_durationDays",
+        "type": "uint256"
+      }
+    ],
+    "name": "createLoanRequisition",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -210,19 +394,32 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "name": "getAvailableBorrowAmount",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      }
+    ],
+    "name": "getBorrowerRequisitions",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
       }
     ],
     "stateMutability": "view",
@@ -255,6 +452,25 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getCoveringLenders",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
       }
     ],
     "stateMutability": "view",
@@ -299,6 +515,91 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "lender",
+        "type": "address"
+      }
+    ],
+    "name": "getLenderCoverage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRequisitionInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "borrower",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "minimumCoverage",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "currentCoverage",
+            "type": "uint32"
+          },
+          {
+            "internalType": "enum ILoanMachine.BorrowStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "durationDays",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creationTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coveringLendersCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct ILoanMachine.RequisitionInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "getTotalBorrowed",
     "outputs": [
@@ -325,44 +626,23 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "getUserStats",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "userDonations",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "userBorrowings",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastBorrow",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "canBorrowNow",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "repay",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "requisitionCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ]

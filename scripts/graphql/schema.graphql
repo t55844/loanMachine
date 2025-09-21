@@ -39,3 +39,34 @@ type Stats @entity(immutable: false) {
   totalBorrowed: BigInt!
   availableBalance: BigInt!
 }
+
+
+
+
+# loan request entity (one per requisition)
+type LoanRequest @entity(immutable: false) {
+id: ID!
+requisitionId: BigInt!
+borrower: User!
+amount: BigInt!
+timestamp: BigInt!
+# sum of coverage amounts (wei)
+currentCoverageAmount: BigInt!
+# number of distinct lenders who covered this requisition
+coveringLendersCount: Int!
+# whether the loan was funded (minimum coverage reached and _fundLoan called)
+funded: Boolean!
+fundedAt: BigInt
+# derived list of coverage entries
+coverages: [LoanCoverage!]! @derivedFrom(field: "loanRequest")
+}
+
+
+# per-lender coverage record (accumulates if same lender covers multiple times)
+type LoanCoverage @entity(immutable: false) {
+id: ID!
+loanRequest: LoanRequest!
+lender: User!
+amount: BigInt!
+timestamp: BigInt!
+}

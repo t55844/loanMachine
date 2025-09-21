@@ -1,8 +1,8 @@
 ----BLOCKCHAIN
+npx hardhat clean
 npx hardhat compile
-npx hardhat node --db ./hardhat_data
 npx hardhat node
-npx hardhat run scripts/deploy.js --network localhost 
+npx hardhat deploy //run scripts/deploy.js --network localhost 
 0x5FbDB2315678afecb367f032d93F642f64180aa3
 
 npx hardhat run scripts/interact.js --network localhost 
@@ -19,7 +19,9 @@ docker compose down -v
 
 
 
-
+toda vez que tiver alteração no Graphql Node sector, tem que ir nos arquivos:
+ subgraph.yaml, schema.graphql, mapping.ts e fazer as alterações correspondentes e
+  copiar o /artifacts/contracts/LoanMachine.sol/LoanMachine.json para os outros 
 Remove-Item -Recurse -Force generated -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 graph codegen --output-dir ./scripts/graphql/generated
@@ -29,5 +31,5 @@ cd scripts/graphql/
 
 ----FRONT-END
 npm run dev
-
-http://127.0.0.1:3000/  caso o site não abra por não conseguir conetar
+npx vite --port 3000 --host 127.0.0.1
+http://127.0.0.1:3000/  http://localhost:5173/ caso o site não abra por não conseguir conetar

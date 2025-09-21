@@ -475,6 +475,258 @@ export class Stats extends Entity {
   }
 }
 
+export class LoanRequest extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save LoanRequest entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type LoanRequest must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("LoanRequest", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): LoanRequest | null {
+    return changetype<LoanRequest | null>(
+      store.get_in_block("LoanRequest", id),
+    );
+  }
+
+  static load(id: string): LoanRequest | null {
+    return changetype<LoanRequest | null>(store.get("LoanRequest", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get requisitionId(): BigInt {
+    let value = this.get("requisitionId");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set requisitionId(value: BigInt) {
+    this.set("requisitionId", Value.fromBigInt(value));
+  }
+
+  get borrower(): string {
+    let value = this.get("borrower");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set borrower(value: string) {
+    this.set("borrower", Value.fromString(value));
+  }
+
+  get amount(): BigInt {
+    let value = this.get("amount");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set amount(value: BigInt) {
+    this.set("amount", Value.fromBigInt(value));
+  }
+
+  get timestamp(): BigInt {
+    let value = this.get("timestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set timestamp(value: BigInt) {
+    this.set("timestamp", Value.fromBigInt(value));
+  }
+
+  get currentCoverageAmount(): BigInt {
+    let value = this.get("currentCoverageAmount");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set currentCoverageAmount(value: BigInt) {
+    this.set("currentCoverageAmount", Value.fromBigInt(value));
+  }
+
+  get coveringLendersCount(): i32 {
+    let value = this.get("coveringLendersCount");
+    if (!value || value.kind == ValueKind.NULL) {
+      return 0;
+    } else {
+      return value.toI32();
+    }
+  }
+
+  set coveringLendersCount(value: i32) {
+    this.set("coveringLendersCount", Value.fromI32(value));
+  }
+
+  get funded(): boolean {
+    let value = this.get("funded");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set funded(value: boolean) {
+    this.set("funded", Value.fromBoolean(value));
+  }
+
+  get fundedAt(): BigInt | null {
+    let value = this.get("fundedAt");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set fundedAt(value: BigInt | null) {
+    if (!value) {
+      this.unset("fundedAt");
+    } else {
+      this.set("fundedAt", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get coverages(): LoanCoverageLoader {
+    return new LoanCoverageLoader(
+      "LoanRequest",
+      this.get("id")!.toString(),
+      "coverages",
+    );
+  }
+}
+
+export class LoanCoverage extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save LoanCoverage entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type LoanCoverage must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("LoanCoverage", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): LoanCoverage | null {
+    return changetype<LoanCoverage | null>(
+      store.get_in_block("LoanCoverage", id),
+    );
+  }
+
+  static load(id: string): LoanCoverage | null {
+    return changetype<LoanCoverage | null>(store.get("LoanCoverage", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get loanRequest(): string {
+    let value = this.get("loanRequest");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set loanRequest(value: string) {
+    this.set("loanRequest", Value.fromString(value));
+  }
+
+  get lender(): string {
+    let value = this.get("lender");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set lender(value: string) {
+    this.set("lender", Value.fromString(value));
+  }
+
+  get amount(): BigInt {
+    let value = this.get("amount");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set amount(value: BigInt) {
+    this.set("amount", Value.fromBigInt(value));
+  }
+
+  get timestamp(): BigInt {
+    let value = this.get("timestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set timestamp(value: BigInt) {
+    this.set("timestamp", Value.fromBigInt(value));
+  }
+}
+
 export class DonationLoader extends Entity {
   _entity: string;
   _field: string;
@@ -526,5 +778,23 @@ export class RepaymentLoader extends Entity {
   load(): Repayment[] {
     let value = store.loadRelated(this._entity, this._id, this._field);
     return changetype<Repayment[]>(value);
+  }
+}
+
+export class LoanCoverageLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): LoanCoverage[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<LoanCoverage[]>(value);
   }
 }

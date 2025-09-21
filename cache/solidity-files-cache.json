@@ -1,16 +1,50 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\codigos\\loan-machine\\contracts\\loanMachine.sol": {
-      "lastModificationDate": 1758333186758,
-      "contentHash": "ad65664c7cbb3545606bb6d29e857631",
-      "sourceName": "contracts/loanMachine.sol",
+    "C:\\codigos\\loan-machine\\contracts\\interfaces\\ILoanMachine.sol": {
+      "lastModificationDate": 1758489095812,
+      "contentHash": "01e6031b4a713847660b3d28f1f58189",
+      "sourceName": "contracts/interfaces/ILoanMachine.sol",
       "solcConfig": {
-        "version": "0.8.20",
+        "version": "0.8.19",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ILoanMachine"
+      ]
+    },
+    "C:\\codigos\\loan-machine\\contracts\\structs\\LoanStructs.sol": {
+      "lastModificationDate": 1758488840317,
+      "contentHash": "dd19bc5c3c028d449211e1fec4ff1e66",
+      "sourceName": "contracts/structs/LoanStructs.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
             "runs": 200
           },
           "outputSelection": {
@@ -30,25 +64,62 @@
         }
       },
       "imports": [
-        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
+        "../interfaces/ILoanMachine.sol"
       ],
       "versionPragmas": [
         "^0.8.0"
       ],
       "artifacts": [
-        "loanMachine"
+        "LoanStructs"
+      ]
+    },
+    "C:\\codigos\\loan-machine\\contracts\\LoanMachine.sol": {
+      "lastModificationDate": 1758490524073,
+      "contentHash": "99fb96f0644d35c127f82968769e55d3",
+      "sourceName": "contracts/LoanMachine.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "./interfaces/ILoanMachine.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "LoanMachine"
       ]
     },
     "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
-      "lastModificationDate": 1756869306677,
+      "lastModificationDate": 1758488714694,
       "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
       "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
       "solcConfig": {
-        "version": "0.8.20",
+        "version": "0.8.19",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
           "outputSelection": {
@@ -73,6 +144,41 @@
       ],
       "artifacts": [
         "ReentrancyGuard"
+      ]
+    },
+    "C:\\codigos\\loan-machine\\contracts\\libraries\\LoanCalculations.sol": {
+      "lastModificationDate": 1758484490142,
+      "contentHash": "045ed599e609cfcba74a9c3af7876241",
+      "sourceName": "contracts/libraries/LoanCalculations.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "LoanCalculations"
       ]
     }
   }

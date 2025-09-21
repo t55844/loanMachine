@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
-// Import OpenZeppelin's ReentrancyGuard
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./interfaces/ILoanMachine.sol";
 
-contract loanMachine is ReentrancyGuard {
+contract LoanMachine is ILoanMachine, ReentrancyGuard {
     // State variables
     mapping(address => uint256) private donations;
     mapping(address => uint256) private borrowings;
@@ -14,142 +14,219 @@ contract loanMachine is ReentrancyGuard {
     uint256 private totalBorrowed;
     uint256 private availableBalance;
 
-    // Constants for rules
-    uint256 private constant MAX_BORROW_AMOUNT = 1 ether;
+    // Loan requisition system
+    mapping(uint256 => LoanRequisition) private loanRequisitions;
+    mapping(address => uint256[]) public borrowerRequisitions;
+    mapping(address => uint256) private donationsInCoverage;
+    uint256 public requisitionCounter;
+
+    // Constants
     uint256 private constant BORROW_DURATION = 7 days;
     uint256 private constant MIN_DONATION_FOR_BORROW = 0.1 ether;
 
-    // Events for gas-efficient tracking (CHEAP!)
-    event Donated(address indexed donor, uint256 amount, uint256 totalDonation);
-    event Borrowed(
-        address indexed borrower,
-        uint256 amount,
-        uint256 totalBorrowing
-    );
-    event Repaid(
-        address indexed borrower,
-        uint256 amount,
-        uint256 remainingDebt
-    );
+    // Custom errors
+    error InvalidAmount();
+    error InsufficientFunds();
+    error MinimumDonationRequired();
+    error BorrowNotExpired();
+    error InvalidCoveragePercentage();
+    error OverCoverage();
+    error LoanNotAvailable();
+    error InsufficientDonationBalance();
+    error NoActiveBorrowing();
+    error RepaymentExceedsBorrowed();
 
-    event TotalDonationsUpdated(uint256 total);
-    event TotalBorrowedUpdated(uint256 total);
-    event AvailableBalanceUpdated(uint256 total);
+    struct LoanRequisition {
+        address borrower;
+        uint256 amount;
+        uint32 minimumCoverage;
+        uint32 currentCoverage;
+        BorrowStatus status;
+        uint256 durationDays;
+        uint256 creationTime;
+        address[] coveringLenders;
+        mapping(address => uint256) coverageAmounts;
+    }
 
-    event NewDonor(address indexed donor); // For tracking first-time donors
-    event NewBorrower(address indexed borrower); // For tracking first-time borrowers
-    event BorrowLimitReached(address indexed borrower);
+    modifier minimumPercentCoveragePermited(uint256 minimumCoverage) {
+        if (minimumCoverage <= 70 || minimumCoverage > 100) revert InvalidCoveragePercentage();
+        _;
+    }
 
     modifier validAmount(uint256 _amount) {
-        require(_amount > 0, "Amount must be greater than 0");
+        if (_amount == 0) revert InvalidAmount();
         _;
     }
 
     modifier canBorrow(uint256 _amount) {
-        require(
-            _amount <= availableBalance,
-            "Insufficient funds in vending machine"
-        );
-        require(_amount <= MAX_BORROW_AMOUNT, "Exceeds maximum borrow amount");
-        require(
-            donations[msg.sender] >= MIN_DONATION_FOR_BORROW ||
-                borrowings[msg.sender] == 0,
-            "Minimum donation required or existing debt"
-        );
-        require(
-            borrowings[msg.sender] + _amount <= MAX_BORROW_AMOUNT,
-            "Exceeds personal borrow limit"
-        );
-        require(
-            lastBorrowTime[msg.sender] + BORROW_DURATION < block.timestamp ||
-                borrowings[msg.sender] == 0,
-            "Previous borrow not yet repaid or duration not expired"
-        );
+        if (_amount > availableBalance) revert InsufficientFunds();
+        if (donations[msg.sender] < MIN_DONATION_FOR_BORROW && borrowings[msg.sender] != 0) {
+            revert MinimumDonationRequired();
+        }
+        if (lastBorrowTime[msg.sender] + BORROW_DURATION >= block.timestamp && borrowings[msg.sender] != 0) {
+            revert BorrowNotExpired();
+        }
         _;
     }
 
-    // Donate function - GAS EFFICIENT
+    modifier validCoverage(uint32 coveragePercentage) {
+        if (coveragePercentage == 0 || coveragePercentage > 100) revert InvalidCoveragePercentage();
+        _;
+    }
+
+    // Donate function
     function donate() external payable validAmount(msg.value) nonReentrant {
         bool isNewDonor = donations[msg.sender] == 0;
 
-        donations[msg.sender] += msg.value;
-        totalDonations += msg.value;
-        availableBalance += msg.value;
+        unchecked {
+            donations[msg.sender] += msg.value;
+            totalDonations += msg.value;
+            availableBalance += msg.value;
+        }
 
-        // Emit events (CHEAP - ~2000 gas total)
         emit Donated(msg.sender, msg.value, donations[msg.sender]);
         emit TotalDonationsUpdated(totalDonations);
         emit AvailableBalanceUpdated(availableBalance);
+        
         if (isNewDonor) {
-            emit NewDonor(msg.sender); // Helps off-chain indexers track all donors
+            emit NewDonor(msg.sender);
         }
     }
 
-    // Borrow function - GAS EFFICIENT
-    function borrow(
-        uint256 _amount
-    ) external validAmount(_amount) canBorrow(_amount) nonReentrant {
+    // Create loan requisition
+    function createLoanRequisition(
+        uint256 _amount,
+        uint32 _minimumCoverage,
+        uint256 _durationDays
+    ) external validAmount(_amount) minimumPercentCoveragePermited(_minimumCoverage) returns (uint256) {
+        if (_amount > availableBalance) revert InsufficientFunds();
+        
+        uint256 requisitionId = requisitionCounter++;
+        
+        LoanRequisition storage newReq = loanRequisitions[requisitionId];
+        newReq.borrower = msg.sender;
+        newReq.amount = _amount;
+        newReq.minimumCoverage = _minimumCoverage;
+        newReq.currentCoverage = 0;
+        newReq.status = BorrowStatus.Pending;
+        newReq.durationDays = _durationDays;
+        newReq.creationTime = block.timestamp;
+        
+        borrowerRequisitions[msg.sender].push(requisitionId);
+        
+        emit LoanRequisitionCreated(requisitionId, msg.sender, _amount);
+        return requisitionId;
+    }
+
+    // Cover a loan requisition
+    function coverLoan(uint256 requisitionId, uint32 coveragePercentage) 
+        external 
+        validCoverage(coveragePercentage)
+        nonReentrant 
+    {
+        LoanRequisition storage req = loanRequisitions[requisitionId];
+        
+        if (req.status != BorrowStatus.Pending && req.status != BorrowStatus.PartiallyCovered) {
+            revert LoanNotAvailable();
+        }
+        
+        if (uint256(req.currentCoverage) + uint256(coveragePercentage) > 100) {
+            revert OverCoverage();
+        }
+        
+        uint256 coverageAmount = (req.amount * uint256(coveragePercentage)) / 100;
+        
+        if (donations[msg.sender] < coverageAmount) {
+            revert InsufficientDonationBalance();
+        }
+        
+        unchecked {
+            donations[msg.sender] -= coverageAmount;
+            donationsInCoverage[msg.sender] += coverageAmount;
+        }
+        
+        req.currentCoverage += coveragePercentage;
+        
+        if (req.coverageAmounts[msg.sender] == 0) {
+            req.coveringLenders.push(msg.sender);
+        }
+        req.coverageAmounts[msg.sender] += coverageAmount;
+        
+        if (req.currentCoverage >= req.minimumCoverage) {
+            req.status = BorrowStatus.FullyCovered;
+            _fundLoan(requisitionId);
+        } else {
+            req.status = BorrowStatus.PartiallyCovered;
+        }
+        
+        emit LoanCovered(requisitionId, msg.sender, coverageAmount);
+    }
+
+    // Internal function to fund the loan
+    function _fundLoan(uint256 requisitionId) internal {
+        LoanRequisition storage req = loanRequisitions[requisitionId];
+        
+        unchecked {
+            borrowings[req.borrower] += req.amount;
+            totalBorrowed += req.amount;
+            availableBalance -= req.amount;
+        }
+        
+        lastBorrowTime[req.borrower] = block.timestamp;
+        req.status = BorrowStatus.Active;
+        
+        payable(req.borrower).transfer(req.amount);
+        
+        emit Borrowed(req.borrower, req.amount, borrowings[req.borrower]);
+        emit TotalBorrowedUpdated(totalBorrowed);
+        emit AvailableBalanceUpdated(availableBalance);
+        emit LoanFunded(requisitionId);
+    }
+
+    // Direct borrow function
+    function borrow(uint256 _amount) external validAmount(_amount) canBorrow(_amount) nonReentrant {
         bool isNewBorrower = borrowings[msg.sender] == 0;
 
-        borrowings[msg.sender] += _amount;
+        unchecked {
+            borrowings[msg.sender] += _amount;
+            totalBorrowed += _amount;
+            availableBalance -= _amount;
+        }
+        
         lastBorrowTime[msg.sender] = block.timestamp;
-        totalBorrowed += _amount;
-        availableBalance -= _amount;
 
-        // Emit events (CHEAP)
         emit Borrowed(msg.sender, _amount, borrowings[msg.sender]);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
+        
         if (isNewBorrower) {
-            emit NewBorrower(msg.sender); // Helps off-chain indexers track all borrowers
+            emit NewBorrower(msg.sender);
         }
 
-        // Transfer funds to borrower
         payable(msg.sender).transfer(_amount);
     }
 
-    // Repay function - GAS EFFICIENT
+    // Repay function
     function repay() external payable validAmount(msg.value) nonReentrant {
-        require(borrowings[msg.sender] > 0, "No active borrowing");
-        require(
-            msg.value <= borrowings[msg.sender],
-            "Repayment exceeds borrowed amount"
-        );
+        if (borrowings[msg.sender] == 0) revert NoActiveBorrowing();
+        if (msg.value > borrowings[msg.sender]) revert RepaymentExceedsBorrowed();
 
-        borrowings[msg.sender] -= msg.value;
-        totalBorrowed -= msg.value;
-        availableBalance += msg.value;
+        unchecked {
+            borrowings[msg.sender] -= msg.value;
+            totalBorrowed -= msg.value;
+            availableBalance += msg.value;
+        }
 
-        // Emit event (CHEAP)
         emit Repaid(msg.sender, msg.value, borrowings[msg.sender]);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
     }
 
-    // Check available borrow amount for user
-    function getAvailableBorrowAmount(
-        address _user
-    ) external view returns (uint256) {
-        uint256 maxPossible = MAX_BORROW_AMOUNT - borrowings[_user];
-        return maxPossible < availableBalance ? maxPossible : availableBalance;
+    // View functions from interface
+    function getAvailableBorrowAmount() external view returns (uint256) {
+        return availableBalance;
     }
 
-    // Check if user can borrow
-    function canUserBorrow(
-        address _user,
-        uint256 _amount
-    ) external view returns (bool) {
-        return (_amount > 0 &&
-            _amount <= availableBalance &&
-            _amount <= MAX_BORROW_AMOUNT &&
-            (donations[_user] >= MIN_DONATION_FOR_BORROW ||
-                borrowings[_user] == 0) &&
-            (borrowings[_user] + _amount <= MAX_BORROW_AMOUNT) &&
-            (lastBorrowTime[_user] + BORROW_DURATION < block.timestamp ||
-                borrowings[_user] == 0));
-    }
-
-    /* GET INFORMATIONS ABOUT FUNDS, BALANCES AND VALUES */
     function getTotalDonations() external view returns (uint256) {
         return totalDonations;
     }
@@ -162,36 +239,10 @@ contract loanMachine is ReentrancyGuard {
         return availableBalance;
     }
 
-    // Get contract balance
     function getContractBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
-    // Get user stats
-    function getUserStats(
-        address _user
-    )
-        external
-        view
-        returns (
-            uint256 userDonations,
-            uint256 userBorrowings,
-            uint256 lastBorrow,
-            bool canBorrowNow
-        )
-    {
-        userDonations = donations[_user];
-        userBorrowings = borrowings[_user];
-        lastBorrow = lastBorrowTime[_user];
-        canBorrowNow = (availableBalance > 0 &&
-            borrowings[_user] < MAX_BORROW_AMOUNT &&
-            (donations[_user] >= MIN_DONATION_FOR_BORROW ||
-                borrowings[_user] == 0) &&
-            (lastBorrowTime[_user] + BORROW_DURATION < block.timestamp ||
-                borrowings[_user] == 0));
-    }
-
-    // Individual lookup functions (for current state)
     function getDonation(address _user) external view returns (uint256) {
         return donations[_user];
     }
@@ -202,5 +253,39 @@ contract loanMachine is ReentrancyGuard {
 
     function getLastBorrowTime(address _user) external view returns (uint256) {
         return lastBorrowTime[_user];
+    }
+
+    function getCoveringLenders(uint256 requisitionId) external view returns (address[] memory) {
+        return loanRequisitions[requisitionId].coveringLenders;
+    }
+
+    function getLenderCoverage(uint256 requisitionId, address lender) external view returns (uint256) {
+        return loanRequisitions[requisitionId].coverageAmounts[lender];
+    }
+
+    function getBorrowerRequisitions(address borrower) external view returns (uint256[] memory) {
+        return borrowerRequisitions[borrower];
+    }
+
+    function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory) {
+        LoanRequisition storage req = loanRequisitions[requisitionId];
+        return RequisitionInfo({
+            borrower: req.borrower,
+            amount: req.amount,
+            minimumCoverage: req.minimumCoverage,
+            currentCoverage: req.currentCoverage,
+            status: req.status,
+            durationDays: req.durationDays,
+            creationTime: req.creationTime,
+            coveringLendersCount: req.coveringLenders.length
+        });
+    }
+
+    // Additional helper function (not in interface but useful)
+    function canUserBorrow(address _user, uint256 _amount) external view returns (bool) {
+        return (_amount > 0 &&
+            _amount <= availableBalance &&
+            (donations[_user] >= MIN_DONATION_FOR_BORROW || borrowings[_user] == 0) &&
+            (lastBorrowTime[_user] + BORROW_DURATION < block.timestamp || borrowings[_user] == 0));
     }
 }
