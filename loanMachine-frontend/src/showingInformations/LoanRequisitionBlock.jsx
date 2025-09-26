@@ -18,7 +18,7 @@ function LoanRequisitionBlock() {
   };
 
   return (
-    <div className="card">
+    <div className="requsitionBlock">
       <h1>Loan Requisition System</h1>
       
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>

@@ -37,7 +37,7 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[0];
+      const defaultAccount = accounts[3];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);

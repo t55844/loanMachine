@@ -116,3 +116,64 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
     throw error;
   }
 }
+
+
+export async function fetchLoanRequisitions() {
+  const query = `
+    query GetLoanRequisitions {
+      loanRequests {
+        requisitionId
+        amount
+        borrower {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(import.meta.env.VITE_SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    
+    const { data } = await response.json();
+    return data.loanRequests || [];
+  } catch (error) {
+    console.error("Error fetching loan requisitions:", error);
+    throw error;
+  }
+}
+
+export async function fetchUserDonations(donorAddress) {
+  const query = `
+    query GetDonationsByDonor($donor: String!) {
+      donations(where: { donor: $donor }) {
+        id
+        donor {
+          id
+        }
+        amount
+        totalDonation
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(import.meta.env.VITE_SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        query,
+        variables: { donor: donorAddress.toLowerCase() }
+      }),
+    });
+    
+    const { data } = await response.json();
+    return data.donations || [];
+  } catch (error) {
+    console.error("Error fetching user donations:", error);
+    throw error;
+  }
+}

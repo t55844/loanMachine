@@ -1,61 +1,93 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
+import { fetchLoanRequisitions, fetchUserDonations } from "../graphql-frontend-query";
 
 export default function PendingRequisitionsList({ contract, account, onCoverLoan }) {
   const [requisitions, setRequisitions] = useState([]);
   const [selectedRequisition, setSelectedRequisition] = useState(null);
-  const [coveragePercentage, setCoveragePercentage] = useState("10");
+  const [customPercentage, setCustomPercentage] = useState("");
   const [loading, setLoading] = useState(true);
   const [covering, setCovering] = useState(false);
   const [error, setError] = useState("");
+  const [userDonationBalance, setUserDonationBalance] = useState("0");
+
+  // Quick percentage options + custom input
+  const quickPercentages = [1, 3, 5, 10, 15, 20, 25, 33, 50, 75, 100];
 
   useEffect(() => {
-    loadPendingRequisitions();
-  }, [contract]);
+    if (contract && account) {
+      loadPendingRequisitions();
+      loadUserDonationBalance();
+    }
+  }, [contract, account]);
+
+  const loadUserDonationBalance = async () => {
+    if (!account) return;
+    
+    try {
+      const donations = await fetchUserDonations(account);
+      const totalBalance = donations.reduce((total, donation) => {
+        return total + parseFloat(ethers.utils.formatEther(donation.amount || "0"));
+      }, 0);
+      setUserDonationBalance(totalBalance.toString());
+    } catch (err) {
+      console.error("Error loading donation balance from subgraph:", err);
+      setUserDonationBalance("0");
+    }
+  };
 
   const loadPendingRequisitions = async () => {
-    if (!contract) return;
+    if (!contract || !account) return;
     
     setLoading(true);
     setError("");
     
     try {
-      // In a real implementation, you would query all requisitions and filter by status
-      // For this example, we'll simulate getting pending requisitions
-      // This would need to be implemented based on your subgraph or contract events
-      
-      // Simulated data - replace with actual implementation
-      const simulatedRequisitions = [
-        {
-          id: "1",
-          borrower: "0x1234...abcd",
-          amount: "1.5",
-          minimumCoverage: 80,
-          currentCoverage: 45,
-          status: 1, // Partially Covered
-          creationTime: new Date().toLocaleString()
-        },
-        {
-          id: "2",
-          borrower: "0x5678...efgh",
-          amount: "2.0",
-          minimumCoverage: 75,
-          currentCoverage: 0,
-          status: 0, // Pending
-          creationTime: new Date().toLocaleString()
-        }
-      ];
-      
-      setRequisitions(simulatedRequisitions);
+      const graphRequisitions = await fetchLoanRequisitions();
+      const requisitionDetails = await Promise.all(
+        graphRequisitions.map(async (graphReq) => {
+          try {
+            const requisitionId = parseInt(graphReq.requisitionId);
+            const info = await contract.getRequisitionInfo(requisitionId);
+
+            const safeNumber = (val) => {
+              if (val && typeof val.toNumber === "function") return val.toNumber();
+              if (typeof val === "bigint") return Number(val);
+              return Number(val);
+            };
+
+            return {
+              id: requisitionId.toString(),
+              borrower: info.borrower,
+              amount: ethers.utils.formatEther(info.amount),
+              minimumCoverage: safeNumber(info.minimumCoverage),
+              currentCoverage: safeNumber(info.currentCoverage),
+              status: safeNumber(info.status),
+              durationDays: safeNumber(info.durationDays),
+              creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
+              coveringLendersCount: safeNumber(info.coveringLendersCount)
+            };
+          } catch (err) {
+            console.error(`Error loading requisition ${graphReq.requisitionId}:`, err);
+            return null;
+          }
+        })
+      );
+
+      const pendingRequisitions = requisitionDetails
+        .filter(req => req !== null)
+        .filter(req => req.status === 0 || req.status === 1);
+
+      setRequisitions(pendingRequisitions);
     } catch (err) {
       console.error("Error loading pending requisitions:", err);
-      setError("Failed to load pending requisitions");
+      setError("Failed to load available requisitions");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCoverLoan = async (requisitionId) => {
+  const handleCoverLoan = async (requisitionId, percentage) => {
     if (!contract || !account) {
       setError("Please connect your wallet first");
       return;
@@ -65,11 +97,18 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     setError("");
     
     try {
-      const tx = await contract.coverLoan(
-        requisitionId,
-        parseInt(coveragePercentage)
-      );
-      
+      const requisition = requisitions.find(r => r.id === requisitionId);
+      if (!requisition) {
+        throw new Error("Requisition not found");
+      }
+
+      const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
+
+      if (parseFloat(userDonationBalance) < coverageAmount) {
+        throw new Error(`Insufficient donation balance. You have ${userDonationBalance} ETH but need ${coverageAmount.toFixed(4)} ETH`);
+      }
+
+      const tx = await contract.coverLoan(requisitionId, percentage);
       await tx.wait();
       
       if (onCoverLoan) {
@@ -77,7 +116,8 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       }
       
       setSelectedRequisition(null);
-      loadPendingRequisitions();
+      setCustomPercentage("");
+      await Promise.all([loadPendingRequisitions(), loadUserDonationBalance()]);
       
     } catch (err) {
       console.error("Error covering loan:", err);
@@ -87,11 +127,18 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     }
   };
 
+  const stopPropagation = (e) => {
+    e.stopPropagation();
+  };
+
   const getStatusText = (status) => {
     switch (status) {
       case 0: return "Pending";
       case 1: return "Partially Covered";
       case 2: return "Fully Covered";
+      case 3: return "Active";
+      case 4: return "Repaid";
+      case 5: return "Defaulted";
       default: return "Unknown";
     }
   };
@@ -101,130 +148,138 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       case 0: return "var(--text-secondary)";
       case 1: return "var(--accent-blue)";
       case 2: return "var(--accent-green)";
+      case 3: return "var(--accent-blue)";
+      case 4: return "var(--accent-green)";
+      case 5: return "var(--accent-red)";
       default: return "var(--text-secondary)";
     }
   };
 
+  const formatAddress = (address) => {
+    if (!address) return "Unknown";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   return (
-    <div style={{
-      background: 'var(--bg-tertiary)',
-      padding: '24px',
-      borderRadius: '12px',
-      border: '1px solid var(--border-color)',
-      marginTop: '16px'
-    }}>
-      <h2>Pending Loan Requisitions</h2>
+    <div className="requsitionBlock">
+      <h2>Available Loan Requisitions</h2>
       
-      {error && <div style={{
-        color: 'var(--accent-red)', 
-        marginBottom: '16px',
-        padding: '12px',
-        backgroundColor: 'rgba(242, 54, 69, 0.1)',
-        borderRadius: '6px',
-        border: '1px solid var(--accent-red)'
-      }}>{error}</div>}
+      <div className="stats-box">
+        <strong>Your Donation Balance:</strong> {parseFloat(userDonationBalance).toFixed(4)} ETH
+      </div>
+      
+      {error && <div className="error-message">{error}</div>}
       
       {loading ? (
-        <p>Loading pending requisitions...</p>
+        <p>Loading available requisitions...</p>
       ) : requisitions.length === 0 ? (
-        <p>No pending requisitions found.</p>
+        <p>No available requisitions found.</p>
       ) : (
-        <div style={{ textAlign: 'left' }}>
+        <div className="requisitions-list">
           {requisitions.map((req) => (
-            <div key={req.id} style={{
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '16px',
-              marginBottom: '16px',
-              backgroundColor: 'var(--bg-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => setSelectedRequisition(selectedRequisition?.id === req.id ? null : req)}
+            <div 
+              key={req.id} 
+              className="requisition-item"
+              onClick={() => {
+                setSelectedRequisition(selectedRequisition?.id === req.id ? null : req);
+                setCustomPercentage("");
+              }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0 }}>Requisition #{req.id}</h3>
-                <span style={{ 
-                  color: getStatusColor(req.status),
-                  fontWeight: 'bold',
-                  fontSize: '14px'
-                }}>
+              <div className="requisition-header">
+                <h3>Requisition #{req.id}</h3>
+                <span 
+                  className="status-badge"
+                  style={{ color: getStatusColor(req.status) }}
+                >
                   {getStatusText(req.status)}
                 </span>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <div>
-                  <strong>Amount:</strong> {req.amount} ETH
-                </div>
-                <div>
-                  <strong>Borrower:</strong> {req.borrower.slice(0, 6)}...{req.borrower.slice(-4)}
-                </div>
-                <div>
-                  <strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%
-                </div>
-                <div>
-                  <strong>Created:</strong> {req.creationTime}
-                </div>
+              <div className="requisition-details">
+                <div><strong>Amount:</strong> {req.amount} ETH</div>
+                <div><strong>Borrower:</strong> {formatAddress(req.borrower)}</div>
+                <div><strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%</div>
+                <div><strong>Duration:</strong> {req.durationDays} days</div>
+                <div><strong>Lenders:</strong> {req.coveringLendersCount}</div>
+                <div><strong>Created:</strong> {req.creationTime}</div>
               </div>
               
-              <div style={{ 
-                height: '8px', 
-                backgroundColor: 'var(--bg-primary)', 
-                borderRadius: '4px',
-                overflow: 'hidden',
-                marginBottom: '12px'
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${req.currentCoverage}%`,
-                  backgroundColor: req.currentCoverage >= req.minimumCoverage ? 
-                    'var(--accent-green)' : 'var(--accent-blue)',
-                  transition: 'width 0.3s ease'
-                }}></div>
+              <div className="coverage-bar-container">
+                <div 
+                  className="coverage-bar-fill"
+                  style={{
+                    width: `${Math.min(req.currentCoverage, 100)}%`,
+                    backgroundColor: req.currentCoverage >= req.minimumCoverage ? 
+                      'var(--accent-green)' : 'var(--accent-blue)',
+                  }}
+                ></div>
               </div>
               
               {selectedRequisition?.id === req.id && (
-                <div style={{ 
-                  padding: '16px', 
-                  backgroundColor: 'var(--bg-tertiary)', 
-                  borderRadius: '8px',
-                  marginTop: '12px'
-                }}>
-                  <h4 style={{ margin: '0 0 12px 0' }}>Cover This Loan</h4>
+                <div className="cover-loan-section" onClick={stopPropagation}>
+                  <h4>Cover This Loan</h4>
                   
-                  <div style={{ marginBottom: '12px' }}>
-                    <label htmlFor={`coverage-${req.id}`} style={{display: 'block', marginBottom: '8px'}}>
-                      Coverage Percentage (%)
-                    </label>
-                    <select
-                      id={`coverage-${req.id}`}
-                      value={coveragePercentage}
-                      onChange={(e) => setCoveragePercentage(e.target.value)}
-                      className="donate-select"
-                      style={{width: '100%'}}
-                    >
-                      <option value="5">5%</option>
-                      <option value="10">10%</option>
-                      <option value="15">15%</option>
-                      <option value="20">20%</option>
-                      <option value="25">25%</option>
-                      <option value="30">30%</option>
-                    </select>
+                  <div className="quick-percentages">
+                    <p>Quick select:</p>
+                    <div className="percentage-grid">
+                      {quickPercentages.map((percentage) => {
+                        const coverageAmount = parseFloat(req.amount) * percentage / 100;
+                        const canCover = parseFloat(userDonationBalance) >= coverageAmount;
+                        const remainingCoverage = 100 - req.currentCoverage;
+                        const isValid = percentage <= remainingCoverage && percentage > 0;
+                        
+                        return (
+                          <button
+                            key={percentage}
+                            onClick={() => isValid && handleCoverLoan(req.id, percentage)}
+                            className={`percentage-button ${!isValid ? 'disabled' : ''} ${!canCover ? 'insufficient' : ''}`}
+                            disabled={covering || !isValid || !canCover}
+                            title={!isValid ? 
+                              `Cannot cover more than ${remainingCoverage}%` : 
+                              !canCover ? `Need ${coverageAmount.toFixed(4)} ETH` :
+                              `Cover ${percentage}% (${coverageAmount.toFixed(4)} ETH)`
+                            }
+                          >
+                            {percentage}%
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   
-                  <div style={{ marginBottom: '12px' }}>
-                    <strong>Coverage Amount:</strong> {(parseFloat(req.amount) * parseInt(coveragePercentage) / 100).toFixed(4)} ETH
+                  <div className="custom-percentage">
+                    <p>Or enter custom percentage (1-100):</p>
+                    <div className="custom-input-group">
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={customPercentage}
+                        onChange={(e) => setCustomPercentage(e.target.value)}
+                        onClick={stopPropagation}
+                        placeholder="Enter percentage"
+                        className="custom-percentage-input"
+                      />
+                      <span>%</span>
+                      <button
+                        onClick={() => {
+                          const percentage = parseInt(customPercentage);
+                          if (percentage >= 1 && percentage <= 100) {
+                            handleCoverLoan(req.id, percentage);
+                          }
+                        }}
+                        disabled={covering || !customPercentage || parseInt(customPercentage) < 1 || parseInt(customPercentage) > 100}
+                        className="custom-cover-button"
+                      >
+                        Cover
+                      </button>
+                    </div>
+                    {customPercentage && (
+                      <div className="custom-amount">
+                        Coverage amount: {(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(4)} ETH
+                      </div>
+                    )}
                   </div>
-                  
-                  <button 
-                    onClick={() => handleCoverLoan(req.id)}
-                    className="donate-button"
-                    disabled={covering}
-                    style={{width: '100%'}}
-                  >
-                    {covering ? "Processing..." : `Cover ${coveragePercentage}%`}
-                  </button>
                 </div>
               )}
             </div>
@@ -232,11 +287,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
         </div>
       )}
       
-      <button 
-        onClick={loadPendingRequisitions} 
-        className="wallet-button"
-        style={{ marginTop: '16px' }}
-      >
+      <button onClick={loadPendingRequisitions} className="wallet-button refresh-button">
         Refresh List
       </button>
     </div>

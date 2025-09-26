@@ -50,7 +50,15 @@ body, #root {
   border: 1px solid var(--border-color);
   margin-bottom: 20px;
 }
-
+.requsitionBlock {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
 /* Titles */
 h1, h2, h3 {
   margin-bottom: 16px;
@@ -265,4 +273,156 @@ h3 {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+}
+
+/* Pending Requisitions List Styles */
+.error-message {
+  color: var(--accent-red);
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(242, 54, 69, 0.1);
+  border-radius: 6px;
+  border: 1px solid var(--accent-red);
+}
+
+.requisitions-list { text-align: left; }
+
+.requisition-item {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: var(--bg-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.requisition-item:hover { border-color: var(--accent-blue); }
+
+.requisition-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.requisition-header h3 { margin: 0; }
+.status-badge { font-weight: bold; font-size: 14px; }
+
+.requisition-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coverage-bar-container {
+  height: 8px;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.coverage-bar-fill { 
+  height: 100%; 
+  transition: width 0.3s ease; 
+}
+
+.cover-loan-section {
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.cover-loan-section h4 { margin: 0 0 12px 0; }
+.refresh-button { margin-top: 16px; }
+
+/* Percentage Selector */
+.quick-percentages { margin-bottom: 20px; }
+.quick-percentages p { 
+  margin: 0 0 10px 0; 
+  color: var(--text-secondary); 
+  font-size: 14px; 
+}
+
+.percentage-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.percentage-button {
+  padding: 8px 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.percentage-button:hover:not(.disabled):not(.insufficient):not(:disabled) {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.percentage-button.disabled { opacity: 0.4; cursor: not-allowed; }
+.percentage-button.insufficient { 
+  background: rgba(242, 54, 69, 0.1); 
+  border-color: var(--accent-red); 
+  color: var(--accent-red); 
+}
+.percentage-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Custom Percentage */
+.custom-percentage { margin-top: 15px; }
+.custom-percentage p { 
+  margin: 0 0 10px 0; 
+  color: var(--text-secondary); 
+  font-size: 14px; 
+}
+
+.custom-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.custom-percentage-input {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  width: 80px;
+}
+
+.custom-cover-button {
+  padding: 8px 16px;
+  border: 1px solid var(--accent-blue);
+  border-radius: 4px;
+  background: var(--accent-blue);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.custom-cover-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.custom-amount { font-size: 12px; color: var(--text-secondary); margin-top: 5px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .requisition-details { grid-template-columns: 1fr; gap: 8px; }
+  .requisition-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cover-loan-section { padding: 12px; }
+  .percentage-grid { grid-template-columns: repeat(4, 1fr); }
+  .custom-input-group { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .percentage-grid { grid-template-columns: repeat(3, 1fr); }
 }

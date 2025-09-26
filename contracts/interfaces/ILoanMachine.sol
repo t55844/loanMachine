@@ -24,8 +24,8 @@ interface ILoanMachine {
     event TotalBorrowedUpdated(uint256 total);
     event AvailableBalanceUpdated(uint256 total);
 
-    event NewDonor(address indexed donor); // For tracking first-time donors
-    event NewBorrower(address indexed borrower); // For tracking first-time borrowers
+    event NewDonor(address indexed donor); 
+    event NewBorrower(address indexed borrower); 
     event BorrowLimitReached(address indexed borrower);
 
     event LoanRequisitionCreated(uint256 indexed requisitionId, address indexed borrower, uint256 amount);

@@ -2,7 +2,7 @@
 npx hardhat clean
 npx hardhat compile
 npx hardhat node
-npx hardhat deploy //run scripts/deploy.js --network localhost 
+npx hardhat run scripts/deploy.js --network localhost 
 0x5FbDB2315678afecb367f032d93F642f64180aa3
 
 npx hardhat run scripts/interact.js --network localhost 
@@ -41,3 +41,6 @@ de valor total, valor das parcelas, prazos etc e essa funcionalidade vai ficar m
 
 
 blocos aumentando muito, olhar depois
+
+
+olhar as funcionalidades novas no detalhe e testar a função de cobrir um emprestimo
