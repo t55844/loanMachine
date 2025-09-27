@@ -1,6 +1,6 @@
 type Donation @entity(immutable: false) {
   id: ID!
-  donor: User! # Changed from Bytes to User
+  donor: User! 
   amount: BigInt!
   timestamp: BigInt!
   totalDonation: BigInt!
@@ -8,7 +8,7 @@ type Donation @entity(immutable: false) {
 
 type Borrow @entity(immutable: false) {
   id: ID!
-  borrower: User! # Changed from Bytes to User
+  borrower: User! 
   amount: BigInt!
   timestamp: BigInt!
   totalBorrowing: BigInt!
@@ -16,7 +16,7 @@ type Borrow @entity(immutable: false) {
 
 type Repayment @entity(immutable: false) {
   id: ID!
-  borrower: User! # Changed from Bytes to User
+  borrower: User! 
   amount: BigInt!
   timestamp: BigInt!
   remainingDebt: BigInt!
@@ -40,33 +40,43 @@ type Stats @entity(immutable: false) {
   availableBalance: BigInt!
 }
 
-
-
-
 # loan request entity (one per requisition)
 type LoanRequest @entity(immutable: false) {
-id: ID!
-requisitionId: BigInt!
-borrower: User!
-amount: BigInt!
-timestamp: BigInt!
-# sum of coverage amounts (wei)
-currentCoverageAmount: BigInt!
-# number of distinct lenders who covered this requisition
-coveringLendersCount: Int!
-# whether the loan was funded (minimum coverage reached and _fundLoan called)
-funded: Boolean!
-fundedAt: BigInt
-# derived list of coverage entries
-coverages: [LoanCoverage!]! @derivedFrom(field: "loanRequest")
+  id: ID!
+  requisitionId: BigInt!
+  borrower: User!
+  amount: BigInt!
+  timestamp: BigInt!
+  # sum of coverage amounts (wei)
+  currentCoverageAmount: BigInt!
+  # number of distinct lenders who covered this requisition
+  coveringLendersCount: Int!
+  # whether the loan was funded (minimum coverage reached and _fundLoan called)
+  funded: Boolean!
+  fundedAt: BigInt
+  # derived list of coverage entries
+  coverages: [LoanCoverage!]! @derivedFrom(field: "loanRequest")
+  # parcelsCount isn't emitted in LoanRequisitionCreated but is available later in LoanContractGenerated
+  parcelsCount: Int          
+  # optional list of covering lenders addresses (we only populate coveringLendersCount and LoanCoverage entities from events)
+  coveringLenders: [User!] 
 }
-
 
 # per-lender coverage record (accumulates if same lender covers multiple times)
 type LoanCoverage @entity(immutable: false) {
-id: ID!
-loanRequest: LoanRequest!
-lender: User!
-amount: BigInt!
-timestamp: BigInt!
+  id: ID!
+  loanRequest: LoanRequest!
+  lender: User!
+  amount: BigInt!
+  timestamp: BigInt!
+}
+
+# NEW: loan contract entity created when loan contract is generated on-chain
+type LoanContract @entity(immutable: false) {
+  id: ID!
+  walletAddress: User!
+  requisitionId: BigInt!
+  status: Int!          # ContractStatus encoded as integer in the event (store as Int)
+  parcelsPending: Int!  # number of parcels pending (parcelsCount)
+  createdAt: BigInt!    # block timestamp when LoanContractGenerated fired
 }

@@ -21,6 +21,10 @@ dataSources:
         - Borrow
         - Repayment
         - User
+        - Stats
+        - LoanRequest
+        - LoanCoverage
+        - LoanContract            # <-- NEW entity
       abis:
         - name: LoanMachine
           file: ./scripts/graphql/abis/LoanMachine.json
@@ -43,9 +47,12 @@ dataSources:
         - event: AvailableBalanceUpdated(uint256)
           handler: handleAvailableBalanceUpdated
         # events for loan requests and coverage
-        - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256)
+        - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256,uint32)
           handler: handleLoanRequisitionCreated
         - event: LoanCovered(indexed uint256,indexed address,uint256)
           handler: handleLoanCovered
         - event: LoanFunded(indexed uint256)
           handler: handleLoanFunded
+        # event for loan contract generation
+        - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32)
+          handler: handleLoanContractGenerated   

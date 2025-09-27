@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../interfaces/ILoanMachine.sol";
 
 struct LoanRequisitionData {
+    uint256 requisitionId;
     address borrower;
     uint256 amount;
     uint32 minimumCoverage;
@@ -12,6 +13,7 @@ struct LoanRequisitionData {
     uint256 durationDays;
     uint256 creationTime;
     address[] coveringLenders;
+    uint32 parcelsCount;
 }
 
 library LoanStructs {

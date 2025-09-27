@@ -20,6 +20,9 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     mapping(address => uint256) private donationsInCoverage;
     uint256 public requisitionCounter;
 
+    //Loan Contracts
+    mapping(uint256 => LoanContract) public loanContracts;
+
     // Constants
     uint256 private constant BORROW_DURATION = 7 days;
     uint256 private constant MIN_DONATION_FOR_BORROW = 0.1 ether;
@@ -35,8 +38,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error InsufficientDonationBalance();
     error NoActiveBorrowing();
     error RepaymentExceedsBorrowed();
-
-    struct LoanRequisition {
+    error InvalidParcelsCount();
+    
+    // Structs
+    struct LoanRequisition {    
+        uint256 requisitionId;
         address borrower;
         uint256 amount;
         uint32 minimumCoverage;
@@ -46,6 +52,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         uint256 creationTime;
         address[] coveringLenders;
         mapping(address => uint256) coverageAmounts;
+        uint32 parcelsCount;
     }
 
     modifier minimumPercentCoveragePermited(uint256 minimumCoverage) {
@@ -74,6 +81,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         _;
     }
 
+    modifier maxParcelsCount(uint32 parcelscount) {
+        if (parcelscount < 1 || parcelscount > 12) revert InvalidParcelsCount();
+        _;
+    }
+
     // Donate function
     function donate() external payable validAmount(msg.value) nonReentrant {
         bool isNewDonor = donations[msg.sender] == 0;
@@ -97,7 +109,8 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     function createLoanRequisition(
         uint256 _amount,
         uint32 _minimumCoverage,
-        uint256 _durationDays
+        uint256 _durationDays,
+        uint32 parcelscount
     ) external validAmount(_amount) minimumPercentCoveragePermited(_minimumCoverage) returns (uint256) {
         if (_amount > availableBalance) revert InsufficientFunds();
         
@@ -111,10 +124,12 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         newReq.status = BorrowStatus.Pending;
         newReq.durationDays = _durationDays;
         newReq.creationTime = block.timestamp;
+        newReq.parcelsCount = parcelscount;
+        newReq.requisitionId = requisitionId;
         
         borrowerRequisitions[msg.sender].push(requisitionId);
         
-        emit LoanRequisitionCreated(requisitionId, msg.sender, _amount);
+        emit LoanRequisitionCreated(requisitionId, msg.sender, _amount, parcelscount);
         return requisitionId;
     }
 
@@ -154,6 +169,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         
         if (req.currentCoverage >= req.minimumCoverage) {
             req.status = BorrowStatus.FullyCovered;
+            _generateLoanContract(requisitionId);
             _fundLoan(requisitionId);
         } else {
             req.status = BorrowStatus.PartiallyCovered;
@@ -161,6 +177,16 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         
         emit LoanCovered(requisitionId, msg.sender, coverageAmount);
     }
+
+    function _generateLoanContract(uint256 requisitionId) internal {
+    LoanContract storage loan = loanContracts[requisitionId];
+    loan.walletAddress = loanRequisitions[requisitionId].borrower;
+    loan.requisitionId = requisitionId;
+    loan.status = ContractStatus.Active;
+    loan.parcelsPending = loanRequisitions[requisitionId].parcelsCount;
+
+    emit LoanContractGenerated(loan.walletAddress, requisitionId, loan.status, loan.parcelsPending);
+}
 
     // Internal function to fund the loan
     function _fundLoan(uint256 requisitionId) internal {
@@ -270,6 +296,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory) {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         return RequisitionInfo({
+            requisitionId: req.requisitionId,
             borrower: req.borrower,
             amount: req.amount,
             minimumCoverage: req.minimumCoverage,
@@ -277,9 +304,17 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             status: req.status,
             durationDays: req.durationDays,
             creationTime: req.creationTime,
-            coveringLendersCount: req.coveringLenders.length
+            coveringLenders: req.coveringLenders,
+            parcelsCount: req.parcelsCount
         });
     }
+
+    // View function to get loan contract details
+    function getLoanContract(uint256 requisitionId) external view returns (LoanContract memory) {
+        LoanContract memory loan = loanContracts[requisitionId];
+        return loan;
+    }
+
 
     // Additional helper function (not in interface but useful)
     function canUserBorrow(address _user, uint256 _amount) external view returns (bool) {

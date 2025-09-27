@@ -26,6 +26,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidParcelsCount",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "LoanNotAvailable",
     "type": "error"
   },
@@ -130,6 +135,37 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "walletAddress",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum ILoanMachine.ContractStatus",
+        "name": "status",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "parcelsPending",
+        "type": "uint32"
+      }
+    ],
+    "name": "LoanContractGenerated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "uint256",
         "name": "requisitionId",
         "type": "uint256"
@@ -183,6 +219,12 @@
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "parcelsCount",
+        "type": "uint32"
       }
     ],
     "name": "LoanRequisitionCreated",
@@ -360,6 +402,11 @@
         "internalType": "uint256",
         "name": "_durationDays",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "parcelscount",
+        "type": "uint32"
       }
     ],
     "name": "createLoanRequisition",
@@ -546,10 +593,56 @@
         "type": "uint256"
       }
     ],
+    "name": "getLoanContract",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "walletAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requisitionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum ILoanMachine.ContractStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "parcelsPending",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct ILoanMachine.LoanContract",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      }
+    ],
     "name": "getRequisitionInfo",
     "outputs": [
       {
         "components": [
+          {
+            "internalType": "uint256",
+            "name": "requisitionId",
+            "type": "uint256"
+          },
           {
             "internalType": "address",
             "name": "borrower",
@@ -586,9 +679,14 @@
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "coveringLendersCount",
-            "type": "uint256"
+            "internalType": "address[]",
+            "name": "coveringLenders",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint32",
+            "name": "parcelsCount",
+            "type": "uint32"
           }
         ],
         "internalType": "struct ILoanMachine.RequisitionInfo",
@@ -620,6 +718,40 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "loanContracts",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "walletAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ILoanMachine.ContractStatus",
+        "name": "status",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint32",
+        "name": "parcelsPending",
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",

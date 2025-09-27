@@ -8,7 +8,7 @@ dataSources:
     name: LoanMachine
     network: localhost
     source:
-      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
       abi: LoanMachine
       startBlock: 0
     mapping:
@@ -21,6 +21,10 @@ dataSources:
         - Borrow
         - Repayment
         - User
+        - Stats
+        - LoanRequest
+        - LoanCoverage
+        - LoanContract
       abis:
         - name: LoanMachine
           file: LoanMachine\LoanMachine.json
@@ -41,9 +45,11 @@ dataSources:
           handler: handleTotalBorrowedUpdated
         - event: AvailableBalanceUpdated(uint256)
           handler: handleAvailableBalanceUpdated
-        - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256)
+        - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256,uint32)
           handler: handleLoanRequisitionCreated
         - event: LoanCovered(indexed uint256,indexed address,uint256)
           handler: handleLoanCovered
         - event: LoanFunded(indexed uint256)
           handler: handleLoanFunded
+        - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32)
+          handler: handleLoanContractGenerated

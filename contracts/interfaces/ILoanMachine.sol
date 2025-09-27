@@ -5,6 +5,7 @@ interface ILoanMachine {
     enum BorrowStatus { Pending, PartiallyCovered, FullyCovered, Active, Repaid, Defaulted }
     
     struct RequisitionInfo {
+        uint256 requisitionId;
         address borrower;
         uint256 amount;
         uint32 minimumCoverage;
@@ -12,7 +13,17 @@ interface ILoanMachine {
         BorrowStatus status;
         uint256 durationDays;
         uint256 creationTime;
-        uint256 coveringLendersCount;
+        address[] coveringLenders;
+        uint32 parcelsCount;
+    }
+
+    enum ContractStatus { Active, Pending, Closed }
+
+    struct LoanContract {
+        address walletAddress;
+        uint256 requisitionId;
+        ContractStatus status;
+        uint32 parcelsPending;
     }
 
     // Events
@@ -28,14 +39,16 @@ interface ILoanMachine {
     event NewBorrower(address indexed borrower); 
     event BorrowLimitReached(address indexed borrower);
 
-    event LoanRequisitionCreated(uint256 indexed requisitionId, address indexed borrower, uint256 amount);
+    event LoanRequisitionCreated(uint256 indexed requisitionId, address indexed borrower, uint256 amount,uint32 parcelsCount);
     event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount);
     event LoanFunded(uint256 indexed requisitionId);
+
+    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending);
 
     // Core functions
     function donate() external payable;
 
-    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays) external returns (uint256);
+    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage) external;
 
     function borrow(uint256 _amount) external;
@@ -45,7 +58,8 @@ interface ILoanMachine {
     function getTotalDonations() external view returns (uint256);
     function getTotalBorrowed() external view returns (uint256);
     function getAvailableBalance() external view returns (uint256);
-    
+    function canUserBorrow(address _user, uint256 _amount) external view returns (bool);
+
     function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory);
     function getBorrowerRequisitions(address borrower) external view returns (uint256[] memory);
     
@@ -53,4 +67,6 @@ interface ILoanMachine {
     function getLenderCoverage(uint256 requisitionId, address lender) external view returns (uint256);
     
     function getAvailableBorrowAmount() external view returns (uint256);
+
+    function getLoanContract(uint256 requisitionId) external view returns (LoanContract memory);
 }
