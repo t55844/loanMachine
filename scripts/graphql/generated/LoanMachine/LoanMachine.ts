@@ -98,6 +98,50 @@ export class Donated__Params {
   }
 }
 
+export class LenderRepaid extends ethereum.Event {
+  get params(): LenderRepaid__Params {
+    return new LenderRepaid__Params(this);
+  }
+}
+
+export class LenderRepaid__Params {
+  _event: LenderRepaid;
+
+  constructor(event: LenderRepaid) {
+    this._event = event;
+  }
+
+  get requisitionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get lender(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get amount(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
+export class LoanCompleted extends ethereum.Event {
+  get params(): LoanCompleted__Params {
+    return new LoanCompleted__Params(this);
+  }
+}
+
+export class LoanCompleted__Params {
+  _event: LoanCompleted;
+
+  constructor(event: LoanCompleted) {
+    this._event = event;
+  }
+
+  get requisitionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+}
+
 export class LoanContractGenerated extends ethereum.Event {
   get params(): LoanContractGenerated__Params {
     return new LoanContractGenerated__Params(this);
@@ -125,6 +169,10 @@ export class LoanContractGenerated__Params {
 
   get parcelsPending(): BigInt {
     return this._event.parameters[3].value.toBigInt();
+  }
+
+  get parcelsValues(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
   }
 }
 
@@ -238,6 +286,28 @@ export class NewDonor__Params {
   }
 }
 
+export class ParcelPaid extends ethereum.Event {
+  get params(): ParcelPaid__Params {
+    return new ParcelPaid__Params(this);
+  }
+}
+
+export class ParcelPaid__Params {
+  _event: ParcelPaid;
+
+  constructor(event: ParcelPaid) {
+    this._event = event;
+  }
+
+  get requisitionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get parcelsRemaining(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
 export class Repaid extends ethereum.Event {
   get params(): Repaid__Params {
     return new Repaid__Params(this);
@@ -300,6 +370,56 @@ export class TotalDonationsUpdated__Params {
   }
 }
 
+export class LoanMachine__getActiveLoansResultActiveLoansStruct extends ethereum.Tuple {
+  get walletAddress(): Address {
+    return this[0].toAddress();
+  }
+
+  get requisitionId(): BigInt {
+    return this[1].toBigInt();
+  }
+
+  get status(): i32 {
+    return this[2].toI32();
+  }
+
+  get parcelsPending(): BigInt {
+    return this[3].toBigInt();
+  }
+
+  get parcelsValues(): BigInt {
+    return this[4].toBigInt();
+  }
+}
+
+export class LoanMachine__getActiveLoansResult {
+  value0: Array<LoanMachine__getActiveLoansResultActiveLoansStruct>;
+  value1: Array<BigInt>;
+
+  constructor(
+    value0: Array<LoanMachine__getActiveLoansResultActiveLoansStruct>,
+    value1: Array<BigInt>,
+  ) {
+    this.value0 = value0;
+    this.value1 = value1;
+  }
+
+  toMap(): TypedMap<string, ethereum.Value> {
+    let map = new TypedMap<string, ethereum.Value>();
+    map.set("value0", ethereum.Value.fromTupleArray(this.value0));
+    map.set("value1", ethereum.Value.fromUnsignedBigIntArray(this.value1));
+    return map;
+  }
+
+  getActiveLoans(): Array<LoanMachine__getActiveLoansResultActiveLoansStruct> {
+    return this.value0;
+  }
+
+  getRequisitionIds(): Array<BigInt> {
+    return this.value1;
+  }
+}
+
 export class LoanMachine__getLoanContractResultValue0Struct extends ethereum.Tuple {
   get walletAddress(): Address {
     return this[0].toAddress();
@@ -315,6 +435,87 @@ export class LoanMachine__getLoanContractResultValue0Struct extends ethereum.Tup
 
   get parcelsPending(): BigInt {
     return this[3].toBigInt();
+  }
+
+  get parcelsValues(): BigInt {
+    return this[4].toBigInt();
+  }
+}
+
+export class LoanMachine__getNextPaymentAmountResult {
+  value0: BigInt;
+  value1: boolean;
+
+  constructor(value0: BigInt, value1: boolean) {
+    this.value0 = value0;
+    this.value1 = value1;
+  }
+
+  toMap(): TypedMap<string, ethereum.Value> {
+    let map = new TypedMap<string, ethereum.Value>();
+    map.set("value0", ethereum.Value.fromUnsignedBigInt(this.value0));
+    map.set("value1", ethereum.Value.fromBoolean(this.value1));
+    return map;
+  }
+
+  getPaymentAmount(): BigInt {
+    return this.value0;
+  }
+
+  getCanPay(): boolean {
+    return this.value1;
+  }
+}
+
+export class LoanMachine__getRepaymentSummaryResult {
+  value0: BigInt;
+  value1: BigInt;
+  value2: BigInt;
+  value3: BigInt;
+  value4: boolean;
+
+  constructor(
+    value0: BigInt,
+    value1: BigInt,
+    value2: BigInt,
+    value3: BigInt,
+    value4: boolean,
+  ) {
+    this.value0 = value0;
+    this.value1 = value1;
+    this.value2 = value2;
+    this.value3 = value3;
+    this.value4 = value4;
+  }
+
+  toMap(): TypedMap<string, ethereum.Value> {
+    let map = new TypedMap<string, ethereum.Value>();
+    map.set("value0", ethereum.Value.fromUnsignedBigInt(this.value0));
+    map.set("value1", ethereum.Value.fromUnsignedBigInt(this.value1));
+    map.set("value2", ethereum.Value.fromUnsignedBigInt(this.value2));
+    map.set("value3", ethereum.Value.fromUnsignedBigInt(this.value3));
+    map.set("value4", ethereum.Value.fromBoolean(this.value4));
+    return map;
+  }
+
+  getTotalRemainingDebt(): BigInt {
+    return this.value0;
+  }
+
+  getNextPaymentAmount(): BigInt {
+    return this.value1;
+  }
+
+  getParcelsRemaining(): BigInt {
+    return this.value2;
+  }
+
+  getTotalParcels(): BigInt {
+    return this.value3;
+  }
+
+  getIsActive(): boolean {
+    return this.value4;
   }
 }
 
@@ -365,12 +566,20 @@ export class LoanMachine__loanContractsResult {
   value1: BigInt;
   value2: i32;
   value3: BigInt;
+  value4: BigInt;
 
-  constructor(value0: Address, value1: BigInt, value2: i32, value3: BigInt) {
+  constructor(
+    value0: Address,
+    value1: BigInt,
+    value2: i32,
+    value3: BigInt,
+    value4: BigInt,
+  ) {
     this.value0 = value0;
     this.value1 = value1;
     this.value2 = value2;
     this.value3 = value3;
+    this.value4 = value4;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
@@ -382,6 +591,7 @@ export class LoanMachine__loanContractsResult {
       ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(this.value2)),
     );
     map.set("value3", ethereum.Value.fromUnsignedBigInt(this.value3));
+    map.set("value4", ethereum.Value.fromUnsignedBigInt(this.value4));
     return map;
   }
 
@@ -399,6 +609,10 @@ export class LoanMachine__loanContractsResult {
 
   getParcelsPending(): BigInt {
     return this.value3;
+  }
+
+  getParcelsValues(): BigInt {
+    return this.value4;
   }
 }
 
@@ -437,6 +651,38 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  canPayRequisition(requisitionId: BigInt, borrower: Address): boolean {
+    let result = super.call(
+      "canPayRequisition",
+      "canPayRequisition(uint256,address):(bool)",
+      [
+        ethereum.Value.fromUnsignedBigInt(requisitionId),
+        ethereum.Value.fromAddress(borrower),
+      ],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_canPayRequisition(
+    requisitionId: BigInt,
+    borrower: Address,
+  ): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "canPayRequisition",
+      "canPayRequisition(uint256,address):(bool)",
+      [
+        ethereum.Value.fromUnsignedBigInt(requisitionId),
+        ethereum.Value.fromAddress(borrower),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
   canUserBorrow(_user: Address, _amount: BigInt): boolean {
@@ -512,6 +758,39 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  getActiveLoans(borrower: Address): LoanMachine__getActiveLoansResult {
+    let result = super.call(
+      "getActiveLoans",
+      "getActiveLoans(address):((address,uint256,uint8,uint32,uint256)[],uint256[])",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+
+    return new LoanMachine__getActiveLoansResult(
+      result[0].toTupleArray<LoanMachine__getActiveLoansResultActiveLoansStruct>(),
+      result[1].toBigIntArray(),
+    );
+  }
+
+  try_getActiveLoans(
+    borrower: Address,
+  ): ethereum.CallResult<LoanMachine__getActiveLoansResult> {
+    let result = super.tryCall(
+      "getActiveLoans",
+      "getActiveLoans(address):((address,uint256,uint8,uint32,uint256)[],uint256[])",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      new LoanMachine__getActiveLoansResult(
+        value[0].toTupleArray<LoanMachine__getActiveLoansResultActiveLoansStruct>(),
+        value[1].toBigIntArray(),
+      ),
+    );
   }
 
   getAvailableBalance(): BigInt {
@@ -735,7 +1014,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): LoanMachine__getLoanContractResultValue0Struct {
     let result = super.call(
       "getLoanContract",
-      "getLoanContract(uint256):((address,uint256,uint8,uint32))",
+      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint256))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
 
@@ -749,7 +1028,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getLoanContractResultValue0Struct> {
     let result = super.tryCall(
       "getLoanContract",
-      "getLoanContract(uint256):((address,uint256,uint8,uint32))",
+      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint256))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
     if (result.reverted) {
@@ -759,6 +1038,82 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(
       changetype<LoanMachine__getLoanContractResultValue0Struct>(
         value[0].toTuple(),
+      ),
+    );
+  }
+
+  getNextPaymentAmount(
+    requisitionId: BigInt,
+  ): LoanMachine__getNextPaymentAmountResult {
+    let result = super.call(
+      "getNextPaymentAmount",
+      "getNextPaymentAmount(uint256):(uint256,bool)",
+      [ethereum.Value.fromUnsignedBigInt(requisitionId)],
+    );
+
+    return new LoanMachine__getNextPaymentAmountResult(
+      result[0].toBigInt(),
+      result[1].toBoolean(),
+    );
+  }
+
+  try_getNextPaymentAmount(
+    requisitionId: BigInt,
+  ): ethereum.CallResult<LoanMachine__getNextPaymentAmountResult> {
+    let result = super.tryCall(
+      "getNextPaymentAmount",
+      "getNextPaymentAmount(uint256):(uint256,bool)",
+      [ethereum.Value.fromUnsignedBigInt(requisitionId)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      new LoanMachine__getNextPaymentAmountResult(
+        value[0].toBigInt(),
+        value[1].toBoolean(),
+      ),
+    );
+  }
+
+  getRepaymentSummary(
+    requisitionId: BigInt,
+  ): LoanMachine__getRepaymentSummaryResult {
+    let result = super.call(
+      "getRepaymentSummary",
+      "getRepaymentSummary(uint256):(uint256,uint256,uint256,uint256,bool)",
+      [ethereum.Value.fromUnsignedBigInt(requisitionId)],
+    );
+
+    return new LoanMachine__getRepaymentSummaryResult(
+      result[0].toBigInt(),
+      result[1].toBigInt(),
+      result[2].toBigInt(),
+      result[3].toBigInt(),
+      result[4].toBoolean(),
+    );
+  }
+
+  try_getRepaymentSummary(
+    requisitionId: BigInt,
+  ): ethereum.CallResult<LoanMachine__getRepaymentSummaryResult> {
+    let result = super.tryCall(
+      "getRepaymentSummary",
+      "getRepaymentSummary(uint256):(uint256,uint256,uint256,uint256,bool)",
+      [ethereum.Value.fromUnsignedBigInt(requisitionId)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      new LoanMachine__getRepaymentSummaryResult(
+        value[0].toBigInt(),
+        value[1].toBigInt(),
+        value[2].toBigInt(),
+        value[3].toBigInt(),
+        value[4].toBoolean(),
       ),
     );
   }
@@ -845,7 +1200,7 @@ export class LoanMachine extends ethereum.SmartContract {
   loanContracts(param0: BigInt): LoanMachine__loanContractsResult {
     let result = super.call(
       "loanContracts",
-      "loanContracts(uint256):(address,uint256,uint8,uint32)",
+      "loanContracts(uint256):(address,uint256,uint8,uint32,uint256)",
       [ethereum.Value.fromUnsignedBigInt(param0)],
     );
 
@@ -854,6 +1209,7 @@ export class LoanMachine extends ethereum.SmartContract {
       result[1].toBigInt(),
       result[2].toI32(),
       result[3].toBigInt(),
+      result[4].toBigInt(),
     );
   }
 
@@ -862,7 +1218,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__loanContractsResult> {
     let result = super.tryCall(
       "loanContracts",
-      "loanContracts(uint256):(address,uint256,uint8,uint32)",
+      "loanContracts(uint256):(address,uint256,uint8,uint32,uint256)",
       [ethereum.Value.fromUnsignedBigInt(param0)],
     );
     if (result.reverted) {
@@ -875,6 +1231,7 @@ export class LoanMachine extends ethereum.SmartContract {
         value[1].toBigInt(),
         value[2].toI32(),
         value[3].toBigInt(),
+        value[4].toBigInt(),
       ),
     );
   }
@@ -1054,6 +1411,10 @@ export class RepayCall__Inputs {
 
   constructor(call: RepayCall) {
     this._call = call;
+  }
+
+  get requisitionId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
   }
 }
 

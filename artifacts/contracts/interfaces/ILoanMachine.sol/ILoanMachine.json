@@ -84,6 +84,44 @@
       "inputs": [
         {
           "indexed": true,
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "lender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "LenderRepaid",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "LoanCompleted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "walletAddress",
           "type": "address"
@@ -105,6 +143,12 @@
           "internalType": "uint32",
           "name": "parcelsPending",
           "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "parcelsValues",
+          "type": "uint256"
         }
       ],
       "name": "LoanContractGenerated",
@@ -210,6 +254,25 @@
       "inputs": [
         {
           "indexed": true,
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "parcelsRemaining",
+          "type": "uint256"
+        }
+      ],
+      "name": "ParcelPaid",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "borrower",
           "type": "address"
@@ -267,6 +330,30 @@
       "name": "borrow",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        }
+      ],
+      "name": "canPayRequisition",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -350,6 +437,57 @@
       "name": "donate",
       "outputs": [],
       "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        }
+      ],
+      "name": "getActiveLoans",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "walletAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "requisitionId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "enum ILoanMachine.ContractStatus",
+              "name": "status",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint32",
+              "name": "parcelsPending",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "parcelsValues",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct ILoanMachine.LoanContract[]",
+          "name": "activeLoans",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "requisitionIds",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -471,11 +609,79 @@
               "internalType": "uint32",
               "name": "parcelsPending",
               "type": "uint32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "parcelsValues",
+              "type": "uint256"
             }
           ],
           "internalType": "struct ILoanMachine.LoanContract",
           "name": "",
           "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getNextPaymentAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "paymentAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "canPay",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getRepaymentSummary",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalRemainingDebt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextPaymentAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "parcelsRemaining",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalParcels",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -579,7 +785,13 @@
       "type": "function"
     },
     {
-      "inputs": [],
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        }
+      ],
       "name": "repay",
       "outputs": [],
       "stateMutability": "payable",

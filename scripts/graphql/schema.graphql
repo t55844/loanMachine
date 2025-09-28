@@ -71,12 +71,32 @@ type LoanCoverage @entity(immutable: false) {
   timestamp: BigInt!
 }
 
-# NEW: loan contract entity created when loan contract is generated on-chain
+# loan contract entity created when loan contract is generated on-chain
 type LoanContract @entity(immutable: false) {
   id: ID!
   walletAddress: User!
   requisitionId: BigInt!
-  status: Int!          # ContractStatus encoded as integer in the event (store as Int)
-  parcelsPending: Int!  # number of parcels pending (parcelsCount)
-  createdAt: BigInt!    # block timestamp when LoanContractGenerated fired
+  status: Int!           # ContractStatus encoded as integer in event
+  parcelsPending: Int!   # number of parcels pending
+  parcelsValues: BigInt! # new field for value per parcel
+  createdAt: BigInt!     # timestamp when LoanContractGenerated fired
+  completedAt: BigInt    # optional, set when LoanCompleted event fires
+}
+
+
+type ParcelPayment @entity(immutable: false) {
+  id: ID!
+  requisitionId: BigInt!
+  borrower: User!
+  amount: BigInt!
+  timestamp: BigInt!
+  parcelsRemaining: Int!
+}
+
+type LenderRepayment @entity(immutable: false) {
+  id: ID!
+  requisitionId: BigInt!
+  lender: User!
+  amount: BigInt!
+  timestamp: BigInt!
 }

@@ -24,6 +24,7 @@ interface ILoanMachine {
         uint256 requisitionId;
         ContractStatus status;
         uint32 parcelsPending;
+        uint256 parcelsValues;
     }
 
     // Events
@@ -43,7 +44,11 @@ interface ILoanMachine {
     event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount);
     event LoanFunded(uint256 indexed requisitionId);
 
-    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending);
+    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues);
+
+    event ParcelPaid(uint256 indexed requisitionId, uint256 parcelsRemaining);
+    event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
+    event LoanCompleted(uint256 indexed requisitionId);
 
     // Core functions
     function donate() external payable;
@@ -52,7 +57,7 @@ interface ILoanMachine {
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage) external;
 
     function borrow(uint256 _amount) external;
-    function repay() external payable;
+    function repay(uint256 requisitionId) external payable;
 
     // View functions
     function getTotalDonations() external view returns (uint256);
@@ -69,4 +74,16 @@ interface ILoanMachine {
     function getAvailableBorrowAmount() external view returns (uint256);
 
     function getLoanContract(uint256 requisitionId) external view returns (LoanContract memory);
+
+    function getActiveLoans(address borrower) external view returns (LoanContract[] memory activeLoans, uint256[] memory requisitionIds);
+    function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay);
+    function getRepaymentSummary(uint256 requisitionId) external view returns (
+        uint256 totalRemainingDebt,
+        uint256 nextPaymentAmount,
+        uint256 parcelsRemaining,
+        uint256 totalParcels,
+        bool isActive
+    );
+    function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);
+
 }

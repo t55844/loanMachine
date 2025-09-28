@@ -16,9 +16,9 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     // Loan requisition system
     mapping(uint256 => LoanRequisition) private loanRequisitions;
+    uint256 public requisitionCounter;
     mapping(address => uint256[]) public borrowerRequisitions;
     mapping(address => uint256) private donationsInCoverage;
-    uint256 public requisitionCounter;
 
     //Loan Contracts
     mapping(uint256 => LoanContract) public loanContracts;
@@ -111,7 +111,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         uint32 _minimumCoverage,
         uint256 _durationDays,
         uint32 parcelscount
-    ) external validAmount(_amount) minimumPercentCoveragePermited(_minimumCoverage) returns (uint256) {
+    ) external validAmount(_amount) minimumPercentCoveragePermited(_minimumCoverage) maxParcelsCount(parcelscount) returns (uint256) {
         if (_amount > availableBalance) revert InsufficientFunds();
         
         uint256 requisitionId = requisitionCounter++;
@@ -126,7 +126,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         newReq.creationTime = block.timestamp;
         newReq.parcelsCount = parcelscount;
         newReq.requisitionId = requisitionId;
-        
         borrowerRequisitions[msg.sender].push(requisitionId);
         
         emit LoanRequisitionCreated(requisitionId, msg.sender, _amount, parcelscount);
@@ -155,10 +154,10 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             revert InsufficientDonationBalance();
         }
         
-        unchecked {
-            donations[msg.sender] -= coverageAmount;
-            donationsInCoverage[msg.sender] += coverageAmount;
-        }
+        
+        donations[msg.sender] -= coverageAmount;
+        donationsInCoverage[msg.sender] += coverageAmount;
+        
         
         req.currentCoverage += coveragePercentage;
         
@@ -184,19 +183,20 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     loan.requisitionId = requisitionId;
     loan.status = ContractStatus.Active;
     loan.parcelsPending = loanRequisitions[requisitionId].parcelsCount;
+    loan.parcelsValues = loanRequisitions[requisitionId].amount / loanRequisitions[requisitionId].parcelsCount;
 
-    emit LoanContractGenerated(loan.walletAddress, requisitionId, loan.status, loan.parcelsPending);
+    emit LoanContractGenerated(loan.walletAddress, requisitionId, loan.status, loan.parcelsPending, loan.parcelsValues);
 }
 
     // Internal function to fund the loan
     function _fundLoan(uint256 requisitionId) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
-        unchecked {
-            borrowings[req.borrower] += req.amount;
-            totalBorrowed += req.amount;
-            availableBalance -= req.amount;
-        }
+        
+        borrowings[req.borrower] += req.amount;
+        totalBorrowed += req.amount;
+        availableBalance -= req.amount;
+        
         
         lastBorrowTime[req.borrower] = block.timestamp;
         req.status = BorrowStatus.Active;
@@ -232,20 +232,146 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         payable(msg.sender).transfer(_amount);
     }
 
-    // Repay function
-    function repay() external payable validAmount(msg.value) nonReentrant {
-        if (borrowings[msg.sender] == 0) revert NoActiveBorrowing();
-        if (msg.value > borrowings[msg.sender]) revert RepaymentExceedsBorrowed();
+    // Repay function - pays exactly one parcel for the specified requisition
+function repay(uint256 requisitionId) external payable nonReentrant {
+    if (msg.value == 0) revert InvalidAmount();
+    if (borrowings[msg.sender] == 0) revert NoActiveBorrowing();
 
-        unchecked {
-            borrowings[msg.sender] -= msg.value;
-            totalBorrowed -= msg.value;
-            availableBalance += msg.value;
+    LoanContract storage loan = loanContracts[requisitionId];
+    
+    // Validate the loan contract
+    if (loan.walletAddress != msg.sender) revert NoActiveBorrowing();
+    if (loan.status != ContractStatus.Active) revert NoActiveBorrowing();
+    if (loan.parcelsPending == 0) revert NoActiveBorrowing();
+
+    if (msg.value != loan.parcelsValues) {
+        revert InvalidAmount(); // Must pay exactly one parcel value
+    }
+
+    loan.parcelsPending -= 1;
+    
+    if (loan.parcelsPending == 0) {
+        loan.status = ContractStatus.Closed;
+        emit LoanCompleted(requisitionId);
+    }
+
+    // Update global borrowing state
+    borrowings[msg.sender] -= msg.value;
+    totalBorrowed -= msg.value;
+    availableBalance += msg.value;
+    
+    _distributeRepaymentToLenders(requisitionId, msg.value);
+    
+    emit Repaid(msg.sender, msg.value, borrowings[msg.sender]);
+    emit ParcelPaid(requisitionId, loan.parcelsPending);
+    emit TotalBorrowedUpdated(totalBorrowed);
+    emit AvailableBalanceUpdated(availableBalance);
+}
+
+function _distributeRepaymentToLenders(uint256 requisitionId, uint256 repaymentAmount) internal {
+    LoanRequisition storage req = loanRequisitions[requisitionId];
+    
+    // Calculate total coverage amount (should equal the original loan amount)
+    uint256 totalCoverageAmount = req.amount;
+    
+    // Distribute to each covering lender proportionally
+    for (uint256 i = 0; i < req.coveringLenders.length; i++) {
+        address lender = req.coveringLenders[i];
+        uint256 lenderCoverage = req.coverageAmounts[lender];
+        
+        uint256 lenderShare = (repaymentAmount * lenderCoverage) / totalCoverageAmount;
+        
+        if (lenderShare > 0) {
+            // Return the funds from coverage back to the lender's donation balance
+            if (lenderShare > donationsInCoverage[lender]) {
+                lenderShare = donationsInCoverage[lender]; // Safety check
+            }
+            
+            donationsInCoverage[lender] -= lenderShare;
+            donations[lender] += lenderShare;
+            
+            emit LenderRepaid(requisitionId, lender, lenderShare);
         }
+    }
+}
 
-        emit Repaid(msg.sender, msg.value, borrowings[msg.sender]);
-        emit TotalBorrowedUpdated(totalBorrowed);
-        emit AvailableBalanceUpdated(availableBalance);
+// Helper function to get active loans for a borrower
+function getActiveLoans(address borrower) public view returns (LoanContract[] memory activeLoans, uint256[] memory requisitionIds) {
+    uint256[] storage allRequisitionIds = borrowerRequisitions[borrower];
+    uint256 activeCount = 0;
+    
+    // count active loans
+    for (uint256 i = 0; i < allRequisitionIds.length; i++) {
+        LoanContract storage loan = loanContracts[allRequisitionIds[i]];
+        if (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+            activeCount++;
+        }
+    }
+    
+    activeLoans = new LoanContract[](activeCount);
+    requisitionIds = new uint256[](activeCount);
+    uint256 index = 0;
+    
+    for (uint256 i = 0; i < allRequisitionIds.length; i++) {
+        LoanContract storage loan = loanContracts[allRequisitionIds[i]];
+        if (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+            activeLoans[index] = loan;
+            requisitionIds[index] = allRequisitionIds[i];
+            index++;
+        }
+    }
+    
+    return (activeLoans, requisitionIds);
+}
+
+// Function to check next payment amount for a specific requisition
+function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay) {
+    LoanContract storage loan = loanContracts[requisitionId];
+    
+    if (loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+        return (loan.parcelsValues, true);
+    }
+    
+    return (0, false);
+}
+
+// Function to get repayment summary for a specific requisition
+function getRepaymentSummary(uint256 requisitionId) external view returns (
+    uint256 totalRemainingDebt,
+    uint256 nextPaymentAmount,
+    uint256 parcelsRemaining,
+    uint256 totalParcels,
+    bool isActive
+    ) {
+        LoanContract storage loan = loanContracts[requisitionId];
+        LoanRequisition storage req = loanRequisitions[requisitionId];
+        
+        if (loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+            totalRemainingDebt = loan.parcelsPending * loan.parcelsValues;
+            nextPaymentAmount = loan.parcelsValues;
+            parcelsRemaining = loan.parcelsPending;
+            totalParcels = req.parcelsCount;
+            isActive = true;
+        } else {
+            totalRemainingDebt = 0;
+            nextPaymentAmount = 0;
+            parcelsRemaining = 0;
+            totalParcels = req.parcelsCount;
+            isActive = false;
+        }
+        
+        return (totalRemainingDebt, nextPaymentAmount, parcelsRemaining, totalParcels, isActive);
+    }
+
+    // Function to check if a requisition can be paid
+    function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool) {
+        LoanContract storage loan = loanContracts[requisitionId];
+        
+        return (
+            loan.walletAddress == borrower &&
+            loan.status == ContractStatus.Active &&
+            loan.parcelsPending > 0
+        );
     }
 
     // View functions from interface
