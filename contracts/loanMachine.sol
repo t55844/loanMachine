@@ -177,15 +177,27 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         emit LoanCovered(requisitionId, msg.sender, coverageAmount);
     }
 
-    function _generateLoanContract(uint256 requisitionId) internal {
+function _generateLoanContract(uint256 requisitionId) internal {
     LoanContract storage loan = loanContracts[requisitionId];
     loan.walletAddress = loanRequisitions[requisitionId].borrower;
     loan.requisitionId = requisitionId;
     loan.status = ContractStatus.Active;
     loan.parcelsPending = loanRequisitions[requisitionId].parcelsCount;
     loan.parcelsValues = loanRequisitions[requisitionId].amount / loanRequisitions[requisitionId].parcelsCount;
+    
+    _generatePaymentDates(loan, loanRequisitions[requisitionId].parcelsCount);
+    
+    emit LoanContractGenerated(loan.walletAddress, requisitionId, loan.status, loan.parcelsPending, loan.parcelsValues,loan.paymentDates);
+}
 
-    emit LoanContractGenerated(loan.walletAddress, requisitionId, loan.status, loan.parcelsPending, loan.parcelsValues);
+function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) internal {
+    uint256 startDate = block.timestamp;
+    uint256 oneMonthInSeconds = 30 days; // Approximate month as 30 days
+    
+    for (uint32 i = 0; i < parcelsCount; i++) {
+        uint256 paymentDate = startDate + (oneMonthInSeconds * (i + 1));
+        loan.paymentDates.push(paymentDate);
+    }
 }
 
     // Internal function to fund the loan
@@ -449,4 +461,10 @@ function getRepaymentSummary(uint256 requisitionId) external view returns (
             (donations[_user] >= MIN_DONATION_FOR_BORROW || borrowings[_user] == 0) &&
             (lastBorrowTime[_user] + BORROW_DURATION < block.timestamp || borrowings[_user] == 0));
     }
+    
+      // Helper function to get payment dates
+    function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory) {
+        return loanContracts[requisitionId].paymentDates;
+    }
+
 }

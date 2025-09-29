@@ -25,6 +25,7 @@ interface ILoanMachine {
         ContractStatus status;
         uint32 parcelsPending;
         uint256 parcelsValues;
+        uint256[] paymentDates;
     }
 
     // Events
@@ -44,7 +45,7 @@ interface ILoanMachine {
     event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount);
     event LoanFunded(uint256 indexed requisitionId);
 
-    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues);
+    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues, uint256[] paymentDates);
 
     event ParcelPaid(uint256 indexed requisitionId, uint256 parcelsRemaining);
     event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
@@ -86,4 +87,5 @@ interface ILoanMachine {
     );
     function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);
 
+    function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory);
 }

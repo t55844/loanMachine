@@ -149,6 +149,12 @@
           "internalType": "uint256",
           "name": "parcelsValues",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "paymentDates",
+          "type": "uint256[]"
         }
       ],
       "name": "LoanContractGenerated",
@@ -475,6 +481,11 @@
               "internalType": "uint256",
               "name": "parcelsValues",
               "type": "uint256"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "paymentDates",
+              "type": "uint256[]"
             }
           ],
           "internalType": "struct ILoanMachine.LoanContract[]",
@@ -614,6 +625,11 @@
               "internalType": "uint256",
               "name": "parcelsValues",
               "type": "uint256"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "paymentDates",
+              "type": "uint256[]"
             }
           ],
           "internalType": "struct ILoanMachine.LoanContract",
@@ -643,6 +659,25 @@
           "internalType": "bool",
           "name": "canPay",
           "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requisitionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getPaymentDates",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "",
+          "type": "uint256[]"
         }
       ],
       "stateMutability": "view",

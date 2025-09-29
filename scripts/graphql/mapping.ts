@@ -238,33 +238,29 @@ export function handleLoanContractGenerated(event: LoanContractGenerated): void 
 // NEW: ParcelPaid, LenderRepaid, LoanCompleted
 // -------------------
 export function handleParcelPaid(event: ParcelPaid): void {
-  let id = event.params.requisitionId.toString()
-  let loan = LoanRequest.load(id)
-  if (!loan) return
-
+  let id = event.params.requisitionId.toString();
+  let loan = LoanRequest.load(id);
+  if (!loan) return;
   if (loan.parcelsCount > 0) {
-    loan.parcelsCount = loan.parcelsCount - 1
+    loan.parcelsCount = loan.parcelsCount - 1;
   }
-  loan.save()
+  loan.save();
 }
 
 export function handleLenderRepaid(event: LenderRepaid): void {
-  let id = event.params.requisitionId.toString()
-  let loanContract = LoanContract.load(id)
-  if (!loanContract) return
-
+  let id = event.params.requisitionId.toString();
+  let loanContract = LoanContract.load(id);
+  if (!loanContract) return;
   if (loanContract.parcelsPending > 0) {
-    loanContract.parcelsPending = loanContract.parcelsPending - 1
+    loanContract.parcelsPending = loanContract.parcelsPending - 1;
   }
-  loanContract.save()
+  loanContract.save();
 }
 
 export function handleLoanCompleted(event: LoanCompleted): void {
-  let id = event.params.requisitionId.toString()
-  let loan = LoanRequest.load(id)
-  if (!loan) return
-
-  // mark loan as completed
-  loan.funded = false
-  loan.save()
+  let id = event.params.requisitionId.toString();
+  let loan = LoanRequest.load(id);
+  if (!loan) return;
+  loan.funded = false;
+  loan.save();
 }
