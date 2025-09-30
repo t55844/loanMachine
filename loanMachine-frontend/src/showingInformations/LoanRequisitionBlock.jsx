@@ -3,6 +3,7 @@ import { useWeb3 } from "../Web3Context";
 import LoanRequisitionForm from "../loan-interaction/LoanRequisitionForm";
 import LoanRequisitionMonitor from "./LoanRequisitionMonitor";
 import PendingRequisitionsList from "./PendingRequisitionsList";
+import UserLoanContracts from "./UserLoanContracts"; // Add this import
 
 function LoanRequisitionBlock() {
   const [activeTab, setActiveTab] = useState("create");
@@ -17,11 +18,15 @@ function LoanRequisitionBlock() {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const handleLoanUpdate = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <div className="requsitionBlock">
       <h1>Loan Requisition System</h1>
       
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
         <button 
           onClick={() => setActiveTab("create")}
           style={{ 
@@ -65,7 +70,22 @@ function LoanRequisitionBlock() {
             color: activeTab === "pending" ? "white" : "var(--text-primary)"
           }}
         >
-          Pending Approvals
+          Cover Loans
+        </button>
+        <button 
+          onClick={() => setActiveTab("contracts")}
+          style={{ 
+            padding: '12px 20px',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            backgroundColor: activeTab === "contracts" ? "var(--accent-blue)" : "var(--bg-tertiary)",
+            color: activeTab === "contracts" ? "white" : "var(--text-primary)"
+          }}
+        >
+          My Contracts
         </button>
       </div>
       
@@ -91,6 +111,15 @@ function LoanRequisitionBlock() {
           account={account}
           key={refreshTrigger}
           onCoverLoan={handleCoverLoan}
+        />
+      )}
+
+      {activeTab === "contracts" && (
+        <UserLoanContracts 
+          contract={contract}
+          account={account}
+          key={refreshTrigger}
+          onLoanUpdate={handleLoanUpdate}
         />
       )}
     </div>

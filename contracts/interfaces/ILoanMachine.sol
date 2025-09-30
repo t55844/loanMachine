@@ -88,4 +88,5 @@ interface ILoanMachine {
     function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);
 
     function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory);
+    function getDonationsInCoverage(address lender) external view returns (uint256);
 }

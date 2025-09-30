@@ -426,3 +426,379 @@ h3 {
 @media (max-width: 480px) {
   .percentage-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+
+
+/* Confirmation Modal Styles - Harmonized with OKX Theme */
+.confirmation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(10, 14, 23, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.confirmation-modal {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-width: 420px;
+  width: 90%;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.confirmation-modal h3 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.confirmation-modal p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.confirmation-modal strong {
+  color: var(--accent-blue);
+}
+
+.confirmation-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.cancel-button {
+  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: var(--bg-primary);
+  border-color: var(--text-secondary);
+}
+
+.confirm-button {
+  padding: 10px 20px;
+  border: none;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background: #2a52e0;
+}
+
+.confirm-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: var(--accent-red);
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+/* Enhanced percentage button states for better UX */
+.percentage-button {
+  padding: 8px 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.percentage-button:hover:not(.disabled):not(.insufficient):not(:disabled) {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+.percentage-button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--bg-primary);
+}
+
+.percentage-button.insufficient {
+  background: rgba(242, 54, 69, 0.1);
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  cursor: not-allowed;
+}
+
+.percentage-button.insufficient:hover {
+  background: rgba(242, 54, 69, 0.2);
+  transform: none;
+}
+
+.percentage-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Enhanced custom cover button */
+.custom-cover-button {
+  padding: 8px 16px;
+  border: 1px solid var(--accent-blue);
+  border-radius: 4px;
+  background: var(--accent-blue);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.custom-cover-button:hover:not(:disabled) {
+  background: #2a52e0;
+  border-color: #2a52e0;
+  transform: translateY(-1px);
+}
+
+.custom-cover-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+  transform: none;
+}
+
+/* Responsive design for confirmation modal */
+@media (max-width: 768px) {
+  .confirmation-modal {
+    padding: 20px;
+    margin: 16px;
+  }
+  
+  .confirmation-buttons {
+    flex-direction: column;
+  }
+  
+  .cancel-button,
+  .confirm-button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .confirmation-modal {
+    padding: 16px;
+  }
+  
+  .confirmation-modal h3 {
+    font-size: 16px;
+  }
+  
+  .confirmation-modal p {
+    font-size: 13px;
+  }
+}
+
+
+/* User Loan Contracts Styles */
+.contracts-list {
+  text-align: left;
+}
+
+.contract-item {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: var(--bg-secondary);
+  transition: border-color 0.2s ease;
+}
+
+.contract-item:hover {
+  border-color: var(--accent-blue);
+}
+
+.contract-header {
+  margin-bottom: 0;
+}
+
+.contract-basic-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.contract-basic-info h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.contract-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.contract-details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-item strong {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.payment-dates-section {
+  margin-bottom: 20px;
+}
+
+.payment-dates-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.payment-dates-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.payment-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.85em;
+}
+
+.payment-date:last-child {
+  border-bottom: none;
+}
+
+.payment-date.paid {
+  color: var(--accent-green);
+}
+
+.payment-date.pending {
+  color: var(--text-secondary);
+}
+
+.payment-status {
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.contract-actions {
+  margin-top: 16px;
+}
+
+.repay-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent-green);
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.repay-button:hover:not(:disabled) {
+  background: #00a878;
+}
+
+.repay-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-badge {
+  font-weight: bold;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contract-basic-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .contract-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .payment-date {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

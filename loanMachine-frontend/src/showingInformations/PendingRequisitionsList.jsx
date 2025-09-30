@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { fetchLoanRequisitions, fetchUserDonations } from "../graphql-frontend-query";
+import { useToast } from "../handlers/useToast";
+import Toast from "../handlers/Toast";
 
 export default function PendingRequisitionsList({ contract, account, onCoverLoan }) {
   const [requisitions, setRequisitions] = useState([]);
@@ -8,40 +10,52 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
   const [customPercentage, setCustomPercentage] = useState("");
   const [loading, setLoading] = useState(true);
   const [covering, setCovering] = useState(false);
-  const [error, setError] = useState("");
-  const [userDonationBalance, setUserDonationBalance] = useState("0");
+  const [donationBalances, setDonationBalances] = useState({
+    total: "0",
+    allocated: "0", // Donations currently covering loans
+    free: "0"      // Donations available to use
+  });
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
 
-  // Quick percentage options + custom input
+  const { toast, showToast, hideToast, handleContractError } = useToast();
   const quickPercentages = [1, 3, 5, 10, 15, 20, 25, 33, 50, 75, 100];
 
   useEffect(() => {
     if (contract && account) {
       loadPendingRequisitions();
-      loadUserDonationBalance();
+      loadUserDonationBalances();
     }
   }, [contract, account]);
 
-  const loadUserDonationBalance = async () => {
-    if (!account) return;
-    
+  const loadUserDonationBalances = async () => {
+    if (!account || !contract) return;
     try {
+      // Get total donations from subgraph
       const donations = await fetchUserDonations(account);
       const totalBalance = donations.reduce((total, donation) => {
         return total + parseFloat(ethers.utils.formatEther(donation.amount || "0"));
       }, 0);
-      setUserDonationBalance(totalBalance.toString());
+
+      // Get allocated donations from contract
+      const allocatedWei = await contract.getDonationsInCoverage(account);
+      const allocatedBalance = parseFloat(ethers.utils.formatEther(allocatedWei));
+
+      const freeBalance = totalBalance - allocatedBalance;
+
+      setDonationBalances({
+        total: totalBalance.toString(),
+        allocated: allocatedBalance.toString(),
+        free: Math.max(0, freeBalance).toString() // Ensure non-negative
+      });
     } catch (err) {
-      console.error("Error loading donation balance from subgraph:", err);
-      setUserDonationBalance("0");
+      console.error("Error loading donation balances:", err);
+      setDonationBalances({ total: "0", allocated: "0", free: "0" });
     }
   };
 
   const loadPendingRequisitions = async () => {
     if (!contract || !account) return;
-    
     setLoading(true);
-    setError("");
-    
     try {
       const graphRequisitions = await fetchLoanRequisitions();
       const requisitionDetails = await Promise.all(
@@ -49,12 +63,39 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
           try {
             const requisitionId = parseInt(graphReq.requisitionId);
             const info = await contract.getRequisitionInfo(requisitionId);
-
+            
             const safeNumber = (val) => {
               if (val && typeof val.toNumber === "function") return val.toNumber();
-              if (typeof val === "bigint") return Number(val);
+              if (typeof val === 'bigint') return Number(val);
               return Number(val);
             };
+
+            // Fix for coveringLendersCount - handle different response types
+            let coveringLendersCount = 0;
+            try {
+              const coveringLenders = info.coveringLenders;
+              
+              if (Array.isArray(coveringLenders)) {
+                // It's an array of addresses
+                coveringLendersCount = coveringLenders.filter(addr => 
+                  addr && addr !== ethers.constants.AddressZero
+                ).length;
+              } else if (typeof coveringLenders === 'string' && coveringLenders.startsWith('0x')) {
+                // It's a single address
+                coveringLendersCount = coveringLenders !== ethers.constants.AddressZero ? 1 : 0;
+              } else {
+                // It's a number or BigNumber
+                coveringLendersCount = safeNumber(coveringLenders);
+              }
+              
+              // Ensure it's a valid number
+              if (isNaN(coveringLendersCount) || coveringLendersCount < 0) {
+                coveringLendersCount = 0;
+              }
+            } catch (countErr) {
+              console.warn(`Error parsing coveringLenders for requisition ${requisitionId}:`, countErr);
+              coveringLendersCount = 0;
+            }
 
             return {
               id: requisitionId.toString(),
@@ -65,7 +106,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               status: safeNumber(info.status),
               durationDays: safeNumber(info.durationDays),
               creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
-              coveringLendersCount: safeNumber(info.coveringLendersCount)
+              coveringLendersCount: coveringLendersCount
             };
           } catch (err) {
             console.error(`Error loading requisition ${graphReq.requisitionId}:`, err);
@@ -80,8 +121,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
       setRequisitions(pendingRequisitions);
     } catch (err) {
-      console.error("Error loading pending requisitions:", err);
-      setError("Failed to load available requisitions");
+      showToast("Failed to load available requisitions");
     } finally {
       setLoading(false);
     }
@@ -89,13 +129,12 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
   const handleCoverLoan = async (requisitionId, percentage) => {
     if (!contract || !account) {
-      setError("Please connect your wallet first");
+      showToast("Please connect your wallet first");
       return;
     }
-    
+
     setCovering(true);
-    setError("");
-    
+
     try {
       const requisition = requisitions.find(r => r.id === requisitionId);
       if (!requisition) {
@@ -103,13 +142,16 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       }
 
       const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
-
-      if (parseFloat(userDonationBalance) < coverageAmount) {
-        throw new Error(`Insufficient donation balance. You have ${userDonationBalance} ETH but need ${coverageAmount.toFixed(4)} ETH`);
+      
+      // Use free balance for validation
+      if (parseFloat(donationBalances.free) < coverageAmount) {
+        throw new Error(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(4)} ETH free but need ${coverageAmount.toFixed(4)} ETH`);
       }
 
       const tx = await contract.coverLoan(requisitionId, percentage);
       await tx.wait();
+
+      showToast(`Successfully covered ${percentage}% of loan #${requisitionId}`, "success");
       
       if (onCoverLoan) {
         onCoverLoan();
@@ -117,13 +159,45 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       
       setSelectedRequisition(null);
       setCustomPercentage("");
-      await Promise.all([loadPendingRequisitions(), loadUserDonationBalance()]);
+      setPendingConfirmation(null);
       
+      await Promise.all([loadPendingRequisitions(), loadUserDonationBalances()]);
     } catch (err) {
-      console.error("Error covering loan:", err);
-      setError(err.message || "Failed to cover loan");
+      handleContractError(err, "coverLoan");
     } finally {
       setCovering(false);
+    }
+  };
+
+  const handlePercentageClick = (requisitionId, percentage) => {
+    const requisition = requisitions.find(r => r.id === requisitionId);
+    if (!requisition) return;
+
+    const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
+    const remainingCoverage = 100 - requisition.currentCoverage;
+    // Use free balance for validation
+    const canCover = parseFloat(donationBalances.free) >= coverageAmount;
+    const isValid = percentage <= remainingCoverage && percentage > 0;
+
+    if (isValid && canCover) {
+      setPendingConfirmation({ requisitionId, percentage });
+    }
+  };
+
+  const handleCustomPercentageCover = () => {
+    const percentage = parseInt(customPercentage);
+    if (percentage >= 1 && percentage <= 100) {
+      handlePercentageClick(selectedRequisition.id, percentage);
+    }
+  };
+
+  const cancelConfirmation = () => {
+    setPendingConfirmation(null);
+  };
+
+  const confirmCoverLoan = () => {
+    if (pendingConfirmation) {
+      handleCoverLoan(pendingConfirmation.requisitionId, pendingConfirmation.percentage);
     }
   };
 
@@ -160,16 +234,58 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  const isPercentageValid = (requisition, percentage) => {
+    if (!requisition) return false;
+    
+    const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
+    const remainingCoverage = 100 - requisition.currentCoverage;
+    // Use free balance for validation
+    const canCover = parseFloat(donationBalances.free) >= coverageAmount;
+    const isValid = percentage <= remainingCoverage && percentage > 0;
+
+    return isValid && canCover;
+  };
+
   return (
     <div className="requsitionBlock">
+      <Toast toast={toast} onClose={hideToast} />
+      
       <h2>Available Loan Requisitions</h2>
       
+      {/* Updated Donation Balance Display */}
       <div className="stats-box">
-        <strong>Your Donation Balance:</strong> {parseFloat(userDonationBalance).toFixed(4)} ETH
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center' }}>
+          <div>
+            <strong>Total Donations:</strong><br />
+            {parseFloat(donationBalances.total).toFixed(4)} ETH
+          </div>
+          <div>
+            <strong>In Coverage:</strong><br />
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {parseFloat(donationBalances.allocated).toFixed(4)} ETH
+            </span>
+          </div>
+          <div>
+            <strong>Available:</strong><br />
+            <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>
+              {parseFloat(donationBalances.free).toFixed(4)} ETH
+            </span>
+          </div>
+        </div>
+        {parseFloat(donationBalances.free) === 0 && (
+          <div style={{ 
+            marginTop: '12px', 
+            padding: '8px', 
+            backgroundColor: 'rgba(56, 97, 251, 0.1)', 
+            borderRadius: '4px',
+            fontSize: '0.9em',
+            color: 'var(--accent-blue)'
+          }}>
+            💡 All your donations are currently allocated to loan coverage
+          </div>
+        )}
       </div>
-      
-      {error && <div className="error-message">{error}</div>}
-      
+
       {loading ? (
         <p>Loading available requisitions...</p>
       ) : requisitions.length === 0 ? (
@@ -177,8 +293,8 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       ) : (
         <div className="requisitions-list">
           {requisitions.map((req) => (
-            <div 
-              key={req.id} 
+            <div
+              key={req.id}
               className="requisition-item"
               onClick={() => {
                 setSelectedRequisition(selectedRequisition?.id === req.id ? null : req);
@@ -187,14 +303,14 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
             >
               <div className="requisition-header">
                 <h3>Requisition #{req.id}</h3>
-                <span 
+                <span
                   className="status-badge"
                   style={{ color: getStatusColor(req.status) }}
                 >
                   {getStatusText(req.status)}
                 </span>
               </div>
-              
+
               <div className="requisition-details">
                 <div><strong>Amount:</strong> {req.amount} ETH</div>
                 <div><strong>Borrower:</strong> {formatAddress(req.borrower)}</div>
@@ -203,18 +319,17 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 <div><strong>Lenders:</strong> {req.coveringLendersCount}</div>
                 <div><strong>Created:</strong> {req.creationTime}</div>
               </div>
-              
+
               <div className="coverage-bar-container">
-                <div 
+                <div
                   className="coverage-bar-fill"
                   style={{
                     width: `${Math.min(req.currentCoverage, 100)}%`,
-                    backgroundColor: req.currentCoverage >= req.minimumCoverage ? 
-                      'var(--accent-green)' : 'var(--accent-blue)',
+                    backgroundColor: req.currentCoverage >= req.minimumCoverage ? 'var(--accent-green)' : 'var(--accent-blue)',
                   }}
                 ></div>
               </div>
-              
+
               {selectedRequisition?.id === req.id && (
                 <div className="cover-loan-section" onClick={stopPropagation}>
                   <h4>Cover This Loan</h4>
@@ -224,20 +339,23 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                     <div className="percentage-grid">
                       {quickPercentages.map((percentage) => {
                         const coverageAmount = parseFloat(req.amount) * percentage / 100;
-                        const canCover = parseFloat(userDonationBalance) >= coverageAmount;
+                        // Use free balance for validation
+                        const canCover = parseFloat(donationBalances.free) >= coverageAmount;
                         const remainingCoverage = 100 - req.currentCoverage;
                         const isValid = percentage <= remainingCoverage && percentage > 0;
-                        
+
                         return (
                           <button
                             key={percentage}
-                            onClick={() => isValid && handleCoverLoan(req.id, percentage)}
+                            onClick={() => handlePercentageClick(req.id, percentage)}
                             className={`percentage-button ${!isValid ? 'disabled' : ''} ${!canCover ? 'insufficient' : ''}`}
                             disabled={covering || !isValid || !canCover}
-                            title={!isValid ? 
-                              `Cannot cover more than ${remainingCoverage}%` : 
-                              !canCover ? `Need ${coverageAmount.toFixed(4)} ETH` :
-                              `Cover ${percentage}% (${coverageAmount.toFixed(4)} ETH)`
+                            title={
+                              !isValid 
+                                ? `Cannot cover more than ${remainingCoverage}%` 
+                                : !canCover 
+                                  ? `Need ${coverageAmount.toFixed(4)} ETH (You have ${parseFloat(donationBalances.free).toFixed(4)} ETH available)` 
+                                  : `Cover ${percentage}% (${coverageAmount.toFixed(4)} ETH)`
                             }
                           >
                             {percentage}%
@@ -246,7 +364,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                       })}
                     </div>
                   </div>
-                  
+
                   <div className="custom-percentage">
                     <p>Or enter custom percentage (1-100):</p>
                     <div className="custom-input-group">
@@ -262,13 +380,8 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                       />
                       <span>%</span>
                       <button
-                        onClick={() => {
-                          const percentage = parseInt(customPercentage);
-                          if (percentage >= 1 && percentage <= 100) {
-                            handleCoverLoan(req.id, percentage);
-                          }
-                        }}
-                        disabled={covering || !customPercentage || parseInt(customPercentage) < 1 || parseInt(customPercentage) > 100}
+                        onClick={handleCustomPercentageCover}
+                        disabled={covering || !customPercentage || !isPercentageValid(req, parseInt(customPercentage))}
                         className="custom-cover-button"
                       >
                         Cover
@@ -277,6 +390,14 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                     {customPercentage && (
                       <div className="custom-amount">
                         Coverage amount: {(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(4)} ETH
+                        {!isPercentageValid(req, parseInt(customPercentage)) && (
+                          <span className="error-text"> 
+                            {parseFloat(donationBalances.free) < (parseFloat(req.amount) * parseInt(customPercentage) / 100) 
+                              ? ` - Need ${(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(4)} ETH (You have ${parseFloat(donationBalances.free).toFixed(4)} ETH available)`
+                              : ' - Invalid percentage'
+                            }
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -286,9 +407,50 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
           ))}
         </div>
       )}
-      
-      <button onClick={loadPendingRequisitions} className="wallet-button refresh-button">
-        Refresh List
+
+      {/* Confirmation Modal */}
+      {pendingConfirmation && (
+        <div className="confirmation-modal-overlay" onClick={cancelConfirmation}>
+          <div className="confirmation-modal" onClick={stopPropagation}>
+            <h3>Confirm Coverage</h3>
+            <p>
+              Are you sure you want to cover{" "}
+              <strong>{pendingConfirmation.percentage}%</strong> of Requisition #
+              {pendingConfirmation.requisitionId}?
+            </p>
+            <p>
+              Coverage amount:{" "}
+              <strong>
+                {(
+                  parseFloat(
+                    requisitions.find(r => r.id === pendingConfirmation.requisitionId)?.amount || "0"
+                  ) *
+                  pendingConfirmation.percentage /
+                  100
+                ).toFixed(4)}{" "}
+                ETH
+              </strong>
+            </p>
+            <p style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>
+              Available balance: {parseFloat(donationBalances.free).toFixed(4)} ETH
+            </p>
+            <div className="confirmation-buttons">
+              <button onClick={cancelConfirmation} className="cancel-button">
+                Cancel
+              </button>
+              <button onClick={confirmCoverLoan} disabled={covering} className="confirm-button">
+                {covering ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button onClick={() => {
+        loadPendingRequisitions();
+        loadUserDonationBalances();
+      }} className="wallet-button refresh-button">
+        Refresh List & Balances
       </button>
     </div>
   );

@@ -467,4 +467,8 @@ function getRepaymentSummary(uint256 requisitionId) external view returns (
         return loanContracts[requisitionId].paymentDates;
     }
 
+    function getDonationsInCoverage(address lender) external view returns (uint256) {
+        return donationsInCoverage[lender];
+    }
+
 }
