@@ -8,6 +8,8 @@ import LoanMachineABI from '../../artifacts/contracts/LoanMachine.sol/LoanMachin
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
 
+const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+provider.pollingInterval = 100000000000;
 
 const Web3Context = createContext();
 
@@ -37,7 +39,7 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[4];
+      const defaultAccount = accounts[3];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);

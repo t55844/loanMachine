@@ -201,7 +201,7 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
 }
 
     // Internal function to fund the loan
-    function _fundLoan(uint256 requisitionId) internal {
+    function _fundLoan(uint256 requisitionId) internal nonReentrant {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
         
@@ -221,29 +221,7 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
         emit LoanFunded(requisitionId);
     }
 
-    // Direct borrow function
-    function borrow(uint256 _amount) external validAmount(_amount) canBorrow(_amount) nonReentrant {
-        bool isNewBorrower = borrowings[msg.sender] == 0;
-
-        unchecked {
-            borrowings[msg.sender] += _amount;
-            totalBorrowed += _amount;
-            availableBalance -= _amount;
-        }
-        
-        lastBorrowTime[msg.sender] = block.timestamp;
-
-        emit Borrowed(msg.sender, _amount, borrowings[msg.sender]);
-        emit TotalBorrowedUpdated(totalBorrowed);
-        emit AvailableBalanceUpdated(availableBalance);
-        
-        if (isNewBorrower) {
-            emit NewBorrower(msg.sender);
-        }
-
-        payable(msg.sender).transfer(_amount);
-    }
-
+   
     // Repay function - pays exactly one parcel for the specified requisition
 function repay(uint256 requisitionId) external payable nonReentrant {
     if (msg.value == 0) revert InvalidAmount();

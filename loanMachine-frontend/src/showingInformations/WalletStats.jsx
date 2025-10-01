@@ -1,81 +1,100 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fetchUserData } from "../graphql-frontend-query";
+import { useWeb3 } from "../Web3Context";
+import Donate from "../loan-interaction/Donate";
 import { ethers } from "ethers";
 
-const RPC_URL = import.meta.env.VITE_RPC_URL;
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+async function fetchUserStats(userAddress) {
+  const userData = await fetchUserData(userAddress);
+  
+  const totalDonations = ethers.utils.formatEther(userData.totalDonated || "0");
+  const totalBorrowed = ethers.utils.formatEther(userData.totalBorrowed || "0");
+  const currentDebt = ethers.utils.formatEther(userData.currentDebt || "0");
+  
+  const lastActivity = userData.lastActivity !== "0" 
+    ? new Date(parseInt(userData.lastActivity) * 1000).toLocaleString()
+    : "Never";
+  
+  const canBorrowNow = parseFloat(currentDebt) === 0;
+  
+  return {
+    donations: totalDonations,
+    borrowings: totalBorrowed,
+    currentDebt,
+    lastActivity,
+    canBorrowNow,
+    donationCount: userData.donations.length,
+    borrowCount: userData.borrows.length,
+  };
+}
 
-const ABI = [
-  "function getUserStats(address _user) view returns (uint256 userDonations, uint256 userBorrowings, uint256 lastBorrow, bool canBorrowNow)",
-  "function getDonation(address _user) view returns (uint256)",
-  "function getBorrowing(address _user) view returns (uint256)",
-  "function getLastBorrowTime(address _user) view returns (uint256)"
-];
-
-export default function WalletStats() {
-  const [wallet, setWallet] = useState("");
-  const [data, setData] = useState(null);
+export default function UserStatus() {
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const { account } = useWeb3();
 
-  async function fetchData() {
-    if (!ethers.utils.isAddress(wallet)) {
-      setError("Endereço inválido");
-      return;
+  useEffect(() => {
+    if (account) {
+      loadUserData();
     }
+  }, [account]);
+
+  async function loadUserData() {
+    if (!account) return;
 
     setLoading(true);
     setError("");
-    setData(null);
 
     try {
-      const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
-
-      const [donations, borrowings, lastBorrow, canBorrowNow] =
-        await contract.getUserStats(wallet);
-
-      setData({
-        donations: ethers.utils.formatEther(donations),
-        borrowings: ethers.utils.formatEther(borrowings),
-        lastBorrow: new Date(lastBorrow.toNumber() * 1000).toLocaleString(),
-        canBorrowNow
-      });
+      const stats = await fetchUserStats(account);
+      console.log("Fetched User Stats:", stats);
+      setUserData(stats);
     } catch (e) {
-      console.error("Erro ao buscar dados:", e);
-      setError("Não foi possível carregar os dados para essa carteira");
+      console.error("Error loading user data:", e);
+      setError("Failed to load user data");
     } finally {
       setLoading(false);
     }
   }
 
+  if (!account) {
+    return (
+      <div className="stats-box">
+        <h2>User Status</h2>
+        <p>Connect your wallet to view status</p>
+      </div>
+    );
+  }
+
   return (
     <div className="stats-box">
-      <h2>User Stats</h2>
-
-      <div className="wallet-input-row">
-        <input
-          type="text"
-          placeholder="Insira o endereço da carteira"
-          value={wallet}
-          onChange={(e) => setWallet(e.target.value)}
-          className="wallet-input"
-        />
-        <button onClick={fetchData} className="wallet-button">
-          Buscar
-        </button>
+      <h2>User Status</h2>
+      
+      <div className="user-address">
+        <strong>Connected:</strong> {account}
       </div>
 
-      {loading && <p>Carregando dados...</p>}
+      {loading && <p>Loading...</p>}
       {error && <p className="error">{error}</p>}
 
-      {data && (
+      {userData && (
         <div className="stats-grid">
-          <div><strong>Donations:</strong> {data.donations} ETH</div>
-          <div><strong>Borrowings:</strong> {data.borrowings} ETH</div>
-          <div><strong>Last Borrow:</strong> {data.lastBorrow}</div>
-          <div><strong>Can Borrow Now:</strong> {data.canBorrowNow ? "Yes" : "No"}</div>
+          <div><strong>Donations:</strong> {userData.donations} ETH</div>
+          <div><strong>Borrowed:</strong> {userData.borrowings} ETH</div>
+          <div><strong>Current Debt:</strong> {userData.currentDebt} ETH</div>
+          <div><strong>Can Borrow:</strong> {userData.canBorrowNow ? "Yes" : "No"}</div>
+          <div><strong>Last Activity:</strong> {userData.lastActivity}</div>
+          <div><strong>Donations Made:</strong> {userData.donationCount}</div>
         </div>
       )}
+
+      <Donate account={account} />
+
+      <button onClick={loadUserData} className="refresh-button">
+        Refresh Data
+      </button>
     </div>
   );
 }

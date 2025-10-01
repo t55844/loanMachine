@@ -178,3 +178,65 @@ export async function fetchUserDonations(donorAddress) {
   }
 }
 
+
+// GraphQL query functions
+export async function fetchUserData(userAddress) {
+  const query = `
+    query GetUserData($userAddress: String!) {
+      users(where: { id: $userAddress }) {
+        id
+        borrows {
+          id
+          amount
+          timestamp
+        }
+        donations {
+          id
+          amount
+          timestamp
+        }
+        repayments {
+          id
+          amount
+          timestamp
+        }
+        currentDebt
+        lastActivity
+        totalDonated
+        totalBorrowed
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(import.meta.env.VITE_SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        query,
+        variables: { userAddress: userAddress.toLowerCase() }
+      }),
+    });
+    
+    const { data } = await response.json();
+    
+    if (data && data.users && data.users.length > 0) {
+      return data.users[0];
+    }
+
+    // Return default data if user not found
+    return {
+      id: userAddress,
+      borrows: [],
+      donations: [],
+      repayments: [],
+      currentDebt: "0",
+      lastActivity: "0",
+      totalDonated: "0",
+      totalBorrowed: "0"
+    };
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw error;
+  }
+}

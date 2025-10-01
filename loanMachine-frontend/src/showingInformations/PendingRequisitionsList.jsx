@@ -272,7 +272,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
             </span>
           </div>
         </div>
-        {parseFloat(donationBalances.free) === 0 && (
+        {parseFloat(donationBalances.free) === 0 && parseFloat(donationBalances.total) > 0 && (
           <div style={{ 
             marginTop: '12px', 
             padding: '8px', 

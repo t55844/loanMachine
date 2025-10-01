@@ -44,3 +44,10 @@ blocos aumentando muito, olhar depois
 
 
 olhar as funcionalidades novas no detalhe e testar a função de cobrir um emprestimo
+
+
+eth_getBlockByNumber (43)
+eth_chainId
+eth_accounts (2)                                                                                                                                                                                             
+eth_chainId (2)
+eth_getBlockByNumber (540)

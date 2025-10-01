@@ -4,8 +4,6 @@ import WalletConnect from "./loan-interaction/WalletConnect";
 import ContractOverview from "./showingInformations/ContractOverview";
 import WalletStats from "./showingInformations/WalletStats";
 import Donate from "./loan-interaction/Donate";
-import Borrow from "./loan-interaction/Borrow";
-import Repay from "./loan-interaction/Repay";
 import WalletDistribution from "./showingInformations/WalletDistribution"
 import LoanRequisitionBlock from "./showingInformations/LoanRequisitionBlock";
 import "./App.css";
@@ -22,17 +20,8 @@ export default function App() {
       <div className="card">
         <h1>Loan Machine DApp</h1>
         <WalletDistribution />
-        <WalletConnect setAccount={setAccount} />
-        {currentAccount && (
-          <div className="section">
-            {/* Your existing section content */}
-          </div>
-        )}
         <WalletStats account={currentAccount} />
-        <Donate account={currentAccount} contract={contract} />
-        <Borrow account={currentAccount} contract={contract} />
-        <Repay account={currentAccount} contract={contract} />
-        
+
         <ContractOverview />
         <LoanRequisitionBlock />
       </div>
