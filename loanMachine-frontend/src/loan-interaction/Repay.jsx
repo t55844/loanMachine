@@ -1,9 +1,11 @@
 // Repay.jsx
 import { useState } from "react";
 import { ethers } from "ethers";
+import { useGasCostModal } from "../handlers/useGasCostModal";
 
 function Repay({ account, contract }) {
   const [amount, setAmount] = useState("");
+  const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
   async function handleRepay() {
     if (!account || !contract || !amount) {
@@ -11,9 +13,19 @@ function Repay({ account, contract }) {
       return;
     }
 
+    const value = ethers.utils.parseEther(amount);
+    
+    showTransactionModal({
+      method: "repay",
+      params: [],
+      value: value.toString()
+    });
+  }
+
+  async function confirmTransaction(transactionData) {
     try {
       const tx = await contract.repay({
-        value: ethers.utils.parseEther(amount)
+        value: ethers.BigNumber.from(transactionData.value)
       });
       await tx.wait();
       alert(`Repayment of ${amount} ETH sent from ${account}!`);
@@ -39,6 +51,12 @@ function Repay({ account, contract }) {
       <button onClick={handleRepay} className="repay-button" disabled={!account}>
         Repay
       </button>
+
+      <ModalWrapper 
+        account={account} 
+        contract={contract} 
+        onConfirm={confirmTransaction} 
+      />
     </div>
   );
 }

@@ -133,11 +133,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     }
 
     // Cover a loan requisition
-    function coverLoan(uint256 requisitionId, uint32 coveragePercentage) 
+   function coverLoan(uint256 requisitionId, uint32 coveragePercentage) 
         external 
         validCoverage(coveragePercentage)
         nonReentrant 
-    {
+        {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
         if (req.status != BorrowStatus.Pending && req.status != BorrowStatus.PartiallyCovered) {
@@ -147,17 +147,16 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         if (uint256(req.currentCoverage) + uint256(coveragePercentage) > 100) {
             revert OverCoverage();
         }
-        
-        uint256 coverageAmount = (req.amount * uint256(coveragePercentage)) / 100;
+
+        uint256 PRECISION = 1e18;
+        uint256 coverageAmount = ((req.amount * coveragePercentage * PRECISION) + (100 * PRECISION - 1)) / (100 * PRECISION);
         
         if (donations[msg.sender] < coverageAmount) {
             revert InsufficientDonationBalance();
         }
         
-        
         donations[msg.sender] -= coverageAmount;
         donationsInCoverage[msg.sender] += coverageAmount;
-        
         
         req.currentCoverage += coveragePercentage;
         
@@ -176,6 +175,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         
         emit LoanCovered(requisitionId, msg.sender, coverageAmount);
     }
+
 
 function _generateLoanContract(uint256 requisitionId) internal {
     LoanContract storage loan = loanContracts[requisitionId];
@@ -201,7 +201,7 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
 }
 
     // Internal function to fund the loan
-    function _fundLoan(uint256 requisitionId) internal nonReentrant {
+    function _fundLoan(uint256 requisitionId) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
         
@@ -213,12 +213,12 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
         lastBorrowTime[req.borrower] = block.timestamp;
         req.status = BorrowStatus.Active;
         
-        payable(req.borrower).transfer(req.amount);
-        
         emit Borrowed(req.borrower, req.amount, borrowings[req.borrower]);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
         emit LoanFunded(requisitionId);
+        
+        payable(req.borrower).transfer(req.amount);
     }
 
    

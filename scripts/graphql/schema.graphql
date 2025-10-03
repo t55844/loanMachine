@@ -78,7 +78,7 @@ type LoanContract @entity(immutable: false) {
   requisitionId: BigInt!
   status: Int!           # ContractStatus encoded as integer in event
   parcelsPending: Int!   # number of parcels pending
-  parcelsValues: BigInt! # new field for value per parcel
+  parcelsValues: BigInt # new field for value per parcel
   createdAt: BigInt!     # timestamp when LoanContractGenerated fired
   completedAt: BigInt    # optional, set when LoanCompleted event fires
 }

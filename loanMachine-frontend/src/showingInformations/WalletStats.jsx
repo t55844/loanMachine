@@ -33,7 +33,7 @@ export default function UserStatus() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
-  const { account } = useWeb3();
+  const { account,contract } = useWeb3();
 
   useEffect(() => {
     if (account) {
@@ -49,7 +49,6 @@ export default function UserStatus() {
 
     try {
       const stats = await fetchUserStats(account);
-      console.log("Fetched User Stats:", stats);
       setUserData(stats);
     } catch (e) {
       console.error("Error loading user data:", e);
@@ -90,7 +89,7 @@ export default function UserStatus() {
         </div>
       )}
 
-      <Donate account={account} />
+      <Donate account={account} contract={contract} />
 
       <button onClick={loadUserData} className="refresh-button">
         Refresh Data

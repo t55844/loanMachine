@@ -71,7 +71,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       }
 
       const [nextPaymentAmount] = await contract.getNextPaymentAmount(requisitionId);
-      const tx = await contract.payInstallment(requisitionId, { value: nextPaymentAmount });
+      const tx = await contract.repay(requisitionId, { value: nextPaymentAmount });
       await tx.wait();
 
       showToast(`Payment successful for loan #${requisitionId}`, "success");

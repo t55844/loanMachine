@@ -57,7 +57,6 @@ interface ILoanMachine {
     function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage) external;
 
-    function borrow(uint256 _amount) external;
     function repay(uint256 requisitionId) external payable;
 
     // View functions

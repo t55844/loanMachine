@@ -39,12 +39,12 @@ proximos possos:
 quando uma requisição atingir as condições para liber o emprestimo, deve gerar uma nova funcionalidade que tera os dados 
 de valor total, valor das parcelas, prazos etc e essa funcionalidade vai ficar monitorando os pagamaentos
 
-
-blocos aumentando muito, olhar depois
-
+problemas no repay (calculo parece estar arrado) e no pending (depois de clicar em pago ele regcarrega altomaticamente)
 
 olhar as funcionalidades novas no detalhe e testar a função de cobrir um emprestimo
 
+daicionar aviso de consumo da gas 
+websocket para diminuir os blocks
 
 eth_getBlockByNumber (43)
 eth_chainId

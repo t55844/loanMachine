@@ -1,9 +1,11 @@
 // Donate.jsx
 import { useState } from "react";
 import { ethers } from "ethers";
+import { useGasCostModal } from "../handlers/useGasCostModal";
 
 function Donate({ account, contract }) {
   const [amount, setAmount] = useState("");
+  const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
   async function handleDonate() {
     if (!account || !contract || !amount) {
@@ -11,9 +13,19 @@ function Donate({ account, contract }) {
       return;
     }
 
+    const value = ethers.utils.parseEther(amount);
+    
+    showTransactionModal({
+      method: "donate",
+      params: [],
+      value: value.toString()
+    });
+  }
+
+  async function confirmTransaction(transactionData) {
     try {
       const tx = await contract.donate({
-        value: ethers.utils.parseEther(amount)
+        value: ethers.BigNumber.from(transactionData.value)
       });
       
       await tx.wait();
@@ -37,9 +49,19 @@ function Donate({ account, contract }) {
         className="donate-input"
       />
 
-      <button onClick={handleDonate} className="donate-button" disabled={!account}>
+      <button 
+        onClick={handleDonate} 
+        className="donate-button" 
+        disabled={!account}
+      >
         Donate
       </button>
+
+      <ModalWrapper 
+        account={account} 
+        contract={contract} 
+        onConfirm={confirmTransaction} 
+      />
     </div>
   );
 }

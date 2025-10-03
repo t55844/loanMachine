@@ -966,6 +966,29 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  getDonationsInCoverage(lender: Address): BigInt {
+    let result = super.call(
+      "getDonationsInCoverage",
+      "getDonationsInCoverage(address):(uint256)",
+      [ethereum.Value.fromAddress(lender)],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_getDonationsInCoverage(lender: Address): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "getDonationsInCoverage",
+      "getDonationsInCoverage(address):(uint256)",
+      [ethereum.Value.fromAddress(lender)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   getLastBorrowTime(_user: Address): BigInt {
     let result = super.call(
       "getLastBorrowTime",
@@ -1294,36 +1317,6 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-}
-
-export class BorrowCall extends ethereum.Call {
-  get inputs(): BorrowCall__Inputs {
-    return new BorrowCall__Inputs(this);
-  }
-
-  get outputs(): BorrowCall__Outputs {
-    return new BorrowCall__Outputs(this);
-  }
-}
-
-export class BorrowCall__Inputs {
-  _call: BorrowCall;
-
-  constructor(call: BorrowCall) {
-    this._call = call;
-  }
-
-  get _amount(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class BorrowCall__Outputs {
-  _call: BorrowCall;
-
-  constructor(call: BorrowCall) {
-    this._call = call;
   }
 }
 

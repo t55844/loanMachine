@@ -850,17 +850,21 @@ export class LoanContract extends Entity {
     this.set("parcelsPending", Value.fromI32(value));
   }
 
-  get parcelsValues(): BigInt {
+  get parcelsValues(): BigInt | null {
     let value = this.get("parcelsValues");
     if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
+      return null;
     } else {
       return value.toBigInt();
     }
   }
 
-  set parcelsValues(value: BigInt) {
-    this.set("parcelsValues", Value.fromBigInt(value));
+  set parcelsValues(value: BigInt | null) {
+    if (!value) {
+      this.unset("parcelsValues");
+    } else {
+      this.set("parcelsValues", Value.fromBigInt(<BigInt>value));
+    }
   }
 
   get createdAt(): BigInt {
