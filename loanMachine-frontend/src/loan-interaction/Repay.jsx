@@ -7,34 +7,26 @@ function Repay({ account, contract }) {
   const [amount, setAmount] = useState("");
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
-  async function handleRepay() {
-    if (!account || !contract || !amount) {
-      alert("Please connect and enter an amount");
-      return;
-    }
+async function handleRepay() {
+  if (!account || !contract || !amount) {
+    alert("Please connect and enter an amount");
+    return;
+  }
 
-    const value = ethers.utils.parseEther(amount);
-    
-    showTransactionModal({
+  const value = ethers.utils.parseEther(amount);
+  
+  showTransactionModal(
+    {
       method: "repay",
       params: [],
       value: value.toString()
-    });
-  }
-
-  async function confirmTransaction(transactionData) {
-    try {
-      const tx = await contract.repay({
-        value: ethers.BigNumber.from(transactionData.value)
-      });
-      await tx.wait();
-      alert(`Repayment of ${amount} ETH sent from ${account}!`);
-      setAmount("");
-    } catch (err) {
-      console.error(err);
-      alert("Error repaying loan");
+    },
+    {
+      type: 'repay',
+      amount: amount
     }
-  }
+  );
+}
 
   return (
     <div className="repay-block">

@@ -7,6 +7,7 @@ function GasCostModal({
   onClose, 
   onConfirm, 
   transactionData,
+  transactionContext,
   account,
   contract 
 }) {
@@ -60,10 +61,43 @@ function GasCostModal({
     parseFloat(ethers.utils.formatEther(transactionData.value)) : 0;
   const totalCost = (parseFloat(gasCost || 0) + transactionValue).toFixed(6);
 
+  // Render transaction-specific details based on context
+  const renderTransactionDetails = () => {
+    if (!transactionContext) return null;
+
+    switch (transactionContext.type) {
+      case 'coverLoan':
+        return (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+            <div><strong>Covering Loan:</strong> Requisition #{transactionContext.requisitionId}</div>
+            <div><strong>Coverage Percentage:</strong> {transactionContext.percentage}%</div>
+            <div><strong>Coverage Amount:</strong> {transactionContext.coverageAmount} ETH</div>
+          </div>
+        );
+      case 'repay':
+        return (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+            <div><strong>Repayment Amount:</strong> {transactionContext.amount} ETH</div>
+          </div>
+        );
+      case 'donate':
+        return (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+            <div><strong>Donation Amount:</strong> {transactionContext.amount} ETH</div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="confirmation-modal-overlay">
       <div className="confirmation-modal">
         <h3>Transaction Confirmation</h3>
+        
+        {/* Transaction-specific details */}
+        {renderTransactionDetails()}
         
         <div className="gas-info">
           {loading ? (

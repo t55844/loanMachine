@@ -15,11 +15,17 @@ function Donate({ account, contract }) {
 
     const value = ethers.utils.parseEther(amount);
     
-    showTransactionModal({
-      method: "donate",
-      params: [],
-      value: value.toString()
-    });
+    showTransactionModal(
+      {
+        method: "donate",
+        params: [],
+        value: value.toString()
+      },
+      {
+        type: 'donate',
+        amount: amount
+      }
+    );
   }
 
   async function confirmTransaction(transactionData) {
@@ -30,10 +36,12 @@ function Donate({ account, contract }) {
       
       await tx.wait();
       alert(`Donation of ${amount} ETH sent from ${account} to the contract!`);
-      setAmount("");
+      setAmount(""); // Clear the input field
     } catch (err) {
       console.error(err);
       alert("Error sending donation");
+      // Re-throw the error so the modal knows the transaction failed
+      throw err;
     }
   }
 

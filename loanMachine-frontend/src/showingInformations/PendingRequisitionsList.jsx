@@ -122,33 +122,42 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     }
   };
 
-  const handleCoverLoan = async (requisitionId, percentage) => {
-    if (!contract || !account) {
-      showToast("Please connect your wallet first");
-      return;
-    }
+  // PendingRequisitionsList.jsx - Only show the updated handleCoverLoan function
+const handleCoverLoan = async (requisitionId, percentage) => {
+  if (!contract || !account) {
+    showToast("Please connect your wallet first");
+    return;
+  }
 
-    const requisition = requisitions.find(r => r.id === requisitionId);
-    if (!requisition) {
-      showToast("Requisition not found");
-      return;
-    }
+  const requisition = requisitions.find(r => r.id === requisitionId);
+  if (!requisition) {
+    showToast("Requisition not found");
+    return;
+  }
 
-    const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
-    
-    // Use free balance for validation
-    if (parseFloat(donationBalances.free) < coverageAmount) {
-      showToast(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(4)} ETH free but need ${coverageAmount.toFixed(4)} ETH`, "error");
-      return;
-    }
+  const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
+  
+  if (parseFloat(donationBalances.free) < coverageAmount) {
+    showToast(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(4)} ETH free but need ${coverageAmount.toFixed(4)} ETH`, "error");
+    return;
+  }
 
-    // Show gas cost modal instead of direct confirmation
-    showTransactionModal({
+  showTransactionModal(
+    {
       method: "coverLoan",
       params: [requisitionId, percentage],
       value: "0"
-    });
-  };
+    },
+    {
+      type: 'coverLoan',
+      requisitionId: requisitionId,
+      percentage: percentage,
+      coverageAmount: coverageAmount.toFixed(4),
+      loanAmount: requisition.amount,
+      borrower: requisition.borrower
+    }
+  );
+};
 
   const confirmCoverLoanTransaction = async (transactionData) => {
     setCovering(true);

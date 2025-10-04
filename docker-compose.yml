@@ -35,7 +35,7 @@ services:
       postgres_pass: letmein
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'localhost:http://host.docker.internal:8545'
+      ethereum: 'ws://127.0.0.1:8545'
       RUST_LOG: info
     depends_on:
       - postgres

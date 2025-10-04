@@ -1,7 +1,7 @@
 ----BLOCKCHAIN
 npx hardhat clean
 npx hardhat compile
-npx hardhat node
+npx hardhat node --hostname 127.0.0.1
 npx hardhat run scripts/deploy.js --network localhost 
 0x5FbDB2315678afecb367f032d93F642f64180aa3
 
@@ -39,11 +39,8 @@ proximos possos:
 quando uma requisição atingir as condições para liber o emprestimo, deve gerar uma nova funcionalidade que tera os dados 
 de valor total, valor das parcelas, prazos etc e essa funcionalidade vai ficar monitorando os pagamaentos
 
-problemas no repay (calculo parece estar arrado) e no pending (depois de clicar em pago ele regcarrega altomaticamente)
+adicionar o elemento de indentificação numero de membro da comunidade no codigo
 
-olhar as funcionalidades novas no detalhe e testar a função de cobrir um emprestimo
-
-daicionar aviso de consumo da gas 
 websocket para diminuir os blocks
 
 eth_getBlockByNumber (43)
