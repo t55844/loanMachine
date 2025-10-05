@@ -1,22 +1,23 @@
 // GasCostModal.jsx
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
+import { useWeb3 } from "../Web3Context"; // Import the web3 hook
 
 function GasCostModal({ 
   isOpen, 
   onClose, 
   onConfirm, 
   transactionData,
-  transactionContext,
-  account,
-  contract 
+  transactionContext
 }) {
   const [gasCost, setGasCost] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const { contract, provider } = useWeb3(); // Get contract and provider from context
 
   useEffect(() => {
-    if (isOpen && account && contract && transactionData) {
+    if (isOpen && contract && transactionData) {
       estimateGasCost();
     }
   }, [isOpen, transactionData]);
@@ -33,16 +34,15 @@ function GasCostModal({
         throw new Error(`Method ${method} not found on contract`);
       }
 
-      // Estimate gas
+      // Estimate gas - for USDT transactions, value is 0
       const gasEstimate = await contract.estimateGas[method](...params, {
         value: ethers.BigNumber.from(value)
       });
 
       // Get gas price
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
       const gasPrice = await provider.getGasPrice();
 
-      // Calculate total gas cost in ETH
+      // Calculate total gas cost in ETH (gas is still paid in ETH)
       const gasCostWei = gasEstimate.mul(gasPrice);
       const gasCostEth = ethers.utils.formatEther(gasCostWei);
 
@@ -57,9 +57,20 @@ function GasCostModal({
 
   if (!isOpen) return null;
 
+  // For USDT transactions, transaction value is 0 (no ETH sent)
   const transactionValue = transactionData?.value ? 
     parseFloat(ethers.utils.formatEther(transactionData.value)) : 0;
   const totalCost = (parseFloat(gasCost || 0) + transactionValue).toFixed(6);
+
+  // Format USDT amount for display
+  const formatUSDTAmount = (amount) => {
+    if (!amount) return '0';
+    try {
+      return parseFloat(ethers.utils.formatUnits(amount, 6)).toFixed(2);
+    } catch {
+      return amount;
+    }
+  };
 
   // Render transaction-specific details based on context
   const renderTransactionDetails = () => {
@@ -68,22 +79,32 @@ function GasCostModal({
     switch (transactionContext.type) {
       case 'coverLoan':
         return (
-          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+          <div className="transaction-details">
             <div><strong>Covering Loan:</strong> Requisition #{transactionContext.requisitionId}</div>
             <div><strong>Coverage Percentage:</strong> {transactionContext.percentage}%</div>
-            <div><strong>Coverage Amount:</strong> {transactionContext.coverageAmount} ETH</div>
+            <div><strong>Coverage Amount:</strong> {formatUSDTAmount(transactionContext.coverageAmount)} USDT</div>
           </div>
         );
       case 'repay':
         return (
-          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
-            <div><strong>Repayment Amount:</strong> {transactionContext.amount} ETH</div>
+          <div className="transaction-details">
+            <div><strong>Repayment Amount:</strong> {formatUSDTAmount(transactionContext.amount)} USDT</div>
+            <div><strong>Requisition ID:</strong> #{transactionContext.requisitionId}</div>
           </div>
         );
       case 'donate':
         return (
-          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
-            <div><strong>Donation Amount:</strong> {transactionContext.amount} ETH</div>
+          <div className="transaction-details">
+            <div><strong>Donation Amount:</strong> {transactionContext.amount} USDT</div>
+            <div><strong>Token:</strong> USDT</div>
+            <div><strong>From:</strong> {transactionContext.from}</div>
+          </div>
+        );
+      case 'borrow':
+        return (
+          <div className="transaction-details">
+            <div><strong>Loan Amount:</strong> {formatUSDTAmount(transactionContext.amount)} USDT</div>
+            <div><strong>Requisition ID:</strong> #{transactionContext.requisitionId}</div>
           </div>
         );
       default:
@@ -105,7 +126,7 @@ function GasCostModal({
           ) : error ? (
             <div>
               <p className="error-message">⚠️ {error}</p>
-              <button onClick={estimateGasCost} className="refresh-button" style={{marginTop: '10px'}}>
+              <button onClick={estimateGasCost} className="refresh-button">
                 Retry Estimation
               </button>
             </div>
@@ -115,15 +136,36 @@ function GasCostModal({
                 <strong>Estimated Gas Cost:</strong>
                 <span>{parseFloat(gasCost).toFixed(6)} ETH</span>
               </div>
+              
+              {/* Show transaction value only for ETH transactions */}
               {transactionValue > 0 && (
                 <div className="detail-item">
                   <strong>Transaction Value:</strong>
                   <span>{transactionValue} ETH</span>
                 </div>
               )}
-              <div className="detail-item" style={{borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '8px'}}>
-                <strong style={{color: 'var(--accent-green)'}}>Total Cost:</strong>
-                <span style={{color: 'var(--accent-green)', fontWeight: 'bold'}}>{totalCost} ETH</span>
+              
+              {/* For USDT transactions, show note */}
+              {transactionContext?.token === 'USDT' && transactionValue === 0 && (
+                <div className="detail-item">
+                  <strong>Token Transfer:</strong>
+                  <span style={{color: 'var(--accent-blue)'}}>
+                    {transactionContext.amount} USDT (separate approval)
+                  </span>
+                </div>
+              )}
+              
+              <div className="detail-item total-cost">
+                <strong>Total Network Fee:</strong>
+                <span style={{color: 'var(--accent-green)', fontWeight: 'bold'}}>
+                  {totalCost} ETH
+                </span>
+              </div>
+              
+              <div className="fee-note">
+                <small>
+                  * Gas fees are paid in ETH, not USDT. This covers the network transaction cost.
+                </small>
               </div>
             </div>
           ) : null}

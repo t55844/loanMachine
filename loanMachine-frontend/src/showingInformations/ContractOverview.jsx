@@ -21,10 +21,10 @@ export default function ContractOverview() {
         if (!mounted) return;
 
         setStats({
-          totalDonations: ethers.utils.formatEther(rawStats.totalDonations ?? "0"),
-          totalBorrowed: ethers.utils.formatEther(rawStats.totalBorrowed ?? "0"),
-          availableBalance: ethers.utils.formatEther(rawStats.availableBalance ?? "0"),
-          contractBalance: ethers.utils.formatEther(rawStats.availableBalance ?? "0")
+          totalDonations: ethers.utils.formatUnits(rawStats.totalDonations ?? "0", 6), // USDT (6 decimals)
+          totalBorrowed: ethers.utils.formatUnits(rawStats.totalBorrowed ?? "0", 6), // USDT (6 decimals)
+          availableBalance: ethers.utils.formatUnits(rawStats.availableBalance ?? "0", 6), // USDT (6 decimals)
+          contractBalance: ethers.utils.formatUnits(rawStats.availableBalance ?? "0", 6) // USDT (6 decimals)
         });
 
         // Get last transactions
@@ -33,7 +33,7 @@ export default function ContractOverview() {
 
         const mapped = rawTxs.map((tx) => ({
           wallet: tx.donor?.id || tx.borrower?.id || "unknown",
-          amount: ethers.utils.formatEther(tx.amount ?? "0"),
+          amount: ethers.utils.formatUnits(tx.amount ?? "0", 6), // USDT (6 decimals)
           time: new Date(Number(tx.timestamp) * 1000).toLocaleString(),
           type: tx.type
         }));
@@ -64,6 +64,11 @@ export default function ContractOverview() {
     };
   }, []);
 
+  // Format USDT amount for display
+  const formatUSDT = (amount) => {
+    return parseFloat(amount).toFixed(2);
+  };
+
   return (
     <div className="graphBlock contract-overview">
       <h2>Contract Overview</h2>
@@ -73,10 +78,10 @@ export default function ContractOverview() {
 
       {stats && (
         <div className="stats-grid" style={{ marginTop: 8 }}>
-          <div><strong>Total Donations:</strong> {stats.totalDonations} ETH</div>
-          <div><strong>Total Borrowed:</strong> {stats.totalBorrowed} ETH</div>
-          <div><strong>Available Balance:</strong> {stats.availableBalance} ETH</div>
-          <div><strong>Contract Balance:</strong> {stats.contractBalance} ETH</div>
+          <div><strong>Total Donations:</strong> {formatUSDT(stats.totalDonations)} USDT</div>
+          <div><strong>Total Borrowed:</strong> {formatUSDT(stats.totalBorrowed)} USDT</div>
+          <div><strong>Available Balance:</strong> {formatUSDT(stats.availableBalance)} USDT</div>
+          <div><strong>Contract Balance:</strong> {formatUSDT(stats.contractBalance)} USDT</div>
         </div>
       )}
 
@@ -87,7 +92,7 @@ export default function ContractOverview() {
           lastTxs.map((tx, i) => (
             <div key={i} className="transaction-row">
               <div><strong>Wallet:</strong> {tx.wallet?.slice(0, 6)}...{tx.wallet?.slice(-4)}</div>
-              <div><strong>Amount:</strong> {tx.amount} ETH</div>
+              <div><strong>Amount:</strong> {formatUSDT(tx.amount)} USDT</div>
               <div><strong>Time:</strong> {tx.time}</div>
               <div><strong>Type:</strong> {tx.type}</div>
             </div>

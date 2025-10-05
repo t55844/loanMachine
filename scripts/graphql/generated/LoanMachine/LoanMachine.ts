@@ -805,6 +805,27 @@ export class LoanMachine extends ethereum.SmartContract {
     );
   }
 
+  getAllowance(user: Address): BigInt {
+    let result = super.call("getAllowance", "getAllowance(address):(uint256)", [
+      ethereum.Value.fromAddress(user),
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_getAllowance(user: Address): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "getAllowance",
+      "getAllowance(address):(uint256)",
+      [ethereum.Value.fromAddress(user)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   getAvailableBalance(): BigInt {
     let result = super.call(
       "getAvailableBalance",
@@ -1137,6 +1158,31 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigIntArray());
   }
 
+  getRemainingDonationAllowance(donor: Address): BigInt {
+    let result = super.call(
+      "getRemainingDonationAllowance",
+      "getRemainingDonationAllowance(address):(uint256)",
+      [ethereum.Value.fromAddress(donor)],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_getRemainingDonationAllowance(
+    donor: Address,
+  ): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "getRemainingDonationAllowance",
+      "getRemainingDonationAllowance(address):(uint256)",
+      [ethereum.Value.fromAddress(donor)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   getRepaymentSummary(
     requisitionId: BigInt,
   ): LoanMachine__getRepaymentSummaryResult {
@@ -1257,6 +1303,25 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  getUSDTBalance(): BigInt {
+    let result = super.call("getUSDTBalance", "getUSDTBalance():(uint256)", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_getUSDTBalance(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "getUSDTBalance",
+      "getUSDTBalance():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   loanContracts(param0: BigInt): LoanMachine__loanContractsResult {
     let result = super.call(
       "loanContracts",
@@ -1317,6 +1382,51 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  usdtToken(): Address {
+    let result = super.call("usdtToken", "usdtToken():(address)", []);
+
+    return result[0].toAddress();
+  }
+
+  try_usdtToken(): ethereum.CallResult<Address> {
+    let result = super.tryCall("usdtToken", "usdtToken():(address)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+}
+
+export class ConstructorCall extends ethereum.Call {
+  get inputs(): ConstructorCall__Inputs {
+    return new ConstructorCall__Inputs(this);
+  }
+
+  get outputs(): ConstructorCall__Outputs {
+    return new ConstructorCall__Outputs(this);
+  }
+}
+
+export class ConstructorCall__Inputs {
+  _call: ConstructorCall;
+
+  constructor(call: ConstructorCall) {
+    this._call = call;
+  }
+
+  get _usdtToken(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class ConstructorCall__Outputs {
+  _call: ConstructorCall;
+
+  constructor(call: ConstructorCall) {
+    this._call = call;
   }
 }
 
@@ -1416,6 +1526,10 @@ export class DonateCall__Inputs {
   constructor(call: DonateCall) {
     this._call = call;
   }
+
+  get amount(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
 }
 
 export class DonateCall__Outputs {
@@ -1445,6 +1559,10 @@ export class RepayCall__Inputs {
 
   get requisitionId(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get amount(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
   }
 }
 

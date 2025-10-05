@@ -1,33 +1,49 @@
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { fetchDonations } from "../graphql-frontend-query";
+import { fetchDonationsAndBorrows } from "../graphql-frontend-query";
+import { ethers } from "ethers";
 
 const COLORS = ["#4A6FA5", "#4AA586", "#A54A6F", "#C67828", "#7F7F7F", "#B0B0B0", "#6F6FA5"];
 
 export default function WalletDistribution() {
   const [donationsData, setDonationsData] = useState([]);
+  const [borrowingsData, setBorrowingsData] = useState([]);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const donations = await fetchDonations();
+        const [donations, borrowings] = await fetchDonationsAndBorrows();
 
-        // Aggregate by donor
-        const aggregated = donations.reduce((acc, d) => {
+        // Aggregate donations by donor - convert from wei to USDT (6 decimals)
+        const donationsAggregated = donations.reduce((acc, d) => {
           const wallet = d.donor.id;
-          const value = parseFloat((+d.amount / 1e18).toFixed(4)); // Convert from wei to ETH
+          const value = parseFloat(ethers.utils.formatUnits(d.amount, 6));
           acc[wallet] = (acc[wallet] || 0) + value;
           return acc;
         }, {});
 
-        const chartData = Object.entries(aggregated).map(([wallet, value]) => ({
+        const donationsChartData = Object.entries(donationsAggregated).map(([wallet, value]) => ({
           wallet,
-          value
+          value: parseFloat(value.toFixed(4))
         }));
 
-        setDonationsData(chartData);
+        // Aggregate borrowings by borrower - convert from wei to USDT (6 decimals)
+        const borrowingsAggregated = borrowings.reduce((acc, b) => {
+          const wallet = b.borrower.id;
+          const value = parseFloat(ethers.utils.formatUnits(b.amount, 6));
+          acc[wallet] = (acc[wallet] || 0) + value;
+          return acc;
+        }, {});
+
+        const borrowingsChartData = Object.entries(borrowingsAggregated).map(([wallet, value]) => ({
+          wallet,
+          value: parseFloat(value.toFixed(4))
+        }));
+
+        setDonationsData(donationsChartData);
+        setBorrowingsData(borrowingsChartData);
       } catch (err) {
-        console.error("Error fetching donations:", err);
+        console.error("Error fetching data:", err);
       }
     }
     loadData();
@@ -36,27 +52,54 @@ export default function WalletDistribution() {
   return (
     <div className="graphBlock">
       <h2>Wallet Distribution</h2>
-      <div style={{ flex: 1, minWidth: 300 }}>
-        <h3>Donations</h3>
-        <ResponsiveContainer width="100%" height={310}>
-          <PieChart>
-            <Pie
-              data={donationsData}
-              dataKey="value"
-              nameKey="wallet"
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              label={(entry) => `${entry.wallet.slice(0,6)}...${entry.wallet.slice(-4)}`}
-            >
-              {donationsData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => `${value} ETH`} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', flexWrap: 'wrap' }}>
+        {/* Donations Pie Chart */}
+        <div style={{ flex: 1, minWidth: 300 }}>
+          <h3>Donations</h3>
+          <ResponsiveContainer width="100%" height={310}>
+            <PieChart>
+              <Pie
+                data={donationsData}
+                dataKey="value"
+                nameKey="wallet"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label={(entry) => `${entry.wallet.slice(0,6)}...${entry.wallet.slice(-4)}`}
+              >
+                {donationsData.map((entry, index) => (
+                  <Cell key={`donation-cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => `${value} USDT`} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Borrowings Pie Chart */}
+        <div style={{ flex: 1, minWidth: 300 }}>
+          <h3>Borrowings</h3>
+          <ResponsiveContainer width="100%" height={310}>
+            <PieChart>
+              <Pie
+                data={borrowingsData}
+                dataKey="value"
+                nameKey="wallet"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label={(entry) => `${entry.wallet.slice(0,6)}...${entry.wallet.slice(-4)}`}
+              >
+                {borrowingsData.map((entry, index) => (
+                  <Cell key={`borrowing-cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => `${value} USDT`} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

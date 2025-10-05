@@ -19,7 +19,7 @@ export function useGasCostModal() {
     setTransactionContext(null);
   };
 
-  const ModalWrapper = ({ account, contract, onConfirm }) => {
+  const ModalWrapper = ({ onConfirm }) => {
     const handleConfirm = async (transactionData) => {
       try {
         await onConfirm(transactionData);
@@ -38,8 +38,6 @@ export function useGasCostModal() {
         onConfirm={handleConfirm}
         transactionData={pendingTransaction}
         transactionContext={transactionContext}
-        account={account}
-        contract={contract}
       />
     );
   };

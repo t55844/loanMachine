@@ -23,7 +23,8 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
     setLoading(true);
 
     try {
-      const amountWei = ethers.utils.parseEther(amount);
+      // Convert to USDT (6 decimals) instead of ETH (18 decimals)
+      const amountWei = ethers.utils.parseUnits(amount, 6);
       const tx = await contract.createLoanRequisition(
         amountWei,
         parseInt(minimumCoverage),
@@ -66,12 +67,12 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
         
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-            <label htmlFor="amount" style={{display: 'block', marginBottom: '8px'}}>Loan Amount (ETH)</label>
+            <label htmlFor="amount" style={{display: 'block', marginBottom: '8px'}}>Loan Amount (USDT)</label>
             <input
               id="amount"
               type="number"
-              step="0.001"
-              min="0.001"
+              step="0.01"
+              min="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="wallet-input"

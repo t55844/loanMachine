@@ -16,9 +16,9 @@ interface ILoanMachine {
         address[] coveringLenders;
         uint32 parcelsCount;
     }
-
+    
     enum ContractStatus { Active, Pending, Closed }
-
+    
     struct LoanContract {
         address walletAddress;
         uint256 requisitionId;
@@ -32,49 +32,37 @@ interface ILoanMachine {
     event Donated(address indexed donor, uint256 amount, uint256 totalDonation);
     event Borrowed(address indexed borrower, uint256 amount, uint256 totalBorrowing);
     event Repaid(address indexed borrower, uint256 amount, uint256 remainingDebt);
-
     event TotalDonationsUpdated(uint256 total);
     event TotalBorrowedUpdated(uint256 total);
     event AvailableBalanceUpdated(uint256 total);
-
-    event NewDonor(address indexed donor); 
-    event NewBorrower(address indexed borrower); 
+    event NewDonor(address indexed donor);
+    event NewBorrower(address indexed borrower);
     event BorrowLimitReached(address indexed borrower);
-
-    event LoanRequisitionCreated(uint256 indexed requisitionId, address indexed borrower, uint256 amount,uint32 parcelsCount);
+    event LoanRequisitionCreated(uint256 indexed requisitionId, address indexed borrower, uint256 amount, uint32 parcelsCount);
     event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount);
     event LoanFunded(uint256 indexed requisitionId);
-
     event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues, uint256[] paymentDates);
-
     event ParcelPaid(uint256 indexed requisitionId, uint256 parcelsRemaining);
     event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
     event LoanCompleted(uint256 indexed requisitionId);
 
     // Core functions
-    function donate() external payable;
-
+    function donate(uint256 amount) external;
     function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage) external;
-
-    function repay(uint256 requisitionId) external payable;
+    function repay(uint256 requisitionId, uint256 amount) external;
 
     // View functions
     function getTotalDonations() external view returns (uint256);
     function getTotalBorrowed() external view returns (uint256);
     function getAvailableBalance() external view returns (uint256);
     function canUserBorrow(address _user, uint256 _amount) external view returns (bool);
-
     function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory);
     function getBorrowerRequisitions(address borrower) external view returns (uint256[] memory);
-    
     function getCoveringLenders(uint256 requisitionId) external view returns (address[] memory);
     function getLenderCoverage(uint256 requisitionId, address lender) external view returns (uint256);
-    
     function getAvailableBorrowAmount() external view returns (uint256);
-
     function getLoanContract(uint256 requisitionId) external view returns (LoanContract memory);
-
     function getActiveLoans(address borrower) external view returns (LoanContract[] memory activeLoans, uint256[] memory requisitionIds);
     function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay);
     function getRepaymentSummary(uint256 requisitionId) external view returns (
@@ -85,7 +73,9 @@ interface ILoanMachine {
         bool isActive
     );
     function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);
-
     function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory);
     function getDonationsInCoverage(address lender) external view returns (uint256);
+    function getRemainingDonationAllowance(address donor) external view returns (uint256);
+    function getUSDTBalance() external view returns (uint256);
+    function getAllowance(address user) external view returns (uint256);
 }

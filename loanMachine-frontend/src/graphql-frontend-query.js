@@ -1,14 +1,20 @@
 
 
 const VITE_SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
-export async function fetchDonations() {
+export async function fetchDonationsAndBorrows() {
   const query = `
     {
-      donations(first: 20) {
+      donations(first: 10) {
         id
         donor { id }
         amount
         totalDonation
+      }
+      borrows(first: 10) {
+        id
+        borrower { id }
+        amount
+        totalBorrowing
       }
     }
   `;
@@ -17,8 +23,11 @@ export async function fetchDonations() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
   });
-  const { data } = await response.json();
-  return data?.donations || [];
+  const { data } = await response.json(); // Changed from allData to data
+  return [
+    data?.donations || [],
+    data?.borrows || []
+  ];
 }
 
 

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ILoanMachine.sol";
 
 contract LoanMachine is ILoanMachine, ReentrancyGuard {
@@ -14,6 +15,9 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     uint256 private totalBorrowed;
     uint256 private availableBalance;
 
+    //USDT Variable
+    address public immutable usdtToken; 
+
     // Loan requisition system
     mapping(uint256 => LoanRequisition) private loanRequisitions;
     uint256 public requisitionCounter;
@@ -25,7 +29,8 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     // Constants
     uint256 private constant BORROW_DURATION = 7 days;
-    uint256 private constant MIN_DONATION_FOR_BORROW = 0.1 ether;
+    uint256 private constant MIN_DONATION_FOR_BORROW = 1e6; // 1 USDT (6 decimals)
+    uint256 private constant MAX_DONATION = 5e6; // 5 USDT (6 decimals)
 
     // Custom errors
     error InvalidAmount();
@@ -39,7 +44,9 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error NoActiveBorrowing();
     error RepaymentExceedsBorrowed();
     error InvalidParcelsCount();
-    
+    error ExcessiveDonation();
+    error TokenTransferFailed();
+
     // Structs
     struct LoanRequisition {    
         uint256 requisitionId;
@@ -86,17 +93,31 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         _;
     }
 
-    // Donate function
-    function donate() external payable validAmount(msg.value) nonReentrant {
-        bool isNewDonor = donations[msg.sender] == 0;
 
-        unchecked {
-            donations[msg.sender] += msg.value;
-            totalDonations += msg.value;
-            availableBalance += msg.value;
+ constructor(address _usdtToken) {
+        usdtToken = _usdtToken;
+    }
+
+    // Donate function
+     function donate(uint256 amount) external validAmount(amount) nonReentrant {
+        // Check donation limit
+        if (donations[msg.sender] + amount > MAX_DONATION) {
+            revert ExcessiveDonation();
         }
 
-        emit Donated(msg.sender, msg.value, donations[msg.sender]);
+        // Transfer USDT from user to contract
+        bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
+        if (!success) revert TokenTransferFailed();
+
+        bool isNewDonor = donations[msg.sender] == 0;
+        
+        unchecked {
+            donations[msg.sender] += amount;
+            totalDonations += amount;
+            availableBalance += amount;
+        }
+        
+        emit Donated(msg.sender, amount, donations[msg.sender]);
         emit TotalDonationsUpdated(totalDonations);
         emit AvailableBalanceUpdated(availableBalance);
         
@@ -201,89 +222,83 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
 }
 
     // Internal function to fund the loan
-    function _fundLoan(uint256 requisitionId) internal {
+   function _fundLoan(uint256 requisitionId) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
-        
         
         borrowings[req.borrower] += req.amount;
         totalBorrowed += req.amount;
         availableBalance -= req.amount;
-        
-        
         lastBorrowTime[req.borrower] = block.timestamp;
         req.status = BorrowStatus.Active;
-        
+
+        // Transfer USDT to borrower
+        bool success = IERC20(usdtToken).transfer(req.borrower, req.amount);
+        if (!success) revert TokenTransferFailed();
+
         emit Borrowed(req.borrower, req.amount, borrowings[req.borrower]);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
         emit LoanFunded(requisitionId);
-        
-        payable(req.borrower).transfer(req.amount);
     }
 
-   
-    // Repay function - pays exactly one parcel for the specified requisition
-function repay(uint256 requisitionId) external payable nonReentrant {
-    if (msg.value == 0) revert InvalidAmount();
-    if (borrowings[msg.sender] == 0) revert NoActiveBorrowing();
+    
+    function repay(uint256 requisitionId, uint256 amount) external nonReentrant {
+            if (amount == 0) revert InvalidAmount();
+            if (borrowings[msg.sender] == 0) revert NoActiveBorrowing();
 
-    LoanContract storage loan = loanContracts[requisitionId];
-    
-    // Validate the loan contract
-    if (loan.walletAddress != msg.sender) revert NoActiveBorrowing();
-    if (loan.status != ContractStatus.Active) revert NoActiveBorrowing();
-    if (loan.parcelsPending == 0) revert NoActiveBorrowing();
-
-    if (msg.value != loan.parcelsValues) {
-        revert InvalidAmount(); // Must pay exactly one parcel value
-    }
-
-    loan.parcelsPending -= 1;
-    
-    if (loan.parcelsPending == 0) {
-        loan.status = ContractStatus.Closed;
-        emit LoanCompleted(requisitionId);
-    }
-
-    // Update global borrowing state
-    borrowings[msg.sender] -= msg.value;
-    totalBorrowed -= msg.value;
-    availableBalance += msg.value;
-    
-    _distributeRepaymentToLenders(requisitionId, msg.value);
-    
-    emit Repaid(msg.sender, msg.value, borrowings[msg.sender]);
-    emit ParcelPaid(requisitionId, loan.parcelsPending);
-    emit TotalBorrowedUpdated(totalBorrowed);
-    emit AvailableBalanceUpdated(availableBalance);
-}
-
-function _distributeRepaymentToLenders(uint256 requisitionId, uint256 repaymentAmount) internal {
-    LoanRequisition storage req = loanRequisitions[requisitionId];
-    
-    // Calculate total coverage amount (should equal the original loan amount)
-    uint256 totalCoverageAmount = req.amount;
-    
-    // Distribute to each covering lender proportionally
-    for (uint256 i = 0; i < req.coveringLenders.length; i++) {
-        address lender = req.coveringLenders[i];
-        uint256 lenderCoverage = req.coverageAmounts[lender];
-        
-        uint256 lenderShare = (repaymentAmount * lenderCoverage) / totalCoverageAmount;
-        
-        if (lenderShare > 0) {
-            // Return the funds from coverage back to the lender's donation balance
-            if (lenderShare > donationsInCoverage[lender]) {
-                lenderShare = donationsInCoverage[lender]; // Safety check
+            LoanContract storage loan = loanContracts[requisitionId];
+            
+            // Validate the loan contract
+            if (loan.walletAddress != msg.sender) revert NoActiveBorrowing();
+            if (loan.status != ContractStatus.Active) revert NoActiveBorrowing();
+            if (loan.parcelsPending == 0) revert NoActiveBorrowing();
+            if (amount != loan.parcelsValues) {
+                revert InvalidAmount(); // Must pay exactly one parcel value
             }
+
+            // Transfer USDT from borrower to contract
+            bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
+            if (!success) revert TokenTransferFailed();
+
+            loan.parcelsPending -= 1;
+            if (loan.parcelsPending == 0) {
+                loan.status = ContractStatus.Closed;
+                emit LoanCompleted(requisitionId);
+            }
+
+            // Update global borrowing state
+            borrowings[msg.sender] -= amount;
+            totalBorrowed -= amount;
+            availableBalance += amount;
+
+            _distributeRepaymentToLenders(requisitionId, amount);
+
+            emit Repaid(msg.sender, amount, borrowings[msg.sender]);
+            emit ParcelPaid(requisitionId, loan.parcelsPending);
+            emit TotalBorrowedUpdated(totalBorrowed);
+            emit AvailableBalanceUpdated(availableBalance);
+        }
+
+    function _distributeRepaymentToLenders(uint256 requisitionId, uint256 repaymentAmount) internal {
+        LoanRequisition storage req = loanRequisitions[requisitionId];
+        uint256 totalCoverageAmount = req.amount;
+
+        // Distribute to each covering lender proportionally
+        for (uint256 i = 0; i < req.coveringLenders.length; i++) {
+            address lender = req.coveringLenders[i];
+            uint256 lenderCoverage = req.coverageAmounts[lender];
+            uint256 lenderShare = (repaymentAmount * lenderCoverage) / totalCoverageAmount;
             
-            donationsInCoverage[lender] -= lenderShare;
-            donations[lender] += lenderShare;
-            
-            emit LenderRepaid(requisitionId, lender, lenderShare);
+            if (lenderShare > 0) {
+                if (lenderShare > donationsInCoverage[lender]) {
+                    lenderShare = donationsInCoverage[lender]; // Safety check
+                }
+                donationsInCoverage[lender] -= lenderShare;
+                donations[lender] += lenderShare;
+                emit LenderRepaid(requisitionId, lender, lenderShare);
+            }
         }
     }
-}
 
 // Helper function to get active loans for a borrower
 function getActiveLoans(address borrower) public view returns (LoanContract[] memory activeLoans, uint256[] memory requisitionIds) {
@@ -313,6 +328,23 @@ function getActiveLoans(address borrower) public view returns (LoanContract[] me
     
     return (activeLoans, requisitionIds);
 }
+
+  function getRemainingDonationAllowance(address donor) external view returns (uint256) {
+        if (donations[donor] >= MAX_DONATION) {
+            return 0;
+        }
+        return MAX_DONATION - donations[donor];
+    }
+
+    // Helper function to get USDT balance of contract
+    function getUSDTBalance() external view returns (uint256) {
+        return IERC20(usdtToken).balanceOf(address(this));
+    }
+
+    // Helper function to check USDT allowance for this contract
+    function getAllowance(address user) external view returns (uint256) {
+        return IERC20(usdtToken).allowance(user, address(this));
+    }
 
 // Function to check next payment amount for a specific requisition
 function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay) {
@@ -382,7 +414,7 @@ function getRepaymentSummary(uint256 requisitionId) external view returns (
     }
 
     function getContractBalance() external view returns (uint256) {
-        return address(this).balance;
+        return IERC20(usdtToken).balanceOf(address(this));
     }
 
     function getDonation(address _user) external view returns (uint256) {

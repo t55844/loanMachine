@@ -1,11 +1,9 @@
-
 services:
   ipfs:
     image: ipfs/go-ipfs:v0.10.0
     ports:
       - '5001:5001'
       - '8080:8080'
-      - '4001:4001'
     command: ["daemon", "--init", "--migrate=true"]
     volumes:
       - ./data/ipfs:/data/ipfs
@@ -16,27 +14,43 @@ services:
       POSTGRES_PASSWORD: letmein
       POSTGRES_USER: graph-node
       POSTGRES_DB: graph-node
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+      LC_ALL: C
     ports:
       - '5432:5432'
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
 
   graph-node:
-    image: graphprotocol/graph-node:v0.27.0
+    image: graphprotocol/graph-node:latest
     ports:
-      - '8000:8000'  # GraphQL
-      - '8001:8001'  # WebSocket
-      - '8020:8020'  # Admin API
-      - '8030:8030'  # Metrics
-      - '8040:8040'  # Status
+      - '8000:8000'
+      - '8001:8001'
+      - '8020:8020'
+      - '8030:8030'
+      - '8040:8040'
     environment:
       postgres_host: postgres
       postgres_user: graph-node
       postgres_pass: letmein
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'ws://127.0.0.1:8545'
-      RUST_LOG: info
+      # HTTP with maximum optimizations
+      ethereum: 'mainnet:http://host.docker.internal:8545'
+      # MAXIMUM PERFORMANCE OPTIMIZATIONS
+      ETHEREUM_RPC_MAX_PARALLEL_REQUESTS: '200'
+      ETHEREUM_BLOCK_BATCH_SIZE: '100'
+      ETHEREUM_BLOCK_RANGE_SIZE: '2000'
+      GRAPH_ETHEREUM_CLEANUP_BLOCKS: 'true'
+      GRAPH_ETHEREUM_BLOCK_BATCH_SIZE: '100'
+      GRAPH_ETHEREUM_MAX_BATCH_REQUESTS: '100'
+      GRAPH_ETHEREUM_REQUEST_RETRY_COUNT: '3'
+      GRAPH_ETHEREUM_TARGET_TRIGGERS_PER_BLOCK_RANGE: '100'
+      # Logging
+      GRAPH_LOG: info
     depends_on:
       - postgres
       - ipfs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

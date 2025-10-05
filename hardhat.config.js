@@ -19,7 +19,12 @@ module.exports = {
   },
   networks: {
     localhost: {
-      url: "http://127.0.0.1:8545"
+      url: "http://127.0.0.1:8545",
+      chainId: 31337,
+       mining: {
+        auto: true,
+        interval: 5000 // Mine block every 5 seconds instead of instantly
+      }
     }
   }
 };

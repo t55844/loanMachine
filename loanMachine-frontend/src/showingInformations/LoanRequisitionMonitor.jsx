@@ -33,7 +33,7 @@ export default function LoanRequisitionMonitor({ contract, account }) {
 
           return {
             id: id.toString(),
-            amount: ethers.utils.formatEther(info.amount),
+            amount: ethers.utils.formatUnits(info.amount, 6), // USDT (6 decimals)
             minimumCoverage: safeNumber(info.minimumCoverage),
             currentCoverage: safeNumber(info.currentCoverage),
             status: safeNumber(info.status),
@@ -74,6 +74,11 @@ export default function LoanRequisitionMonitor({ contract, account }) {
       case 4: return "var(--accent-green)";
       default: return "var(--text-secondary)";
     }
+  };
+
+  // Format USDT amount for display
+  const formatUSDT = (amount) => {
+    return parseFloat(amount).toFixed(2);
   };
 
   return (
@@ -122,7 +127,7 @@ export default function LoanRequisitionMonitor({ contract, account }) {
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
-                  <strong>Amount:</strong> {req.amount} ETH
+                  <strong>Amount:</strong> {formatUSDT(req.amount)} USDT
                 </div>
                 <div>
                   <strong>Created:</strong> {req.creationTime}

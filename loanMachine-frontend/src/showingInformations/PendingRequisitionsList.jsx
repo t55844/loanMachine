@@ -35,11 +35,11 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     try {
       const donations = await fetchUserDonations(account);
       const totalBalance = donations.reduce((total, donation) => {
-        return total + parseFloat(ethers.utils.formatEther(donation.amount || "0"));
+        return total + parseFloat(ethers.utils.formatUnits(donation.amount || "0", 6)); // USDT (6 decimals)
       }, 0);
 
       const allocatedWei = await contract.getDonationsInCoverage(account);
-      const allocatedBalance = parseFloat(ethers.utils.formatEther(allocatedWei));
+      const allocatedBalance = parseFloat(ethers.utils.formatUnits(allocatedWei, 6)); // USDT (6 decimals)
       const freeBalance = totalBalance - allocatedBalance;
 
       setDonationBalances({
@@ -95,7 +95,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
             return {
               id: requisitionId.toString(),
               borrower: info.borrower,
-              amount: ethers.utils.formatEther(info.amount),
+              amount: ethers.utils.formatUnits(info.amount, 6), // USDT (6 decimals)
               minimumCoverage: safeNumber(info.minimumCoverage),
               currentCoverage: safeNumber(info.currentCoverage),
               status: safeNumber(info.status),
@@ -122,42 +122,41 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     }
   };
 
-  // PendingRequisitionsList.jsx - Only show the updated handleCoverLoan function
-const handleCoverLoan = async (requisitionId, percentage) => {
-  if (!contract || !account) {
-    showToast("Please connect your wallet first");
-    return;
-  }
-
-  const requisition = requisitions.find(r => r.id === requisitionId);
-  if (!requisition) {
-    showToast("Requisition not found");
-    return;
-  }
-
-  const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
-  
-  if (parseFloat(donationBalances.free) < coverageAmount) {
-    showToast(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(4)} ETH free but need ${coverageAmount.toFixed(4)} ETH`, "error");
-    return;
-  }
-
-  showTransactionModal(
-    {
-      method: "coverLoan",
-      params: [requisitionId, percentage],
-      value: "0"
-    },
-    {
-      type: 'coverLoan',
-      requisitionId: requisitionId,
-      percentage: percentage,
-      coverageAmount: coverageAmount.toFixed(4),
-      loanAmount: requisition.amount,
-      borrower: requisition.borrower
+  const handleCoverLoan = async (requisitionId, percentage) => {
+    if (!contract || !account) {
+      showToast("Please connect your wallet first");
+      return;
     }
-  );
-};
+
+    const requisition = requisitions.find(r => r.id === requisitionId);
+    if (!requisition) {
+      showToast("Requisition not found");
+      return;
+    }
+
+    const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
+    
+    if (parseFloat(donationBalances.free) < coverageAmount) {
+      showToast(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(2)} USDT free but need ${coverageAmount.toFixed(2)} USDT`, "error");
+      return;
+    }
+
+    showTransactionModal(
+      {
+        method: "coverLoan",
+        params: [requisitionId, percentage],
+        value: "0"
+      },
+      {
+        type: 'coverLoan',
+        requisitionId: requisitionId,
+        percentage: percentage,
+        coverageAmount: coverageAmount.toFixed(2),
+        loanAmount: requisition.amount,
+        borrower: requisition.borrower
+      }
+    );
+  };
 
   const confirmCoverLoanTransaction = async (transactionData) => {
     setCovering(true);
@@ -251,6 +250,11 @@ const handleCoverLoan = async (requisitionId, percentage) => {
     return isValid && canCover;
   };
 
+  // Format USDT amount for display
+  const formatUSDT = (amount) => {
+    return parseFloat(amount).toFixed(2);
+  };
+
   return (
     <div className="requsitionBlock">
       <Toast toast={toast} onClose={hideToast} />
@@ -262,18 +266,18 @@ const handleCoverLoan = async (requisitionId, percentage) => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center' }}>
           <div>
             <strong>Total Donations:</strong><br />
-            {parseFloat(donationBalances.total).toFixed(4)} ETH
+            {formatUSDT(donationBalances.total)} USDT
           </div>
           <div>
             <strong>In Coverage:</strong><br />
             <span style={{ color: 'var(--text-secondary)' }}>
-              {parseFloat(donationBalances.allocated).toFixed(4)} ETH
+              {formatUSDT(donationBalances.allocated)} USDT
             </span>
           </div>
           <div>
             <strong>Available:</strong><br />
             <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>
-              {parseFloat(donationBalances.free).toFixed(4)} ETH
+              {formatUSDT(donationBalances.free)} USDT
             </span>
           </div>
         </div>
@@ -317,7 +321,7 @@ const handleCoverLoan = async (requisitionId, percentage) => {
               </div>
 
               <div className="requisition-details">
-                <div><strong>Amount:</strong> {req.amount} ETH</div>
+                <div><strong>Amount:</strong> {formatUSDT(req.amount)} USDT</div>
                 <div><strong>Borrower:</strong> {formatAddress(req.borrower)}</div>
                 <div><strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%</div>
                 <div><strong>Duration:</strong> {req.durationDays} days</div>
@@ -358,8 +362,8 @@ const handleCoverLoan = async (requisitionId, percentage) => {
                               !isValid 
                                 ? `Cannot cover more than ${remainingCoverage}%` 
                                 : !canCover 
-                                  ? `Need ${coverageAmount.toFixed(4)} ETH (You have ${parseFloat(donationBalances.free).toFixed(4)} ETH available)` 
-                                  : `Cover ${percentage}% (${coverageAmount.toFixed(4)} ETH)`
+                                  ? `Need ${coverageAmount.toFixed(2)} USDT (You have ${formatUSDT(donationBalances.free)} USDT available)` 
+                                  : `Cover ${percentage}% (${coverageAmount.toFixed(2)} USDT)`
                             }
                           >
                             {percentage}%
@@ -393,11 +397,11 @@ const handleCoverLoan = async (requisitionId, percentage) => {
                     </div>
                     {customPercentage && (
                       <div className="custom-amount">
-                        Coverage amount: {(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(4)} ETH
+                        Coverage amount: {(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT
                         {!isPercentageValid(req, parseInt(customPercentage)) && (
                           <span className="error-text"> 
                             {parseFloat(donationBalances.free) < (parseFloat(req.amount) * parseInt(customPercentage) / 100) 
-                              ? ` - Need ${(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(4)} ETH (You have ${parseFloat(donationBalances.free).toFixed(4)} ETH available)`
+                              ? ` - Need ${(parseFloat(req.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT (You have ${formatUSDT(donationBalances.free)} USDT available)`
                               : ' - Invalid percentage'
                             }
                           </span>

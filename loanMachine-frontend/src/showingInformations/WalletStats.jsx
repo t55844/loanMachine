@@ -7,9 +7,10 @@ import { ethers } from "ethers";
 async function fetchUserStats(userAddress) {
   const userData = await fetchUserData(userAddress);
   
-  const totalDonations = ethers.utils.formatEther(userData.totalDonated || "0");
-  const totalBorrowed = ethers.utils.formatEther(userData.totalBorrowed || "0");
-  const currentDebt = ethers.utils.formatEther(userData.currentDebt || "0");
+  // Convert from wei (6 decimals for USDT) to USDT
+  const totalDonations = ethers.utils.formatUnits(userData.totalDonated || "0", 6);
+  const totalBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
+  const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
   
   const lastActivity = userData.lastActivity !== "0" 
     ? new Date(parseInt(userData.lastActivity) * 1000).toLocaleString()
@@ -32,12 +33,14 @@ export default function UserStatus() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [usdtBalance, setUsdtBalance] = useState("0");
   
-  const { account,contract } = useWeb3();
+  const { account, contract, getUSDTBalance } = useWeb3();
 
   useEffect(() => {
     if (account) {
       loadUserData();
+      loadUSDTBalance();
     }
   }, [account]);
 
@@ -58,6 +61,26 @@ export default function UserStatus() {
     }
   }
 
+  async function loadUSDTBalance() {
+    if (!account) return;
+    
+    try {
+      const balance = await getUSDTBalance();
+      setUsdtBalance(balance);
+    } catch (e) {
+      console.error("Error loading USDT balance:", e);
+    }
+  }
+
+  const refreshAllData = async () => {
+    await Promise.all([loadUserData(), loadUSDTBalance()]);
+  };
+
+  // Format USDT amounts for display
+  const formatUSDT = (amount) => {
+    return parseFloat(amount).toFixed(2);
+  };
+
   if (!account) {
     return (
       <div className="stats-box">
@@ -75,24 +98,59 @@ export default function UserStatus() {
         <strong>Connected:</strong> {account}
       </div>
 
-      {loading && <p>Loading...</p>}
+      {/* USDT Balance Display */}
+      <div className="usdt-balance-section">
+        <div className="balance-card">
+          <strong>Your USDT Balance:</strong> 
+          <span className="balance-amount">{formatUSDT(usdtBalance)} USDT</span>
+        </div>
+      </div>
+
+      {loading && <p>Loading user data...</p>}
       {error && <p className="error">{error}</p>}
 
       {userData && (
         <div className="stats-grid">
-          <div><strong>Donations:</strong> {userData.donations} ETH</div>
-          <div><strong>Borrowed:</strong> {userData.borrowings} ETH</div>
-          <div><strong>Current Debt:</strong> {userData.currentDebt} ETH</div>
-          <div><strong>Can Borrow:</strong> {userData.canBorrowNow ? "Yes" : "No"}</div>
-          <div><strong>Last Activity:</strong> {userData.lastActivity}</div>
-          <div><strong>Donations Made:</strong> {userData.donationCount}</div>
+          <div className="stat-item">
+            <strong>Total Donations:</strong> 
+            <span>{formatUSDT(userData.donations)} USDT</span>
+          </div>
+          <div className="stat-item">
+            <strong>Total Borrowed:</strong> 
+            <span>{formatUSDT(userData.borrowings)} USDT</span>
+          </div>
+          <div className="stat-item">
+            <strong>Current Debt:</strong> 
+            <span className={parseFloat(userData.currentDebt) > 0 ? "debt-amount" : ""}>
+              {formatUSDT(userData.currentDebt)} USDT
+            </span>
+          </div>
+          <div className="stat-item">
+            <strong>Can Borrow:</strong> 
+            <span className={userData.canBorrowNow ? "can-borrow-yes" : "can-borrow-no"}>
+              {userData.canBorrowNow ? "Yes" : "No"}
+            </span>
+          </div>
+          <div className="stat-item">
+            <strong>Last Activity:</strong> 
+            <span>{userData.lastActivity}</span>
+          </div>
+          <div className="stat-item">
+            <strong>Donations Made:</strong> 
+            <span>{userData.donationCount}</span>
+          </div>
+          <div className="stat-item">
+            <strong>Loans Taken:</strong> 
+            <span>{userData.borrowCount}</span>
+          </div>
         </div>
       )}
 
-      <Donate account={account} contract={contract} />
+      {/* Donate Component - no need to pass props since it uses useWeb3 hook */}
+      <Donate />
 
-      <button onClick={loadUserData} className="refresh-button">
-        Refresh Data
+      <button onClick={refreshAllData} className="refresh-button" disabled={loading}>
+        {loading ? "Refreshing..." : "Refresh Data"}
       </button>
     </div>
   );

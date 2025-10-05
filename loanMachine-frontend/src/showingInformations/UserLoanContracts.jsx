@@ -2,14 +2,21 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useToast } from "../handlers/useToast";
 import Toast from "../handlers/Toast";
+import { useWeb3 } from "../Web3Context";
+import { useGasCostModal } from "../handlers/useGasCostModal";
 
 export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
   const [activeLoans, setActiveLoans] = useState([]);
   const [expandedLoan, setExpandedLoan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState({});
+  const [pendingApproval, setPendingApproval] = useState(null);
 
   const { toast, showToast, hideToast, handleContractError } = useToast();
+  const { usdtContract, getUSDTAllowance, approveUSDT } = useWeb3();
+  const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
   useEffect(() => {
     if (contract && account) {
@@ -30,24 +37,35 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
           const [nextPaymentAmount, canPay] = await contract.getNextPaymentAmount(requisitionId);
           const paymentDates = await contract.getPaymentDates(requisitionId);
 
+          // Check approval status for this loan
+          const isApproved = await checkApproval(nextPaymentAmount);
+
           return {
             requisitionId: requisitionId.toString(),
             walletAddress: loan.walletAddress,
             status: loan.status,
             parcelsPending: loan.parcelsPending.toString(),
-            parcelsValues: ethers.utils.formatEther(loan.parcelsValues),
+            parcelsValues: ethers.utils.formatUnits(loan.parcelsValues, 6),
             paymentDates: paymentDates.map(date => new Date(Number(date) * 1000)),
-            nextPaymentAmount: ethers.utils.formatEther(nextPaymentAmount),
+            nextPaymentAmount: ethers.utils.formatUnits(nextPaymentAmount, 6),
+            nextPaymentAmountWei: nextPaymentAmount,
             canPay: canPay,
-            totalRemainingDebt: ethers.utils.formatEther(repaymentSummary.totalRemainingDebt),
+            totalRemainingDebt: ethers.utils.formatUnits(repaymentSummary.totalRemainingDebt, 6),
             parcelsRemaining: repaymentSummary.parcelsRemaining.toString(),
             totalParcels: repaymentSummary.totalParcels.toString(),
-            isActive: repaymentSummary.isActive
+            isActive: repaymentSummary.isActive,
+            isApproved: isApproved
           };
         })
       );
 
       setActiveLoans(formattedLoans);
+      
+      const statusMap = {};
+      formattedLoans.forEach(loan => {
+        statusMap[loan.requisitionId] = loan.isApproved;
+      });
+      setApprovalStatus(statusMap);
     } catch (err) {
       console.error("Error loading user loans:", err);
       handleContractError(err, "loadUserActiveLoans");
@@ -56,22 +74,84 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
     }
   };
 
-  const handlePayInstallment = async (requisitionId) => {
+  const checkApproval = async (paymentAmountWei) => {
+    if (!usdtContract || !contract) return false;
+    
+    try {
+      const currentAllowance = await usdtContract.allowance(account, contract.address);
+      return currentAllowance.gte(paymentAmountWei);
+    } catch (err) {
+      console.error("Error checking allowance:", err);
+      return false;
+    }
+  };
+
+  const handleApproveUSDT = async (loan) => {
+    if (!usdtContract || !contract) {
+      showToast("USDT contract not available", "error");
+      return;
+    }
+
+    setApproving(true);
+    setPendingApproval(loan);
+    try {
+      // For approval, we need to use the USDT contract directly
+      // Let's skip the gas modal for approval and do it directly
+      const tx = await usdtContract.approve(contract.address, loan.nextPaymentAmountWei);
+      await tx.wait();
+
+      showToast("USDT approved successfully!", "success");
+      
+      // Update approval status
+      setApprovalStatus(prev => ({
+        ...prev,
+        [loan.requisitionId]: true
+      }));
+    } catch (err) {
+      console.error("Error approving USDT:", err);
+      showToast("Failed to approve USDT", "error");
+    } finally {
+      setApproving(false);
+      setPendingApproval(null);
+    }
+  };
+
+  const handlePayInstallment = async (loan) => {
     if (!contract || !account) {
       showToast("Please connect your wallet first");
       return;
     }
 
+    // Check if payment is available
+    const canPay = await contract.canPayRequisition(loan.requisitionId, account);
+    if (!canPay) {
+      showToast("Payment is not available at this time", "warning");
+      return;
+    }
+
+    // Show gas cost modal for payment (this uses the correct contract)
+    showTransactionModal(
+      {
+        method: "repay",
+        params: [loan.requisitionId, loan.nextPaymentAmountWei.toString()],
+        value: "0"
+      },
+      {
+        type: 'repay',
+        requisitionId: loan.requisitionId,
+        amount: ethers.utils.formatUnits(loan.nextPaymentAmountWei, 6),
+        token: 'USDT'
+      }
+    );
+  };
+
+  const confirmRepayTransaction = async (transactionData) => {
     setPaying(true);
     try {
-      const canPay = await contract.canPayRequisition(requisitionId, account);
-      if (!canPay) {
-        showToast("Payment is not available at this time", "warning");
-        return;
-      }
+      const { params } = transactionData;
+      const [requisitionId, amount] = params;
 
-      const [nextPaymentAmount] = await contract.getNextPaymentAmount(requisitionId);
-      const tx = await contract.repay(requisitionId, { value: nextPaymentAmount });
+      const tx = await contract.repay(requisitionId, amount);
       await tx.wait();
 
       showToast(`Payment successful for loan #${requisitionId}`, "success");
@@ -83,8 +163,22 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       }
     } catch (err) {
       handleContractError(err, "payInstallment");
+      throw err;
     } finally {
       setPaying(false);
+    }
+  };
+
+  const handlePaymentFlow = async (loan) => {
+    // Check current approval status
+    const isApproved = await checkApproval(loan.nextPaymentAmountWei);
+    
+    if (!isApproved) {
+      // First step: Approve USDT (direct call, no modal)
+      await handleApproveUSDT(loan);
+    } else {
+      // Second step: Make payment (with gas modal)
+      await handlePayInstallment(loan);
     }
   };
 
@@ -112,6 +206,30 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
   const formatAddress = (address) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatUSDT = (amount) => {
+    return parseFloat(amount).toFixed(2);
+  };
+
+  const getButtonText = (loan) => {
+    const isApproved = approvalStatus[loan.requisitionId];
+    
+    if (approving && pendingApproval?.requisitionId === loan.requisitionId) {
+      return "Approving USDT...";
+    }
+    if (paying) {
+      return "Processing Payment...";
+    }
+    if (!isApproved) {
+      return `1. Approve USDT (${formatUSDT(loan.nextPaymentAmount)} USDT)`;
+    }
+    return `2. Pay Installment (${formatUSDT(loan.nextPaymentAmount)} USDT)`;
+  };
+
+  const getButtonClass = (loan) => {
+    const isApproved = approvalStatus[loan.requisitionId];
+    return isApproved ? "repay-button" : "approve-button";
   };
 
   return (
@@ -156,8 +274,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                 </div>
 
                 <div className="requisition-details">
-                  <div><strong>Remaining Debt:</strong> {parseFloat(loan.totalRemainingDebt).toFixed(4)} ETH</div>
-                  <div><strong>Next Payment:</strong> {parseFloat(loan.nextPaymentAmount).toFixed(4)} ETH</div>
+                  <div><strong>Remaining Debt:</strong> {formatUSDT(loan.totalRemainingDebt)} USDT</div>
+                  <div><strong>Next Payment:</strong> {formatUSDT(loan.nextPaymentAmount)} USDT</div>
                   <div><strong>Progress:</strong> {loan.totalParcels - loan.parcelsRemaining}/{loan.totalParcels} parcels paid</div>
                 </div>
 
@@ -167,9 +285,9 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                     
                     <div className="requisition-details" style={{ gridTemplateColumns: '1fr 1fr' }}>
                       <div><strong>Contract Address:</strong> {formatAddress(loan.walletAddress)}</div>
-                      <div><strong>Parcel Value:</strong> {parseFloat(loan.parcelsValues).toFixed(4)} ETH</div>
+                      <div><strong>Parcel Value:</strong> {formatUSDT(loan.parcelsValues)} USDT</div>
                       <div><strong>Total Paid:</strong> 
-                        {((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)).toFixed(4)} ETH
+                        {formatUSDT(((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)))} USDT
                       </div>
                       <div><strong>Completion:</strong> 
                         {Math.round((loan.totalParcels - loan.parcelsRemaining) / loan.totalParcels * 100)}%
@@ -209,17 +327,46 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
                     {loan.canPay && loan.status === 0 && (
                       <div style={{ marginTop: '16px' }}>
+                        {!approvalStatus[loan.requisitionId] && (
+                          <div style={{ 
+                            marginBottom: '12px',
+                            padding: '8px',
+                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                            borderRadius: '6px',
+                            border: '1px solid var(--accent-orange)',
+                            fontSize: '0.9em'
+                          }}>
+                            <strong>Step 1:</strong> First approve USDT spending
+                            <br />
+                            <strong>Step 2:</strong> Then pay the installment
+                          </div>
+                        )}
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handlePayInstallment(loan.requisitionId);
+                            handlePaymentFlow(loan);
                           }}
-                          disabled={paying}
-                          className="repay-button"
+                          disabled={paying || approving}
+                          className={getButtonClass(loan)}
                           style={{ width: '100%' }}
                         >
-                          {paying ? "Processing Payment..." : `Pay Next Installment (${parseFloat(loan.nextPaymentAmount).toFixed(4)} ETH)`}
+                          {getButtonText(loan)}
                         </button>
+
+                        {approvalStatus[loan.requisitionId] && (
+                          <div style={{ 
+                            marginTop: '8px',
+                            padding: '8px',
+                            backgroundColor: 'rgba(0, 192, 135, 0.1)',
+                            borderRadius: '6px',
+                            border: '1px solid var(--accent-green)',
+                            fontSize: '0.9em',
+                            textAlign: 'center'
+                          }}>
+                            ✅ USDT Approved - Ready to pay
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -277,6 +424,11 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         </button>
       </div>
 
+      {/* Gas Cost Modal only for repayment (not for approval) */}
+      <ModalWrapper 
+        onConfirm={confirmRepayTransaction}
+      />
+
       <style jsx>{`
         .repay-button {
           padding: 12px 20px;
@@ -293,6 +445,24 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
           background: #00a878;
         }
         .repay-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .approve-button {
+          padding: 12px 20px;
+          border: none;
+          border-radius: 6px;
+          background: var(--accent-orange);
+          color: white;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+        .approve-button:hover:not(:disabled) {
+          background: #e69500;
+        }
+        .approve-button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }

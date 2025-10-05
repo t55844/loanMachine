@@ -1074,3 +1074,147 @@ h3 {
   color: var(--text-secondary);
   font-size: 0.9em;
 }
+
+/* NEW STYLES FROM SECOND CSS (non-duplicate only) */
+
+.balance-info {
+  background: var(--bg-tertiary);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+}
+
+.balance-info p {
+  margin: 5px 0;
+  color: var(--text-primary);
+}
+
+.approve-button {
+  background: #ffa500;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.approve-button:hover:not(:disabled) {
+  background: #ff8c00;
+  transform: translateY(-1px);
+}
+
+.approve-button:disabled {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Add these styles to your existing CSS */
+.transaction-details {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 4px solid var(--accent-blue);
+}
+
+.transaction-details div {
+  margin: 4px 0;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+  padding: 4px 0;
+}
+
+.detail-item.total-cost {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 8px;
+  font-size: 1.1em;
+}
+
+.fee-note {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.confirmation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.confirmation-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.confirmation-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-button, .confirm-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cancel-button {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.confirm-button {
+  background: var(--accent-green);
+  color: white;
+}
+
+.confirm-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.refresh-button {
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.error-message {
+  color: #d32f2f;
+  margin-bottom: 1rem;
+}
+
