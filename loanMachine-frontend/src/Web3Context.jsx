@@ -125,14 +125,6 @@ export function Web3Provider({ children }) {
     return ethers.utils.formatUnits(balance, 6); // USDT has 6 decimals
   };
 
-  // Helper function to get USDT allowance for the LoanMachine contract
-  const getUSDTAllowance = async (address = null) => {
-    if (!usdtContract || !contract) throw new Error('Contracts not initialized');
-    const targetAddress = address || account;
-    const allowance = await usdtContract.allowance(targetAddress, contract.address);
-    return ethers.utils.formatUnits(allowance, 6);
-  };
-
   // Helper function to approve USDT spending
   const approveUSDT = async (amount) => {
     if (!usdtContract || !contract) throw new Error('Contracts not initialized');
@@ -181,7 +173,6 @@ export function Web3Provider({ children }) {
     connectToLocalNode,
     // USDT helper functions
     getUSDTBalance,
-    getUSDTAllowance,
     approveUSDT,
     getUSDTInfo,
     needsUSDTApproval

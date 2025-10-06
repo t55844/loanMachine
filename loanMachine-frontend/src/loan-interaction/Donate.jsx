@@ -7,51 +7,75 @@ import { useWeb3 } from "../Web3Context";
 function Donate() {
   const [amount, setAmount] = useState("");
   const [usdtBalance, setUsdtBalance] = useState("0");
-  const [allowance, setAllowance] = useState("0");
-  const [maxDonation, setMaxDonation] = useState("5");
+  const [needsApproval, setNeedsApproval] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
   const { 
     account, 
     contract, 
     getUSDTBalance, 
-    getUSDTAllowance,
     approveUSDT,
     needsUSDTApproval 
   } = useWeb3();
 
-  // Fetch USDT data when account changes
+  // Fetch USDT balance when account changes
   useEffect(() => {
     if (account && contract) {
-      fetchUSDTData();
+      fetchUSDTBalance();
     }
   }, [account, contract]);
 
-  async function fetchUSDTData() {
+  async function fetchUSDTBalance() {
+    if (!account) return;
+    
+    setLoading(true);
     try {
-      const [balance, currentAllowance, remainingAllowance] = await Promise.all([
-        getUSDTBalance(),
-        getUSDTAllowance(),
-        contract.getRemainingDonationAllowance(account)
-      ]);
-      
+      const balance = await getUSDTBalance();
       setUsdtBalance(balance);
-      setAllowance(currentAllowance);
-      setMaxDonation(ethers.utils.formatUnits(remainingAllowance, 6));
     } catch (err) {
-      console.error("Error fetching USDT data:", err);
+      console.error("Error fetching USDT balance:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Check approval when amount changes
+  useEffect(() => {
+    if (amount && account && contract) {
+      checkApproval();
+    } else {
+      setNeedsApproval(false);
+    }
+  }, [amount]);
+
+  async function checkApproval() {
+    try {
+      const approvalNeeded = await needsUSDTApproval(amount);
+      setNeedsApproval(approvalNeeded);
+    } catch (err) {
+      console.error("Error checking approval:", err);
     }
   }
 
   async function handleApprove() {
+    if (!amount) {
+      alert("Please enter an amount first");
+      return;
+    }
+
+    setApproving(true);
     try {
-      // Approve a large amount for multiple donations
-      await approveUSDT(amount); // Approve 100 USDT
+      // Approve the specific amount for donation
+      await approveUSDT(amount);
       alert("USDT approved successfully!");
-      fetchUSDTData(); // Refresh data
+      setNeedsApproval(false);
     } catch (err) {
       console.error("Error approving USDT:", err);
       alert("Error approving USDT");
+    } finally {
+      setApproving(false);
     }
   }
 
@@ -61,22 +85,17 @@ function Donate() {
       return;
     }
 
-    // Check if approval is needed
-    const needsApproval = await needsUSDTApproval(amount);
-    if (needsApproval) {
+    // Double-check approval status before proceeding
+    const currentApprovalNeeded = await needsUSDTApproval(amount);
+    if (currentApprovalNeeded) {
       alert("Please approve USDT first. Click the 'Approve USDT' button.");
+      setNeedsApproval(true);
       return;
     }
 
     // Check balance
     if (parseFloat(usdtBalance) < parseFloat(amount)) {
       alert("Insufficient USDT balance");
-      return;
-    }
-
-    // Check donation limit
-    if (parseFloat(amount) > parseFloat(maxDonation)) {
-      alert(`Donation exceeds maximum limit. You can only donate ${maxDonation} more USDT.`);
       return;
     }
 
@@ -106,7 +125,7 @@ function Donate() {
       
       alert(`Donation of ${amount} USDT sent from ${account} to the contract!`);
       setAmount("");
-      fetchUSDTData(); // Refresh balances
+      fetchUSDTBalance(); // Refresh balance
     } catch (err) {
       console.error(err);
       alert("Error sending donation");
@@ -114,39 +133,40 @@ function Donate() {
     }
   }
 
-  const needsApproval = parseFloat(allowance) < parseFloat(amount);
   const hasSufficientBalance = parseFloat(usdtBalance) >= parseFloat(amount);
-  const withinDonationLimit = parseFloat(amount) <= parseFloat(maxDonation);
+  const canDonate = account && amount && hasSufficientBalance && !needsApproval;
 
   return (
     <div className="donate-block">
       <div className="balance-info">
         <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
-        <p>Approved: {parseFloat(allowance).toFixed(2)} USDT</p>
-        <p>Remaining Donation Allowance: {parseFloat(maxDonation).toFixed(2)} USDT</p>
+        {loading && <p>Loading...</p>}
       </div>
 
       <input
         type="number"
         min={0}
-        max={5}
         step="0.01"
-        placeholder="Amount in USDT (max 5)"
+        placeholder="Amount in USDT"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="donate-input"
       />
 
       {needsApproval && (
-        <button onClick={handleApprove} className="approve-button">
-          Approve USDT First
+        <button 
+          onClick={handleApprove} 
+          className="approve-button"
+          disabled={approving || !amount}
+        >
+          {approving ? "Approving..." : `Approve USDT (${amount} USDT)`}
         </button>
       )}
 
       <button 
         onClick={handleDonate} 
         className="donate-button" 
-        disabled={!account || !amount || needsApproval || !hasSufficientBalance || !withinDonationLimit}
+        disabled={!canDonate}
       >
         Donate USDT
       </button>

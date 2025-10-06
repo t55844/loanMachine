@@ -24,7 +24,9 @@ dataSources:
         - Stats
         - LoanRequest
         - LoanCoverage
-        - LoanContract            # <-- NEW entity
+        - LoanContract
+        - Member
+        - ReputationChange
       abis:
         - name: LoanMachine
           file: ./scripts/graphql/abis/LoanMachine.json
@@ -63,4 +65,8 @@ dataSources:
           handler: handleLenderRepaid
         - event: LoanCompleted(indexed uint256)
           handler: handleLoanCompleted
-
+        # Member system events
+        - event: MemberToWalletVinculation(indexed uint32,indexed address,uint256)
+          handler: handleMemberToWalletVinculation
+        - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
+          handler: handleReputationChanged

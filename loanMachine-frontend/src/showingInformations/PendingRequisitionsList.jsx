@@ -5,6 +5,7 @@ import { fetchLoanRequisitions, fetchUserDonations } from "../graphql-frontend-q
 import { useToast } from "../handlers/useToast";
 import Toast from "../handlers/Toast";
 import { useGasCostModal } from "../handlers/useGasCostModal";
+import { useWeb3 } from "../Web3Context";
 
 export default function PendingRequisitionsList({ contract, account, onCoverLoan }) {
   const [requisitions, setRequisitions] = useState([]);
@@ -17,10 +18,13 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     allocated: "0",
     free: "0"
   });
-  const [pendingConfirmation, setPendingConfirmation] = useState(null);
+  const [needsApproval, setNeedsApproval] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [currentCoverageAmount, setCurrentCoverageAmount] = useState("0");
 
   const { toast, showToast, hideToast, handleContractError } = useToast();
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
+  const { needsUSDTApproval, approveUSDT } = useWeb3();
   const quickPercentages = [1, 3, 5, 10, 15, 20, 25, 33, 50, 75, 100];
 
   useEffect(() => {
@@ -122,6 +126,36 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     }
   };
 
+  const checkApproval = async (coverageAmount) => {
+    try {
+      console.log("Checking approval for coverage amount:", coverageAmount);
+      const approvalNeeded = await needsUSDTApproval(coverageAmount);
+      console.log("Approval needed:", approvalNeeded);
+      return approvalNeeded;
+    } catch (err) {
+      console.error("Error checking approval:", err);
+      return true;
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!currentCoverageAmount) return;
+
+    setApproving(true);
+    try {
+      console.log("Approving amount:", currentCoverageAmount);
+      await approveUSDT(currentCoverageAmount);
+      showToast("USDT approved successfully!", "success");
+      setNeedsApproval(false);
+      setCurrentCoverageAmount("0");
+    } catch (err) {
+      console.error("Error approving USDT:", err);
+      showToast("Error approving USDT", "error");
+    } finally {
+      setApproving(false);
+    }
+  };
+
   const handleCoverLoan = async (requisitionId, percentage) => {
     if (!contract || !account) {
       showToast("Please connect your wallet first");
@@ -138,6 +172,15 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     
     if (parseFloat(donationBalances.free) < coverageAmount) {
       showToast(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(2)} USDT free but need ${coverageAmount.toFixed(2)} USDT`, "error");
+      return;
+    }
+
+    // Check if approval is needed
+    const approvalNeeded = await checkApproval(coverageAmount.toString());
+    if (approvalNeeded) {
+      setCurrentCoverageAmount(coverageAmount.toString());
+      setNeedsApproval(true);
+      showToast("Please approve USDT first before covering this loan", "warning");
       return;
     }
 
@@ -175,7 +218,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       
       setSelectedRequisition(null);
       setCustomPercentage("");
-      setPendingConfirmation(null);
       
       await Promise.all([loadPendingRequisitions(), loadUserDonationBalances()]);
     } catch (err) {
@@ -185,7 +227,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     }
   };
 
-  const handlePercentageClick = (requisitionId, percentage) => {
+  const handlePercentageClick = async (requisitionId, percentage) => {
     const requisition = requisitions.find(r => r.id === requisitionId);
     if (!requisition) return;
 
@@ -195,14 +237,14 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     const isValid = percentage <= remainingCoverage && percentage > 0;
 
     if (isValid && canCover) {
-      handleCoverLoan(requisitionId, percentage);
+      await handleCoverLoan(requisitionId, percentage);
     }
   };
 
-  const handleCustomPercentageCover = () => {
+  const handleCustomPercentageCover = async () => {
     const percentage = parseInt(customPercentage);
     if (percentage >= 1 && percentage <= 100) {
-      handleCoverLoan(selectedRequisition.id, percentage);
+      await handleCoverLoan(selectedRequisition.id, percentage);
     }
   };
 
@@ -294,6 +336,27 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
           </div>
         )}
       </div>
+
+      {/* Approval Section */}
+      {needsApproval && (
+        <div className="approval-section" style={{
+          padding: '16px',
+          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+          borderRadius: '8px',
+          border: '1px solid var(--accent-orange)',
+          marginBottom: '16px'
+        }}>
+          <h4>Approval Required</h4>
+          <p>You need to approve {formatUSDT(currentCoverageAmount)} USDT before covering loans.</p>
+          <button 
+            onClick={handleApprove}
+            disabled={approving}
+            className="approve-button"
+          >
+            {approving ? "Approving..." : `Approve ${formatUSDT(currentCoverageAmount)} USDT`}
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <p>Loading available requisitions...</p>
@@ -417,11 +480,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       )}
 
       {/* Gas Cost Modal */}
-      <ModalWrapper 
-        account={account} 
-        contract={contract} 
-        onConfirm={confirmCoverLoanTransaction} 
-      />
+      <ModalWrapper onConfirm={confirmCoverLoanTransaction} />
 
       <button onClick={() => {
         loadPendingRequisitions();
@@ -429,6 +488,11 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       }} className="wallet-button refresh-button">
         Refresh List & Balances
       </button>
+
+      {/* Debug info */}
+      <div style={{ fontSize: '12px', color: 'gray', marginTop: '10px' }}>
+        Debug: needsApproval={needsApproval.toString()}, currentCoverageAmount={currentCoverageAmount}
+      </div>
     </div>
   );
 }

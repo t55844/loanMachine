@@ -52,6 +52,11 @@
   },
   {
     "inputs": [],
+    "name": "MemberIdOrWalletInvalid",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "MinimumDonationRequired",
     "type": "error"
   },
@@ -67,12 +72,22 @@
   },
   {
     "inputs": [],
+    "name": "ParcelAlreadyPaid",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "RepaymentExceedsBorrowed",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "TokenTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "WalletAlreadyVinculated",
     "type": "error"
   },
   {
@@ -306,6 +321,31 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint32",
+        "name": "memberId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "MemberToWalletVinculation",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "borrower",
         "type": "address"
@@ -369,6 +409,43 @@
       }
     ],
     "name": "Repaid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "memberId",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "points",
+        "type": "int32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "increase",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "newReputation",
+        "type": "int32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "ReputationChanged",
     "type": "event"
   },
   {
@@ -560,6 +637,11 @@
             "internalType": "enum ILoanMachine.ContractStatus",
             "name": "status",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "parcelsCount",
+            "type": "uint32"
           },
           {
             "internalType": "uint32",
@@ -815,6 +897,11 @@
           },
           {
             "internalType": "uint32",
+            "name": "parcelsCount",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
             "name": "parcelsPending",
             "type": "uint32"
           },
@@ -875,25 +962,6 @@
         "internalType": "uint256[]",
         "name": "",
         "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "donor",
-        "type": "address"
-      }
-    ],
-    "name": "getRemainingDonationAllowance",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1075,6 +1143,11 @@
       },
       {
         "internalType": "uint32",
+        "name": "parcelsCount",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
         "name": "parcelsPending",
         "type": "uint32"
       },
@@ -1129,6 +1202,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "memberId",
+        "type": "uint32"
+      },
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "vinculationMemberToWallet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ]

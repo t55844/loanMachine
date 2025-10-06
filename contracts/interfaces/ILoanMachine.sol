@@ -23,12 +23,15 @@ interface ILoanMachine {
         address walletAddress;
         uint256 requisitionId;
         ContractStatus status;
+        uint32 parcelsCount;
         uint32 parcelsPending;
         uint256 parcelsValues;
         uint256[] paymentDates;
     }
 
     // Events
+    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
+    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
     event Donated(address indexed donor, uint256 amount, uint256 totalDonation);
     event Borrowed(address indexed borrower, uint256 amount, uint256 totalBorrowing);
     event Repaid(address indexed borrower, uint256 amount, uint256 remainingDebt);
@@ -47,11 +50,11 @@ interface ILoanMachine {
     event LoanCompleted(uint256 indexed requisitionId);
 
     // Core functions
+    function vinculationMemberToWallet(uint32 memberId, address wallet) external;
     function donate(uint256 amount) external;
     function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage) external;
     function repay(uint256 requisitionId, uint256 amount) external;
-
     // View functions
     function getTotalDonations() external view returns (uint256);
     function getTotalBorrowed() external view returns (uint256);
@@ -75,7 +78,6 @@ interface ILoanMachine {
     function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);
     function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory);
     function getDonationsInCoverage(address lender) external view returns (uint256);
-    function getRemainingDonationAllowance(address donor) external view returns (uint256);
     function getUSDTBalance() external view returns (uint256);
     function getAllowance(address user) external view returns (uint256);
 }

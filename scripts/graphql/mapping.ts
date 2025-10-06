@@ -14,7 +14,9 @@ import {
   LoanContractGenerated,
   ParcelPaid,
   LenderRepaid,
-  LoanCompleted
+  LoanCompleted,
+  MemberToWalletVinculation,
+  ReputationChanged
 } from "./generated/LoanMachine/LoanMachine"
 
 import {
@@ -25,22 +27,25 @@ import {
   Stats,
   LoanRequest,
   LoanCoverage,
-  LoanContract
+  LoanContract,
+  Member,
+  ReputationChange,
 } from "./generated/schema"
 
 // -------------------
 // Utility to create/load User entity
 // -------------------
 function getOrCreateUser(id: string): User {
-  let user = User.load(id)
+  let user = User.load(id);
   if (!user) {
-    user = new User(id)
-    user.totalDonated = BigInt.fromI32(0)
-    user.totalBorrowed = BigInt.fromI32(0)
-    user.currentDebt = BigInt.fromI32(0)
-    user.lastActivity = BigInt.fromI32(0)
+    user = new User(id);
+    user.totalDonated = BigInt.zero();
+    user.totalBorrowed = BigInt.zero();
+    user.currentDebt = BigInt.zero();
+    user.lastActivity = BigInt.zero();
+    user.save();
   }
-  return user as User
+  return user as User;
 }
 
 // -------------------
@@ -263,4 +268,60 @@ export function handleLoanCompleted(event: LoanCompleted): void {
   if (!loan) return;
   loan.funded = false;
   loan.save();
+}
+
+export function handleMemberToWalletVinculation(
+  event: MemberToWalletVinculation
+): void {
+  let memberIdStr = event.params.memberId.toString();
+  let member = Member.load(memberIdStr);
+
+  if (!member) {
+    member = new Member(memberIdStr);
+    member.memberId = event.params.memberId;
+    member.currentReputation = 0;
+  }
+
+  let wallet = event.params.wallet.toHexString();
+  member.wallet = wallet;
+  member.linkedAt = event.block.timestamp;
+  member.save();
+
+  // ensure corresponding User entity exists
+  let user = getOrCreateUser(wallet);
+  user.lastActivity = event.block.timestamp;
+  user.save();
+}
+
+// ------------------------------------------
+// Handler: ReputationChanged
+// ------------------------------------------
+export function handleReputationChanged(event: ReputationChanged): void {
+  let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+  let rc = new ReputationChange(id);
+
+  let memberIdStr = event.params.memberId.toString();
+  rc.memberId = event.params.memberId;
+  rc.member = memberIdStr;
+  rc.points = event.params.points;
+  rc.increase = event.params.increase;
+  rc.newReputation = event.params.newReputation;
+  rc.timestamp = event.block.timestamp;
+  rc.save();
+
+  // Update Member reputation
+  let member = Member.load(memberIdStr);
+  if (member) {
+    member.currentReputation = event.params.newReputation;
+    member.save();
+
+    // update activity if member linked to a wallet
+    if (member.wallet) {
+      let user = User.load(member.wallet as string);
+      if (user) {
+        user.lastActivity = event.block.timestamp;
+        user.save();
+      }
+    }
+  }
 }

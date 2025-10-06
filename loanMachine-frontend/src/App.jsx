@@ -7,6 +7,7 @@ import Donate from "./loan-interaction/Donate";
 import WalletDistribution from "./showingInformations/WalletDistribution"
 import LoanRequisitionBlock from "./showingInformations/LoanRequisitionBlock";
 import "./App.css";
+import VinculateMember from "./loan-interaction/VinculateMember";
 
 export default function App() {
   const [account, setAccount] = useState('0x14dC79964da2C08b23698B3D3cc7Ca32193d9955');
@@ -24,6 +25,8 @@ export default function App() {
 
         <ContractOverview />
         <LoanRequisitionBlock />
+
+        <VinculateMember />
       </div>
     </div>
   );

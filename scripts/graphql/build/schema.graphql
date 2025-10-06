@@ -100,3 +100,24 @@ type LenderRepayment @entity(immutable: false) {
   amount: BigInt!
   timestamp: BigInt!
 }
+
+# Member entity maps a numeric memberId to a wallet address and stores current reputation
+type Member @entity(immutable: false) {
+id: ID! # memberId as string (e.g. "1")
+memberId: BigInt! # numeric member id
+wallet: User # optional relation to User (by wallet address)
+linkedAt: BigInt! # timestamp when vinculation happened
+currentReputation: Int # updated by ReputationChanged events
+}
+
+
+# ReputationChange logs each reputation update
+type ReputationChange @entity(immutable: false) {
+id: ID!
+memberId: BigInt!
+member: Member # derived link not available from event, but we store relation when possible
+points: Int!
+increase: Boolean!
+newReputation: Int!
+timestamp: BigInt!
+}

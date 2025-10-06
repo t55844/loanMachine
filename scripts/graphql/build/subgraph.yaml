@@ -6,7 +6,7 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: LoanMachine
-    network: localhost:ws://host.docker.internal:8545
+    network: mainnet
     source:
       address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
       abi: LoanMachine
@@ -25,6 +25,8 @@ dataSources:
         - LoanRequest
         - LoanCoverage
         - LoanContract
+        - Member
+        - ReputationChange
       abis:
         - name: LoanMachine
           file: LoanMachine\LoanMachine.json
@@ -60,3 +62,7 @@ dataSources:
           handler: handleLenderRepaid
         - event: LoanCompleted(indexed uint256)
           handler: handleLoanCompleted
+        - event: MemberToWalletVinculation(indexed uint32,indexed address,uint256)
+          handler: handleMemberToWalletVinculation
+        - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
+          handler: handleReputationChanged
