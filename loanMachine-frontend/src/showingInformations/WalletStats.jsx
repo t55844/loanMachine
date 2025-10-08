@@ -8,8 +8,8 @@ async function fetchUserStats(userAddress) {
   const userData = await fetchUserData(userAddress);
   
   // Convert from wei (6 decimals for USDT) to USDT
-  const totalDonations = ethers.utils.formatUnits(userData.totalDonated || "0", 6);
-  const totalBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
+  const userDonations = ethers.utils.formatUnits(userData.totalDonated || "0", 6);
+  const userBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
   const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
   
   const lastActivity = userData.lastActivity !== "0" 
@@ -19,8 +19,8 @@ async function fetchUserStats(userAddress) {
   const canBorrowNow = parseFloat(currentDebt) === 0;
   
   return {
-    donations: totalDonations,
-    borrowings: totalBorrowed,
+    donations: userDonations,
+    borrowings: userBorrowed,
     currentDebt,
     lastActivity,
     canBorrowNow,
@@ -112,11 +112,11 @@ export default function UserStatus() {
       {userData && (
         <div className="stats-grid">
           <div className="stat-item">
-            <strong>Total Donations:</strong> 
+            <strong>User Donations:</strong> 
             <span>{formatUSDT(userData.donations)} USDT</span>
           </div>
           <div className="stat-item">
-            <strong>Total Borrowed:</strong> 
+            <strong>User Borrowed:</strong> 
             <span>{formatUSDT(userData.borrowings)} USDT</span>
           </div>
           <div className="stat-item">
@@ -136,17 +136,17 @@ export default function UserStatus() {
             <span>{userData.lastActivity}</span>
           </div>
           <div className="stat-item">
-            <strong>Donations Made:</strong> 
+            <strong>User Donations Made:</strong> 
             <span>{userData.donationCount}</span>
           </div>
           <div className="stat-item">
-            <strong>Loans Taken:</strong> 
+            <strong>User Loans Taken:</strong> 
             <span>{userData.borrowCount}</span>
           </div>
         </div>
       )}
 
-      {/* Donate Component - no need to pass props since it uses useWeb3 hook */}
+      {/* Donate Component */}
       <Donate />
 
       <button onClick={refreshAllData} className="refresh-button" disabled={loading}>

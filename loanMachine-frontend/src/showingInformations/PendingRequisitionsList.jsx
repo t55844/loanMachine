@@ -128,9 +128,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
   const checkApproval = async (coverageAmount) => {
     try {
-      console.log("Checking approval for coverage amount:", coverageAmount);
       const approvalNeeded = await needsUSDTApproval(coverageAmount);
-      console.log("Approval needed:", approvalNeeded);
       return approvalNeeded;
     } catch (err) {
       console.error("Error checking approval:", err);
@@ -143,7 +141,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
     setApproving(true);
     try {
-      console.log("Approving amount:", currentCoverageAmount);
       await approveUSDT(currentCoverageAmount);
       showToast("USDT approved successfully!", "success");
       setNeedsApproval(false);
@@ -489,10 +486,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
         Refresh List & Balances
       </button>
 
-      {/* Debug info */}
-      <div style={{ fontSize: '12px', color: 'gray', marginTop: '10px' }}>
-        Debug: needsApproval={needsApproval.toString()}, currentCoverageAmount={currentCoverageAmount}
-      </div>
     </div>
   );
 }

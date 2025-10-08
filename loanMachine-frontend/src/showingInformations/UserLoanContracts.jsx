@@ -94,7 +94,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const amountInWei = loan.nextPaymentAmountWei;
       const amountForDisplay = ethers.utils.formatUnits(amountInWei, 6);
       
-      console.log("Approving exact amount:", amountForDisplay, "USDT", "Wei:", amountInWei.toString());
       
       await approveUSDT(amountForDisplay);
       showToast("USDT approved successfully!", "success");
@@ -143,14 +142,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
     // Final approval check with the exact Wei amount
     try {
-      console.log("Final approval check for:", {
-        amount: loan.nextPaymentAmount,
-        amountWei: loan.nextPaymentAmountWei.toString(),
-        requisitionId: loan.requisitionId
-      });
 
       const currentApprovalNeeded = await needsUSDTApproval(loan.nextPaymentAmount);
-      console.log("Final approval check result:", currentApprovalNeeded);
       
       if (currentApprovalNeeded) {
         showToast("Please approve USDT first before making payment", "error");
@@ -161,7 +154,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         return;
       }
 
-      console.log("Approval confirmed, showing transaction modal");
 
     } catch (err) {
       console.error("Error in final approval check:", err);
@@ -197,7 +189,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const { params } = transactionData;
       const [requisitionId, amount] = params;
 
-      console.log("Executing repay transaction:", { requisitionId, amount });
 
       const tx = await contract.repay(requisitionId, amount);
       await tx.wait();

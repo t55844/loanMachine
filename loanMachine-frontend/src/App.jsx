@@ -1,32 +1,39 @@
+// App.js
 import { useState } from "react";
 import { useWeb3 } from "./Web3Context";
-import WalletConnect from "./loan-interaction/WalletConnect";
 import ContractOverview from "./showingInformations/ContractOverview";
-import WalletStats from "./showingInformations/WalletStats";
-import Donate from "./loan-interaction/Donate";
 import WalletDistribution from "./showingInformations/WalletDistribution"
 import LoanRequisitionBlock from "./showingInformations/LoanRequisitionBlock";
-import "./App.css";
+import WalletStats from "./showingInformations/WalletStats";
 import VinculateMember from "./loan-interaction/VinculateMember";
+import SideMenu from "./siteStrcture/SideMenu";
+import "./App.css";
 
 export default function App() {
-  const [account, setAccount] = useState('0x14dC79964da2C08b23698B3D3cc7Ca32193d9955');
+  const [account, setAccount] = useState(null);
   const { account: web3Account, contract, loading } = useWeb3();
 
   // Use the web3 account if available, otherwise use the local state
   const currentAccount = web3Account || account;
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{width: '100%'}}>
+      {/* Side Menu */}
+      <SideMenu position="left">
+        <WalletStats />
+        <VinculateMember />
+      </SideMenu>
+
+      {/* Main Content */}
       <div className="card">
         <h1>Loan Machine DApp</h1>
         <WalletDistribution />
-        <WalletStats account={currentAccount} />
-
         <ContractOverview />
         <LoanRequisitionBlock />
 
-        <VinculateMember />
+        {/* Remove these from main content since they're now in the side menu */}
+        {/* <VinculateMember /> */}
+        {/* <UserStatus /> */}
       </div>
     </div>
   );

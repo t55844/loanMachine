@@ -56,7 +56,7 @@ export default function WalletDistribution() {
         {/* Donations Pie Chart */}
         <div style={{ flex: 1, minWidth: 300 }}>
           <h3>Donations</h3>
-          <ResponsiveContainer width="100%" height={310}>
+          <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
                 data={donationsData}
@@ -80,7 +80,7 @@ export default function WalletDistribution() {
         {/* Borrowings Pie Chart */}
         <div style={{ flex: 1, minWidth: 300 }}>
           <h3>Borrowings</h3>
-          <ResponsiveContainer width="100%" height={310}>
+          <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
                 data={borrowingsData}
