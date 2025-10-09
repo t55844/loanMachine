@@ -1,31 +1,33 @@
 // GasCostModal.jsx
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { useWeb3 } from "../Web3Context"; // Import the web3 hook
+import { useWeb3 } from "../Web3Context";
+import { extractErrorMessage } from "../handlers/errorMapping";
 
 function GasCostModal({ 
   isOpen, 
   onClose, 
   onConfirm, 
   transactionData,
-  transactionContext
+  transactionContext,
+  transactionStatus = 'pending' // 'pending', 'processing', 'success', 'error'
 }) {
   const [gasCost, setGasCost] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [gasError, setGasError] = useState("");
   
-  const { contract, provider } = useWeb3(); // Get contract and provider from context
+  const { contract, provider } = useWeb3();
 
   useEffect(() => {
-    if (isOpen && contract && transactionData) {
+    if (isOpen && contract && transactionData && transactionStatus === 'pending') {
       estimateGasCost();
     }
-  }, [isOpen, transactionData]);
+  }, [isOpen, transactionData, transactionStatus]);
 
   async function estimateGasCost() {
     try {
       setLoading(true);
-      setError("");
+      setGasError("");
       setGasCost(null);
 
       const { method, params = [], value = "0" } = transactionData;
@@ -34,35 +36,34 @@ function GasCostModal({
         throw new Error(`Method ${method} not found on contract`);
       }
 
-      // Estimate gas - for USDT transactions, value is 0
       const gasEstimate = await contract.estimateGas[method](...params, {
         value: ethers.BigNumber.from(value)
       });
 
-      // Get gas price
       const gasPrice = await provider.getGasPrice();
-
-      // Calculate total gas cost in ETH (gas is still paid in ETH)
       const gasCostWei = gasEstimate.mul(gasPrice);
       const gasCostEth = ethers.utils.formatEther(gasCostWei);
 
       setGasCost(gasCostEth);
     } catch (err) {
       console.error("Error estimating gas:", err);
-      setError(err.message || "Failed to estimate gas cost");
+      const userFriendlyError = extractErrorMessage(err);
+      setGasError(userFriendlyError);
     } finally {
       setLoading(false);
     }
   }
 
+  const handleRetry = () => {
+    estimateGasCost();
+  };
+
   if (!isOpen) return null;
 
-  // For USDT transactions, transaction value is 0 (no ETH sent)
   const transactionValue = transactionData?.value ? 
     parseFloat(ethers.utils.formatEther(transactionData.value)) : 0;
   const totalCost = (parseFloat(gasCost || 0) + transactionValue).toFixed(6);
 
-  // Format USDT amount for display
   const formatUSDTAmount = (amount) => {
     if (!amount) return '0';
     try {
@@ -72,7 +73,6 @@ function GasCostModal({
     }
   };
 
-  // Render transaction-specific details based on context
   const renderTransactionDetails = () => {
     if (!transactionContext) return null;
 
@@ -112,21 +112,60 @@ function GasCostModal({
     }
   };
 
-  return (
-    <div className="confirmation-modal-overlay">
-      <div className="confirmation-modal">
-        <h3>Transaction Confirmation</h3>
-        
-        {/* Transaction-specific details */}
+  const renderContent = () => {
+    // Show transaction status if processing, success, or error
+    if (transactionStatus === 'processing') {
+      return (
+        <div className="transaction-status processing">
+          <h4>Processing Transaction...</h4>
+          <p>Your transaction is being processed on the blockchain.</p>
+          <div className="loading-spinner">⏳</div>
+        </div>
+      );
+    }
+
+    if (transactionStatus === 'success') {
+      return (
+        <div className="transaction-status success">
+          <h4>✅ Transaction Successful!</h4>
+          <p>Your transaction was completed successfully.</p>
+          <button onClick={onClose} className="close-button">
+            Close
+          </button>
+        </div>
+      );
+    }
+
+    if (transactionStatus === 'error') {
+      return (
+        <div className="transaction-status error">
+          <h4>❌ Transaction Failed</h4>
+          <p>There was an error processing your transaction.</p>
+          <p className="error-note">Check the toast notification for details.</p>
+          <div className="error-actions">
+            <button onClick={onClose} className="close-button">
+              Close
+            </button>
+            <button onClick={() => onConfirm(transactionData)} className="retry-button">
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: show gas estimation and confirmation
+    return (
+      <>
         {renderTransactionDetails()}
         
         <div className="gas-info">
           {loading ? (
             <p>Calculating gas cost...</p>
-          ) : error ? (
+          ) : gasError ? (
             <div>
-              <p className="error-message">⚠️ {error}</p>
-              <button onClick={estimateGasCost} className="refresh-button">
+              <p className="error-message">⚠️ {gasError}</p>
+              <button onClick={handleRetry} className="refresh-button">
                 Retry Estimation
               </button>
             </div>
@@ -137,7 +176,6 @@ function GasCostModal({
                 <span>{parseFloat(gasCost).toFixed(6)} ETH</span>
               </div>
               
-              {/* Show transaction value only for ETH transactions */}
               {transactionValue > 0 && (
                 <div className="detail-item">
                   <strong>Transaction Value:</strong>
@@ -145,7 +183,6 @@ function GasCostModal({
                 </div>
               )}
               
-              {/* For USDT transactions, show note */}
               {transactionContext?.token === 'USDT' && transactionValue === 0 && (
                 <div className="detail-item">
                   <strong>Token Transfer:</strong>
@@ -182,11 +219,20 @@ function GasCostModal({
           <button 
             onClick={() => onConfirm(transactionData)}
             className="confirm-button"
-            disabled={loading || error}
+            disabled={loading || gasError}
           >
             {loading ? "Calculating..." : "Confirm Transaction"}
           </button>
         </div>
+      </>
+    );
+  };
+
+  return (
+    <div className="confirmation-modal-overlay">
+      <div className="confirmation-modal">
+        <h3>Transaction Confirmation</h3>
+        {renderContent()}
       </div>
     </div>
   );

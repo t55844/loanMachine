@@ -2,60 +2,67 @@
 import { useState, useCallback } from 'react';
 
 export function useToast() {
-  const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
+  const [toasts, setToasts] = useState([]);
 
-  const showToast = useCallback((message, type = 'error') => {
-    setToast({ show: true, message, type });
-    
-    // Auto hide after 5 seconds
-    setTimeout(() => {
-      setToast(prev => ({ ...prev, show: false }));
-    }, 5000);
-  }, []);
+  const showToast = useCallback((message, type = 'info', options = {}) => {
+    const id = Date.now() + Math.random();
+    const toast = {
+      id,
+      message,
+      type,
+      show: true,
+      isError: type === 'error',
+      autoClose: options.autoClose ?? true,
+      duration: options.duration || 5000,
+      ...options
+    };
 
-  const hideToast = useCallback(() => {
-    setToast(prev => ({ ...prev, show: false }));
-  }, []);
+    setToasts(prev => [...prev, toast]);
 
-  const handleContractError = useCallback((error, context = '') => {
-    console.error(`Contract error in ${context}:`, error);
-    
-    const message = error.message?.toLowerCase() || '';
-    
-    // Map your custom errors
-    if (message.includes('insufficientfunds')) {
-      showToast('The contract does not have sufficient funds', 'error');
-    } else if (message.includes('invalidamount')) {
-      showToast('The specified amount is invalid', 'error');
-    } else if (message.includes('minimumdonationrequired')) {
-      showToast('Minimum donation requirement not met', 'error');
-    } else if (message.includes('borrownotexpired')) {
-      showToast('Previous borrowing period has not expired yet', 'error');
-    } else if (message.includes('invalidcoveragepercentage')) {
-      showToast('Coverage percentage must be between 1-100', 'error');
-    } else if (message.includes('overcoverage')) {
-      showToast('Cannot cover more than remaining percentage', 'error');
-    } else if (message.includes('loannotavailable')) {
-      showToast('This loan is no longer available', 'error');
-    } else if (message.includes('insufficientdonationbalance')) {
-      showToast('Your donation balance is insufficient', 'error');
-    } else if (message.includes('noactiveborrowing')) {
-      showToast('No active borrowing found', 'error');
-    } else if (message.includes('repaymentexceedsborrowed')) {
-      showToast('Repayment exceeds borrowed amount', 'error');
-    } else if (message.includes('invalidparcelscount')) {
-      showToast('Invalid number of parcels', 'error');
-    } else if (message.includes('user rejected')) {
-      showToast('Transaction cancelled', 'warning');
-    } else {
-      showToast(error.message || 'Transaction failed', 'error');
+    // Auto-remove if autoClose is enabled
+    if (toast.autoClose) {
+      setTimeout(() => {
+        removeToast(id);
+      }, toast.duration);
     }
+
+    return id;
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.map(toast => 
+      toast.id === id ? { ...toast, show: false } : toast
+    ));
+    
+    // Remove from state after animation
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, 300);
+  }, []);
+
+  const showError = useCallback((error, options = {}) => {
+    return showToast(error, 'error', options);
+  }, [showToast]);
+
+  const showSuccess = useCallback((message, options = {}) => {
+    return showToast(message, 'success', options);
+  }, [showToast]);
+
+  const showWarning = useCallback((message, options = {}) => {
+    return showToast(message, 'warning', options);
+  }, [showToast]);
+
+  const showInfo = useCallback((message, options = {}) => {
+    return showToast(message, 'info', options);
   }, [showToast]);
 
   return {
-    toast,
+    toasts,
     showToast,
-    hideToast,
-    handleContractError
+    showError,
+    showSuccess,
+    showWarning,
+    showInfo,
+    removeToast
   };
 }

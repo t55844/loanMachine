@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
+import { eventSystem } from "../handlers/EventSystem";
 
 function Donate() {
   const [amount, setAmount] = useState("");
@@ -20,12 +21,14 @@ function Donate() {
     needsUSDTApproval 
   } = useWeb3();
 
-  // Fetch USDT balance when account changes
+  // Fetch USDT balance - FIXED
   useEffect(() => {
-    if (account && contract) {
+    if (account) {
       fetchUSDTBalance();
+    } else {
+      setUsdtBalance("0"); // Reset when no account
     }
-  }, [account, contract]);
+  }, [account]);
 
   async function fetchUSDTBalance() {
     if (!account) return;
@@ -33,9 +36,11 @@ function Donate() {
     setLoading(true);
     try {
       const balance = await getUSDTBalance();
-      setUsdtBalance(balance);
+      setUsdtBalance(balance || "0"); // Ensure it's never undefined
     } catch (err) {
-      console.error("Error fetching USDT balance:", err);
+      console.error("❌ Error fetching USDT balance:", err);
+      setUsdtBalance("0"); // Set to 0 on error
+      showError("Failed to load USDT balance");
     } finally {
       setLoading(false);
     }
@@ -43,14 +48,16 @@ function Donate() {
 
   // Check approval when amount changes
   useEffect(() => {
-    if (amount && account && contract) {
+    if (amount && account) {
       checkApproval();
     } else {
       setNeedsApproval(false);
     }
-  }, [amount]);
+  }, [amount, account]);
 
   async function checkApproval() {
+    if (!amount || !account) return;
+    
     try {
       const approvalNeeded = await needsUSDTApproval(amount);
       setNeedsApproval(approvalNeeded);
@@ -59,54 +66,83 @@ function Donate() {
     }
   }
 
+  // Helper function to show errors
+  function showError(error) {
+    eventSystem.emit('showToast', {
+      message: error.message || error,
+      isError: true
+    });
+  }
+
+  // Helper function to show success
+  function showSuccess(message) {
+    eventSystem.emit('showToast', {
+      message: message,
+      type: 'success'
+    });
+  }
+
+  // Helper function to show warning
+  function showWarning(message) {
+    eventSystem.emit('showToast', {
+      message: message,
+      type: 'warning'
+    });
+  }
+
   async function handleApprove() {
     if (!amount) {
-      alert("Please enter an amount first");
+      showWarning("Please enter an amount first");
       return;
     }
 
     setApproving(true);
     try {
-      // Approve the specific amount for donation
-      await approveUSDT(amount);
-      alert("USDT approved successfully!");
+      const tx = await approveUSDT(amount);
+      await tx.wait();
+      
+      showSuccess(`Approved ${amount} USDT successfully!`);
       setNeedsApproval(false);
+      
     } catch (err) {
-      console.error("Error approving USDT:", err);
-      alert("Error approving USDT");
+      showError(err.message || "Approval failed");
     } finally {
       setApproving(false);
     }
   }
 
   async function handleDonate() {
-    if (!account || !contract || !amount) {
-      alert("Please connect and enter an amount");
-      return;
-    }
-
-    // Double-check approval status before proceeding
-    const currentApprovalNeeded = await needsUSDTApproval(amount);
-    if (currentApprovalNeeded) {
-      alert("Please approve USDT first. Click the 'Approve USDT' button.");
-      setNeedsApproval(true);
+    if (!account || !amount) {
+      showWarning("Please connect wallet and enter amount");
       return;
     }
 
     // Check balance
     if (parseFloat(usdtBalance) < parseFloat(amount)) {
-      alert("Insufficient USDT balance");
+      showError(`Insufficient USDT balance. You have ${parseFloat(usdtBalance).toFixed(2)} USDT`);
+      return;
+    }
+
+    // Final approval check
+    try {
+      const currentApprovalNeeded = await needsUSDTApproval(amount);
+      if (currentApprovalNeeded) {
+        showWarning("Please approve USDT first");
+        setNeedsApproval(true);
+        return;
+      }
+    } catch (err) {
+      showError("Error checking approval status");
       return;
     }
 
     const amountInWei = ethers.utils.parseUnits(amount, 6);
     
-    // Show gas cost modal before proceeding
     showTransactionModal(
       {
         method: "donate",
         params: [amountInWei.toString()],
-        value: "0" // No ETH value for USDT transactions
+        value: "0"
       },
       {
         type: 'donate',
@@ -121,14 +157,17 @@ function Donate() {
     try {
       const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
       const tx = await contract.donate(amountInWei);
-      await tx.wait();
+      const receipt = await tx.wait();
       
-      alert(`Donation of ${amount} USDT sent from ${account} to the contract!`);
-      setAmount("");
-      fetchUSDTBalance(); // Refresh balance
+      if (receipt.status === 1) {
+        showSuccess(`Successfully donated ${amount} USDT!`);
+        setAmount("");
+        fetchUSDTBalance();
+      } else {
+        throw new Error("Transaction failed");
+      }
     } catch (err) {
-      console.error(err);
-      alert("Error sending donation");
+      showError(err.message || "Donation failed");
       throw err;
     }
   }
@@ -140,7 +179,7 @@ function Donate() {
     <div className="donate-block">
       <div className="balance-info">
         <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
-        {loading && <p>Loading...</p>}
+        {loading && <p>Loading balance...</p>}
       </div>
 
       <input
@@ -159,7 +198,7 @@ function Donate() {
           className="approve-button"
           disabled={approving || !amount}
         >
-          {approving ? "Approving..." : `Approve USDT (${amount} USDT)`}
+          {approving ? "Approving..." : `Approve ${amount} USDT`}
         </button>
       )}
 

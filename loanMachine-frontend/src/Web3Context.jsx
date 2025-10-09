@@ -66,7 +66,7 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[3];
+      const defaultAccount = accounts[5];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);
@@ -127,12 +127,12 @@ export function Web3Provider({ children }) {
 
   // Helper function to approve USDT spending
   const approveUSDT = async (amount) => {
-    if (!usdtContract || !contract) throw new Error('Contracts not initialized');
-    
-    const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
-    const tx = await usdtContract.approve(contract.address, amountInWei);
-    return tx.wait();
-  };
+  if (!usdtContract || !contract) throw new Error('Contracts not initialized');
+  
+  const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
+  const tx = await usdtContract.approve(contract.address, amountInWei);
+  return tx; // ✅ Return the transaction object, not tx.wait()
+};
 
   // Helper function to get USDT info
   const getUSDTInfo = async () => {

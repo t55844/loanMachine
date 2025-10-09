@@ -249,3 +249,32 @@ export async function fetchUserData(userAddress) {
     throw error;
   }
 }
+
+export async function fetchWalletMember(walletAddress) {
+  const query = `
+    query GetWalletMember {
+      members(where: {wallet: "${walletAddress.toLowerCase()}"}) {
+        memberId
+        wallet {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(VITE_SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    
+    const { data } = await response.json();
+    
+    // Return the first member if exists, otherwise null
+    return data.members && data.members.length > 0 ? data.members[0] : null;
+  } catch (error) {
+    console.error("Error fetching wallet member:", error);
+    throw error;
+  }
+}

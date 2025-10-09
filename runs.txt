@@ -46,15 +46,20 @@ sistema para que na hora de criar o smartcontract, só permitir se tiver no mini
 sistemas de moderação baseado na seguinte logica: usuarios com a maior reputação decidem que será o moderador, se queiserem mudar o 
 -moderador podem abrir um pedido de mudança, se mais da metade dos usuarios aceitarem então é aberto o processo
 
-componente para mostrar error de blockchain
-
 sistema de eleição de mdoerador/es
+
+adicionar validação de membro em todas as operações
+
+--------------------------------------------------------------
+
+componente para mostrar error de blockchain --feito falta estressar 
 
 adicionar o elemento de indentificação numero de membro da comunidade no codigo-- refinar apenas
 
 sisitema de reputação baseado na seguinte logica: o usuario que pear emprestimo e pagar em dia ganha ponto, se não perde ponto, o usuario
 -que cobrir emprestimos dos outros ganha ponto-- refinar apenas
 
+erro no pagamento --> saldo insuficiente -- corrigido
 
 eth_getBlockByNumber (43)
 eth_chainId

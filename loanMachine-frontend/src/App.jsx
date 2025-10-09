@@ -8,6 +8,8 @@ import WalletStats from "./showingInformations/WalletStats";
 import VinculateMember from "./loan-interaction/VinculateMember";
 import SideMenu from "./siteStrcture/SideMenu";
 import "./App.css";
+import WalletVerificationBanner from "./siteStrcture/WalletVerificationBanner";
+import Toast from "./handlers/Toast";
 
 export default function App() {
   const [account, setAccount] = useState(null);
@@ -18,6 +20,8 @@ export default function App() {
 
   return (
     <div className="app-container" style={{width: '100%'}}>
+    <WalletVerificationBanner />
+    <Toast />
       {/* Side Menu */}
       <SideMenu position="left">
         <WalletStats />

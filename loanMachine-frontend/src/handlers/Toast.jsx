@@ -1,12 +1,39 @@
 // components/Toast.jsx
-export default function Toast({ toast, onClose }) {
+import { useState, useEffect } from 'react';
+import { eventSystem } from '../handlers/EventSystem';
+import { extractErrorMessage, getErrorType } from '../handlers/errorMapping';
+
+export default function Toast() {
+  const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+
+  useEffect(() => {
+    // Listen for toast events
+    eventSystem.on('showToast', (data) => {
+      // Use error mapping if it's an error object
+      const message = data.isError ? extractErrorMessage(data.message) : data.message;
+      const type = data.isError ? getErrorType(data.message) : data.type;
+      
+      setToast({ 
+        show: true, 
+        message, 
+        type: type || 'info'
+      });
+      
+      // Auto hide after duration or default 5 seconds
+      setTimeout(() => {
+        setToast(prev => ({ ...prev, show: false }));
+      }, data.duration || 5000);
+    });
+  }, []);
+
   if (!toast.show) return null;
 
-  const bgColor = toast.type === 'success' 
-    ? 'var(--accent-green)' 
-    : toast.type === 'warning' 
-    ? '#eab308' 
-    : 'var(--accent-red)';
+  const bgColor = {
+    success: '#10b981',
+    error: '#ef4444', 
+    warning: '#f59e0b',
+    info: '#3b82f6'
+  }[toast.type];
 
   return (
     <div style={{
@@ -17,36 +44,23 @@ export default function Toast({ toast, onClose }) {
       color: 'white',
       padding: '16px',
       borderRadius: '8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
       zIndex: 10000,
-      maxWidth: '400px',
-      animation: 'slideIn 0.3s ease'
+      maxWidth: '400px'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-        <span>{toast.message}</span>
-        <button 
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'white',
-            fontSize: '18px',
-            cursor: 'pointer',
-            padding: 0,
-            width: '20px',
-            height: '20px'
-          }}
-        >
-          ×
-        </button>
-      </div>
-      
-      <style jsx>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-      `}</style>
+      {toast.message}
+      <button 
+        onClick={() => setToast(prev => ({ ...prev, show: false }))}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'white',
+          marginLeft: '10px',
+          cursor: 'pointer'
+        }}
+      >
+        ×
+      </button>
     </div>
   );
 }

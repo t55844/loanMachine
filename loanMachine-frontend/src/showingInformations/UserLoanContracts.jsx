@@ -184,40 +184,38 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
   };
 
   const confirmRepayTransaction = async (transactionData) => {
-    setPaying(true);
-    try {
-      const { params } = transactionData;
-      const [requisitionId, amount] = params;
+  setPaying(true);
+  try {
+    const { params } = transactionData;
+    const [requisitionId, amount] = params;
 
+    const tx = await contract.repay(requisitionId, amount);
+    await tx.wait();
 
-      const tx = await contract.repay(requisitionId, amount);
-      await tx.wait();
-
-      showToast(`Payment successful for loan #${requisitionId}`, "success");
-      await loadUserActiveLoans();
-      setExpandedLoan(null);
-      
-      if (onLoanUpdate) {
-        onLoanUpdate();
-      }
-    } catch (err) {
-      console.error("Transaction failed:", err);
-      
-      // If transaction fails due to approval, update the approval status
-      if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
-        setNeedsApproval(prev => ({
-          ...prev,
-          [requisitionId]: true
-        }));
-        showToast("USDT approval required. Please approve USDT first.", "error");
-      } else {
-        handleContractError(err, "payInstallment");
-      }
-      throw err;
-    } finally {
-      setPaying(false);
+    showToast(`Payment successful for loan #${requisitionId}`, "success");
+    await loadUserActiveLoans();
+    setExpandedLoan(null);
+    
+    if (onLoanUpdate) {
+      onLoanUpdate();
     }
-  };
+  } catch (err) {
+    console.error("Transaction failed:", err);
+    
+    if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
+      setNeedsApproval(prev => ({
+        ...prev,
+        [requisitionId]: true
+      }));
+      showToast("USDT approval required. Please approve USDT first.", "error");
+    } else {
+      handleContractError(err, "payInstallment");
+    }
+    throw err;
+  } finally {
+    setPaying(false);
+  }
+};
 
   const getStatusText = (status) => {
     switch (status) {

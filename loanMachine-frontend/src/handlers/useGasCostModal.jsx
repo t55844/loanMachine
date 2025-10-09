@@ -6,10 +6,12 @@ export function useGasCostModal() {
   const [showModal, setShowModal] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState(null);
   const [transactionContext, setTransactionContext] = useState(null);
+  const [transactionStatus, setTransactionStatus] = useState('pending'); // 'pending', 'processing', 'success', 'error'
 
   const showTransactionModal = (transactionData, context = null) => {
     setPendingTransaction(transactionData);
     setTransactionContext(context);
+    setTransactionStatus('pending');
     setShowModal(true);
   };
 
@@ -17,17 +19,19 @@ export function useGasCostModal() {
     setShowModal(false);
     setPendingTransaction(null);
     setTransactionContext(null);
+    setTransactionStatus('pending');
   };
 
   const ModalWrapper = ({ onConfirm }) => {
     const handleConfirm = async (transactionData) => {
       try {
+        setTransactionStatus('processing');
         await onConfirm(transactionData);
-        // Close modal after successful confirmation
-        hideModal();
+        setTransactionStatus('success');
+        // DON'T auto-close - let user close manually
       } catch (error) {
-        // Don't close modal on error - let user retry or cancel
-        console.error('Transaction failed:', error);
+        setTransactionStatus('error');
+        // DON'T auto-close - let user close manually
       }
     };
 
@@ -38,6 +42,7 @@ export function useGasCostModal() {
         onConfirm={handleConfirm}
         transactionData={pendingTransaction}
         transactionContext={transactionContext}
+        transactionStatus={transactionStatus}
       />
     );
   };
