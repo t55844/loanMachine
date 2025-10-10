@@ -4,9 +4,11 @@ import { ethers } from 'ethers';
 
 // Import your contract ABI (you'll need to adjust this path)
 import LoanMachineABI from '../../artifacts/contracts/LoanMachine.sol/LoanMachine.json';
+import { fetchWalletMember } from './graphql-frontend-query';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
+const VITE_SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
 // USDT ABI - minimal version for the functions we need
 const USDT_ABI = [
@@ -31,7 +33,6 @@ const USDT_ADDRESSES = {
   // Local Hardhat (you'll need to deploy a mock)
   31337: "0x5FbDB2315678afecb367f032d93F642f64180aa3" // Default Hardhat first contract
 };
-
 const Web3Context = createContext();
 
 export function Web3Provider({ children }) {
@@ -42,10 +43,24 @@ export function Web3Provider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chainId, setChainId] = useState(null);
+  const [member, setMember] = useState(null); // New state for member data
 
   useEffect(() => {
     connectToLocalNode();
   }, []);
+
+  // Function to fetch member data
+  const fetchMemberData = async (walletAddress) => {
+    try {
+      const memberData = await fetchWalletMember(walletAddress);
+      setMember(memberData);
+      return memberData;
+    } catch (err) {
+      console.error('Error fetching member data:', err);
+      setMember(null);
+      return null;
+    }
+  };
 
   const connectToLocalNode = async () => {
     try {
@@ -88,6 +103,8 @@ export function Web3Provider({ children }) {
       setAccount(defaultAccount);
       setError('');
       
+      // Fetch member data after setting account
+      await fetchMemberData(defaultAccount);
       
     } catch (err) {
       console.error('Error connecting to local node:', err);
@@ -111,6 +128,9 @@ export function Web3Provider({ children }) {
         setAccount(newAccount);
         setContract(newContract);
         setUsdtContract(newUsdtContract);
+        
+        // Fetch member data for the new account
+        await fetchMemberData(newAccount);
       }
     } catch (err) {
       console.error('Error switching account:', err);
@@ -127,12 +147,12 @@ export function Web3Provider({ children }) {
 
   // Helper function to approve USDT spending
   const approveUSDT = async (amount) => {
-  if (!usdtContract || !contract) throw new Error('Contracts not initialized');
-  
-  const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
-  const tx = await usdtContract.approve(contract.address, amountInWei);
-  return tx; // ✅ Return the transaction object, not tx.wait()
-};
+    if (!usdtContract || !contract) throw new Error('Contracts not initialized');
+    
+    const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
+    const tx = await usdtContract.approve(contract.address, amountInWei);
+    return tx; // ✅ Return the transaction object, not tx.wait()
+  };
 
   // Helper function to get USDT info
   const getUSDTInfo = async () => {
@@ -161,6 +181,14 @@ export function Web3Provider({ children }) {
     }
   };
 
+  // Function to refresh member data
+  const refreshMemberData = async () => {
+    if (account) {
+      return await fetchMemberData(account);
+    }
+    return null;
+  };
+
   const value = {
     account,
     contract,
@@ -169,8 +197,10 @@ export function Web3Provider({ children }) {
     loading,
     error,
     chainId,
+    member, // Include member data in context value
     switchAccount,
     connectToLocalNode,
+    refreshMemberData, // Function to manually refresh member data
     // USDT helper functions
     getUSDTBalance,
     approveUSDT,

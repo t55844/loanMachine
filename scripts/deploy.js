@@ -11,11 +11,23 @@ async function main() {
   await mockUSDT.waitForDeployment();
   console.log("MockUSDT deployed to:", await mockUSDT.getAddress());
 
+  // --- Deploy ReputationSystem ---
+  const ReputationSystem = await ethers.getContractFactory("ReputationSystem");
+  const reputationSystem = await ReputationSystem.deploy();
+  await reputationSystem.waitForDeployment();
+  console.log("ReputationSystem deployed to:", await reputationSystem.getAddress());
+
   // --- Deploy LoanMachine ---
   const LoanMachine = await ethers.getContractFactory("LoanMachine");
-  const loanMachine = await LoanMachine.deploy(await mockUSDT.getAddress());
+  const loanMachine = await LoanMachine.deploy(
+    await mockUSDT.getAddress(),
+    await reputationSystem.getAddress()
+  );
   await loanMachine.waitForDeployment();
   console.log("LoanMachine deployed to:", await loanMachine.getAddress());
+
+  // After deploying both contracts:
+  await reputationSystem.setAuthorizedCaller(loanMachine.address, true);
 
   // --- Mint same amount of USDT to each wallet ---
   const amount = ethers.parseUnits("10", 6); // 100,000 USDT with 6 decimals
@@ -32,7 +44,11 @@ async function main() {
     console.log(`Balance of ${user.address}: ${ethers.formatUnits(bal, 6)} USDT`);
   }
 
-  console.log("✅ Done!");
+  console.log("✅ All contracts deployed successfully!");
+  console.log("📋 Contract addresses:");
+  console.log(`   MockUSDT: ${await mockUSDT.getAddress()}`);
+  console.log(`   ReputationSystem: ${await reputationSystem.getAddress()}`);
+  console.log(`   LoanMachine: ${await loanMachine.getAddress()}`);
 }
 
 main().catch((error) => {

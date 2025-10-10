@@ -29,6 +29,7 @@ interface ILoanMachine {
         uint256[] paymentDates;
     }
 
+
     // Events
     event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
     event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
@@ -51,10 +52,12 @@ interface ILoanMachine {
 
     // Core functions
     function vinculationMemberToWallet(uint32 memberId, address wallet) external;
-    function donate(uint256 amount) external;
-    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount) external returns (uint256);
-    function coverLoan(uint256 requisitionId, uint32 coveragePercentage) external;
-    function repay(uint256 requisitionId, uint256 amount) external;
+    function donate(uint256 amount, uint32 memberId) external;
+    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount, uint32 memberId) external returns (uint256);
+    function coverLoan(uint256 requisitionId, uint32 coveragePercentage, uint32 memberId) external;
+    function repay(uint256 requisitionId, uint256 amount, uint32 memberId) external;
+    
+
     // View functions
     function getTotalDonations() external view returns (uint256);
     function getTotalBorrowed() external view returns (uint256);
@@ -80,4 +83,17 @@ interface ILoanMachine {
     function getDonationsInCoverage(address lender) external view returns (uint256);
     function getUSDTBalance() external view returns (uint256);
     function getAllowance(address user) external view returns (uint256);
+    
+    // Reputation system view functions (new additions)
+    function getReputation(uint32 memberId) external view returns (int32);
+    function getMemberId(address wallet) external view returns (uint32);
+    function isWalletVinculated(address wallet) external view returns (bool);
+    
+    // State variable getters
+    function usdtToken() external view returns (address);
+    function requisitionCounter() external view returns (uint256);
+    function getDonation(address _user) external view returns (uint256);
+    function getBorrowing(address _user) external view returns (uint256);
+    function getLastBorrowTime(address _user) external view returns (uint256);
+    function getContractBalance() external view returns (uint256);
 }

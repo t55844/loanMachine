@@ -4,16 +4,11 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ILoanMachine.sol";
+import "./ReputationSystem.sol";
 
 contract LoanMachine is ILoanMachine, ReentrancyGuard {
-
-    //user sistem
-    mapping(address => uint32) private memberWallet;
-    mapping(uint32 => int32) private memberReputation;
-
-    uint32 private constant REPUTATION_GAIN_BY_REPAYNG_DEBT = 1;
-    uint32 private constant REPUTATION_LOSS_BY_DEBT_NOT_PAYD = 3;
-    uint32 private constant REPUTATION_GAIN_BY_COVERING_LOAN = 2;
+    // Reputation system integration
+    ReputationSystem public reputationSystem;
 
     // State variables
     mapping(address => uint256) private donations;
@@ -24,7 +19,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     uint256 private totalBorrowed;
     uint256 private availableBalance;
 
-    //USDT Variable
+    // USDT Variable
     address public immutable usdtToken; 
 
     // Loan requisition system
@@ -33,7 +28,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     mapping(address => uint256[]) public borrowerRequisitions;
     mapping(address => uint256) private donationsInCoverage;
 
-    //Loan Contracts
+    // Loan Contracts
     mapping(uint256 => LoanContract) public loanContracts;
 
     // Constants
@@ -105,15 +100,9 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         _;
     }
 
-    
-    modifier registerMemberData(uint32 memberId, address wallet) {
-        if(memberId == 0 || wallet == address(0)) revert MemberIdOrWalletInvalid();
-        if(memberWallet[wallet] > 0) revert WalletAlreadyVinculated();
-        _;
-    }
-
     modifier validMember(uint32 memberId, address wallet) {
-        if(memberId == 0 || memberWallet[wallet] != memberId) revert MemberIdOrWalletInvalid();
+        if(memberId == 0 || !reputationSystem.isWalletVinculated(wallet)) 
+            revert MemberIdOrWalletInvalid();
         _;
     }
 
@@ -126,75 +115,69 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         _;
     }
 
-
- constructor(address _usdtToken) {
+    constructor(address _usdtToken, address _reputationSystem) {
         usdtToken = _usdtToken;
+        reputationSystem = ReputationSystem(_reputationSystem);
     }
-
-
-    function repay(uint256 requisitionId, uint256 amount) borrowingActive(requisitionId) external nonReentrant {
-    if (amount == 0) revert InvalidAmount();
-
-    LoanContract storage loan = loanContracts[requisitionId];
     
-    uint32 currentParcelIndex = loan.parcelsCount - loan.parcelsPending;
-     uint256 currentParcelDueDate = loan.paymentDates[currentParcelIndex];
-    
-    if (block.timestamp > currentParcelDueDate) {
-        _reputationChange(memberWallet[msg.sender], int32(REPUTATION_LOSS_BY_DEBT_NOT_PAYD), false);
-    } else {
-        _reputationChange(memberWallet[msg.sender], int32(REPUTATION_GAIN_BY_REPAYNG_DEBT), true);
-    }
 
-    if (amount != loan.parcelsValues) revert InvalidAmount();
-    
-    // Transfer USDT from borrower to contract
-    bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
-    if (!success) revert TokenTransferFailed();
+    function repay(uint256 requisitionId, uint256 amount, uint32 memberId) 
+        validMember(memberId, msg.sender) 
+        borrowingActive(requisitionId) 
+        external 
+        nonReentrant 
+    {
+        if (amount == 0) revert InvalidAmount();
 
-    // Update global borrowing state
-    borrowings[msg.sender] -= amount;
-    totalBorrowed -= amount;
-    availableBalance += amount;
-
-    _distributeRepaymentToLenders(requisitionId, amount);
-
-    emit Repaid(msg.sender, amount, borrowings[msg.sender]);
-    emit ParcelPaid(requisitionId, loan.parcelsPending);
-    emit TotalBorrowedUpdated(totalBorrowed);
-    emit AvailableBalanceUpdated(availableBalance);
-    
-    loan.parcelsPending -= 1;
-    if (loan.parcelsPending == 0) {
-        loan.status = ContractStatus.Closed;
-        emit LoanCompleted(requisitionId);
-    }
-}
-
-    function vinculationMemberToWallet(uint32 memberId, address wallet) registerMemberData(memberId, wallet) external{
-
-        memberWallet[wallet] = memberId;
-        emit MemberToWalletVinculation(memberId, wallet, block.timestamp);
-    }
-
-    function _reputationChange(uint32 memberId, int32 points, bool increase) validMember(memberId, msg.sender) internal {
-        int32 currentReputation = memberReputation[memberId];
-        int32 newReputation;
-        if(increase){
-            newReputation = currentReputation + points;
+        LoanContract storage loan = loanContracts[requisitionId];
+        
+        uint32 currentParcelIndex = loan.parcelsCount - loan.parcelsPending;
+        uint256 currentParcelDueDate = loan.paymentDates[currentParcelIndex];
+        
+        // Update reputation based on payment timing
+        if (block.timestamp > currentParcelDueDate) {
+            reputationSystem.reputationChange(memberId, reputationSystem.REPUTATION_LOSS_BY_DEBT_NOT_PAYD(), false);
         } else {
-            newReputation = currentReputation - points;
-            if(newReputation < 0){
-                newReputation = 0;
-            }
+            reputationSystem.reputationChange(memberId, reputationSystem.REPUTATION_GAIN_BY_REPAYNG_DEBT(), true);
         }
-        memberReputation[memberId] = newReputation;
-        emit ReputationChanged(memberId, points, increase, newReputation, block.timestamp);
+
+        if (amount != loan.parcelsValues) revert InvalidAmount();
+        
+        // Transfer USDT from borrower to contract
+        bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
+        if (!success) revert TokenTransferFailed();
+
+        // Update global borrowing state
+        borrowings[msg.sender] -= amount;
+        totalBorrowed -= amount;
+        availableBalance += amount;
+
+        _distributeRepaymentToLenders(requisitionId, amount);
+
+        emit Repaid(msg.sender, amount, borrowings[msg.sender]);
+        emit ParcelPaid(requisitionId, loan.parcelsPending);
+        emit TotalBorrowedUpdated(totalBorrowed);
+        emit AvailableBalanceUpdated(availableBalance);
+        
+        loan.parcelsPending -= 1;
+        if (loan.parcelsPending == 0) {
+            loan.status = ContractStatus.Closed;
+            emit LoanCompleted(requisitionId);
+        }
     }
 
+    function vinculationMemberToWallet(uint32 memberId, address wallet) external {
+        // Delegate to reputation system
+        reputationSystem.vinculationMemberToWallet(memberId, wallet);
+    }
 
     // Donate function
-     function donate(uint256 amount) external validAmount(amount) nonReentrant {
+    function donate(uint256 amount, uint32 memberId) 
+        validMember(memberId, msg.sender) 
+        external 
+        validAmount(amount) 
+        nonReentrant 
+    {
         // Check donation limit
         if (amount > MAX_DONATION) {
             revert ExcessiveDonation();
@@ -226,8 +209,16 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         uint256 _amount,
         uint32 _minimumCoverage,
         uint256 _durationDays,
-        uint32 parcelscount
-    ) external validAmount(_amount) minimumPercentCoveragePermited(_minimumCoverage) maxParcelsCount(parcelscount) returns (uint256) {
+        uint32 parcelscount,
+        uint32 memberId
+    ) 
+        external 
+        validMember(memberId, msg.sender) 
+        validAmount(_amount) 
+        minimumPercentCoveragePermited(_minimumCoverage) 
+        maxParcelsCount(parcelscount) 
+        returns (uint256) 
+    {
         if (_amount > availableBalance) revert InsufficientFunds();
         
         uint256 requisitionId = requisitionCounter++;
@@ -249,11 +240,12 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     }
 
     // Cover a loan requisition
-   function coverLoan(uint256 requisitionId, uint32 coveragePercentage) 
+    function coverLoan(uint256 requisitionId, uint32 coveragePercentage, uint32 memberId) 
         external 
+        validMember(memberId, msg.sender)
         validCoverage(coveragePercentage)
         nonReentrant 
-        {
+    {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
         if (req.status != BorrowStatus.Pending && req.status != BorrowStatus.PartiallyCovered) {
@@ -289,37 +281,43 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             req.status = BorrowStatus.PartiallyCovered;
         }
         
-        _reputationChange(memberWallet[msg.sender], int32(REPUTATION_GAIN_BY_COVERING_LOAN), true);
+        reputationSystem.reputationChange(memberId, int32(reputationSystem.REPUTATION_GAIN_BY_COVERING_LOAN()), true);
         emit LoanCovered(requisitionId, msg.sender, coverageAmount);
     }
 
-
-function _generateLoanContract(uint256 requisitionId) internal {
-    LoanContract storage loan = loanContracts[requisitionId];
-    loan.walletAddress = loanRequisitions[requisitionId].borrower;
-    loan.requisitionId = requisitionId;
-    loan.status = ContractStatus.Active;
-    loan.parcelsCount = loanRequisitions[requisitionId].parcelsCount;
-    loan.parcelsPending = loanRequisitions[requisitionId].parcelsCount;
-    loan.parcelsValues = loanRequisitions[requisitionId].amount / loanRequisitions[requisitionId].parcelsCount;
-    
-    _generatePaymentDates(loan, loanRequisitions[requisitionId].parcelsCount);
-    
-    emit LoanContractGenerated(loan.walletAddress, requisitionId, loan.status, loan.parcelsPending, loan.parcelsValues,loan.paymentDates);
-}
-
-function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) internal {
-    uint256 startDate = block.timestamp;
-    uint256 oneMonthInSeconds = 30 days; // Approximate month as 30 days
-    
-    for (uint32 i = 0; i < parcelsCount; i++) {
-        uint256 paymentDate = startDate + (oneMonthInSeconds * (i + 1));
-        loan.paymentDates.push(paymentDate);
+    function _generateLoanContract(uint256 requisitionId) internal {
+        LoanContract storage loan = loanContracts[requisitionId];
+        loan.walletAddress = loanRequisitions[requisitionId].borrower;
+        loan.requisitionId = requisitionId;
+        loan.status = ContractStatus.Active;
+        loan.parcelsCount = loanRequisitions[requisitionId].parcelsCount;
+        loan.parcelsPending = loanRequisitions[requisitionId].parcelsCount;
+        loan.parcelsValues = loanRequisitions[requisitionId].amount / loanRequisitions[requisitionId].parcelsCount;
+        
+        _generatePaymentDates(loan, loanRequisitions[requisitionId].parcelsCount);
+        
+        emit LoanContractGenerated(
+            loan.walletAddress, 
+            requisitionId, 
+            loan.status, 
+            loan.parcelsPending, 
+            loan.parcelsValues,
+            loan.paymentDates
+        );
     }
-}
+
+    function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) internal {
+        uint256 startDate = block.timestamp;
+        uint256 oneMonthInSeconds = 30 days; // Approximate month as 30 days
+        
+        for (uint32 i = 0; i < parcelsCount; i++) {
+            uint256 paymentDate = startDate + (oneMonthInSeconds * (i + 1));
+            loan.paymentDates.push(paymentDate);
+        }
+    }
 
     // Internal function to fund the loan
-   function _fundLoan(uint256 requisitionId) internal {
+    function _fundLoan(uint256 requisitionId) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
         borrowings[req.borrower] += req.amount;
@@ -337,7 +335,6 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
         emit AvailableBalanceUpdated(availableBalance);
         emit LoanFunded(requisitionId);
     }
-
 
     function _distributeRepaymentToLenders(uint256 requisitionId, uint256 repaymentAmount) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
@@ -360,36 +357,47 @@ function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) i
         }
     }
 
-// Helper function to get active loans for a borrower
-function getActiveLoans(address borrower) public view returns (LoanContract[] memory activeLoans, uint256[] memory requisitionIds) {
-    uint256[] storage allRequisitionIds = borrowerRequisitions[borrower];
-    uint256 activeCount = 0;
-    
-    // count active loans
-    for (uint256 i = 0; i < allRequisitionIds.length; i++) {
-        LoanContract storage loan = loanContracts[allRequisitionIds[i]];
-        if (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
-            activeCount++;
+    // Helper function to get active loans for a borrower
+    function getActiveLoans(address borrower) public view returns (LoanContract[] memory activeLoans, uint256[] memory requisitionIds) {
+        uint256[] storage allRequisitionIds = borrowerRequisitions[borrower];
+        uint256 activeCount = 0;
+        
+        // count active loans
+        for (uint256 i = 0; i < allRequisitionIds.length; i++) {
+            LoanContract storage loan = loanContracts[allRequisitionIds[i]];
+            if (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+                activeCount++;
+            }
         }
-    }
-    
-    activeLoans = new LoanContract[](activeCount);
-    requisitionIds = new uint256[](activeCount);
-    uint256 index = 0;
-    
-    for (uint256 i = 0; i < allRequisitionIds.length; i++) {
-        LoanContract storage loan = loanContracts[allRequisitionIds[i]];
-        if (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
-            activeLoans[index] = loan;
-            requisitionIds[index] = allRequisitionIds[i];
-            index++;
+        
+        activeLoans = new LoanContract[](activeCount);
+        requisitionIds = new uint256[](activeCount);
+        uint256 index = 0;
+        
+        for (uint256 i = 0; i < allRequisitionIds.length; i++) {
+            LoanContract storage loan = loanContracts[allRequisitionIds[i]];
+            if (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+                activeLoans[index] = loan;
+                requisitionIds[index] = allRequisitionIds[i];
+                index++;
+            }
         }
+        
+        return (activeLoans, requisitionIds);
     }
-    
-    return (activeLoans, requisitionIds);
-}
 
+    // Reputation system view functions
+    function getReputation(uint32 memberId) external view returns (int32) {
+        return reputationSystem.getReputation(memberId);
+    }
 
+    function getMemberId(address wallet) external view returns (uint32) {
+        return reputationSystem.getMemberId(wallet);
+    }
+
+    function isWalletVinculated(address wallet) external view returns (bool) {
+        return reputationSystem.isWalletVinculated(wallet);
+    }
 
     // Helper function to get USDT balance of contract
     function getUSDTBalance() external view returns (uint256) {
@@ -401,24 +409,24 @@ function getActiveLoans(address borrower) public view returns (LoanContract[] me
         return IERC20(usdtToken).allowance(user, address(this));
     }
 
-// Function to check next payment amount for a specific requisition
-function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay) {
-    LoanContract storage loan = loanContracts[requisitionId];
-    
-    if (loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
-        return (loan.parcelsValues, true);
+    // Function to check next payment amount for a specific requisition
+    function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay) {
+        LoanContract storage loan = loanContracts[requisitionId];
+        
+        if (loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
+            return (loan.parcelsValues, true);
+        }
+        
+        return (0, false);
     }
-    
-    return (0, false);
-}
 
-// Function to get repayment summary for a specific requisition
-function getRepaymentSummary(uint256 requisitionId) external view returns (
-    uint256 totalRemainingDebt,
-    uint256 nextPaymentAmount,
-    uint256 parcelsRemaining,
-    uint256 totalParcels,
-    bool isActive
+    // Function to get repayment summary for a specific requisition
+    function getRepaymentSummary(uint256 requisitionId) external view returns (
+        uint256 totalRemainingDebt,
+        uint256 nextPaymentAmount,
+        uint256 parcelsRemaining,
+        uint256 totalParcels,
+        bool isActive
     ) {
         LoanContract storage loan = loanContracts[requisitionId];
         LoanRequisition storage req = loanRequisitions[requisitionId];
@@ -518,7 +526,6 @@ function getRepaymentSummary(uint256 requisitionId) external view returns (
         return loan;
     }
 
-
     // Additional helper function (not in interface but useful)
     function canUserBorrow(address _user, uint256 _amount) external view returns (bool) {
         return (_amount > 0 &&
@@ -527,7 +534,7 @@ function getRepaymentSummary(uint256 requisitionId) external view returns (
             (lastBorrowTime[_user] + BORROW_DURATION < block.timestamp || borrowings[_user] == 0));
     }
     
-      // Helper function to get payment dates
+    // Helper function to get payment dates
     function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory) {
         return loanContracts[requisitionId].paymentDates;
     }
@@ -535,5 +542,4 @@ function getRepaymentSummary(uint256 requisitionId) external view returns (
     function getDonationsInCoverage(address lender) external view returns (uint256) {
         return donationsInCoverage[lender];
     }
-
 }
