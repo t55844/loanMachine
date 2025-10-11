@@ -23,30 +23,9 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     mapping(uint32 => int32) public moderatorVotesReceived;
     mapping(uint32 => mapping(uint32 => bool)) public hasVotedInElection;
 
-    struct ElectionStatus {
-        uint32 id;
-        uint32[] candidates;
-        uint256 startTime;
-        uint256 endTime;
-        bool active;
-        uint32 winnerId;
-        int32 winningVotes;
-        int32 totalVotesCast;
-        int32 potentialRemainingVotes;
-    }
-    
+
     uint32 private electionCounter;
     ElectionStatus[] public elections; 
-
-    // Events
-    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
-    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
-    event AuthorizedCallerUpdated(address indexed caller, bool authorized);
-    event ElectionOpened(uint32 indexed electionId, uint32 indexed candidateId, uint256 startTime, uint256 endTime);
-    event CandidateAdded(uint32 indexed electionId, uint32 indexed candidateId);
-    event VoteCast(uint32 indexed electionId, uint32 indexed candidateId, uint32 indexed memberId, int32 voteWeight);
-    event ElectionClosed(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
-    event UnbeatableMajorityReached(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
 
     // Custom errors
     error MemberIdOrWalletInvalid();
@@ -129,9 +108,6 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
             newReputation = currentReputation + points;
         } else {
             newReputation = currentReputation - points;
-            if(newReputation < 0) {
-                newReputation = 0;
-            }
         }
         
         memberReputation[memberId] = newReputation;
@@ -232,9 +208,6 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         emit ElectionClosed(electionId, winnerId, winningVotes);
     }
 
-    function removeModerator(uint32 memberId) external override onlyOwner {
-        isModerator[memberId] = false;
-    }
 
     function setAuthorizedCaller(address caller, bool authorized) external override onlyOwner {
         authorizedCallers[caller] = authorized;

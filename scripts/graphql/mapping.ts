@@ -16,7 +16,17 @@ import {
   LenderRepaid,
   LoanCompleted,
   MemberToWalletVinculation,
-  ReputationChanged
+  ReputationChanged,
+  BorrowerStatusUpdated,
+  DebtorAdded,
+  DebtorRemoved,
+  MonthlyUpdateTriggered,
+  AuthorizedCallerUpdated,
+  ElectionOpened,
+  CandidateAdded,
+  VoteCast,
+  ElectionClosed,
+  UnbeatableMajorityReached
 } from "./generated/LoanMachine/LoanMachine"
 
 import {
@@ -30,10 +40,16 @@ import {
   LoanContract,
   Member,
   ReputationChange,
+  DebtStatus,
+  DebtorList,
+  AuthorizedCaller,
+  Election,
+  Candidate,
+  Vote
 } from "./generated/schema"
 
 // -------------------
-// Utility to create/load User entity
+// Utility Functions
 // -------------------
 function getOrCreateUser(id: string): User {
   let user = User.load(id);
@@ -43,14 +59,16 @@ function getOrCreateUser(id: string): User {
     user.totalBorrowed = BigInt.zero();
     user.currentDebt = BigInt.zero();
     user.lastActivity = BigInt.zero();
+    user.currentDebtStatus = "NoDebt";
+    user.hasOpenDebt = false;
+    user.isInDebtorList = false;
+    user.isAuthorizedCaller = false;
+    user.lastStatusUpdate = BigInt.zero();
     user.save();
   }
   return user as User;
 }
 
-// -------------------
-// Utility to create/load Stats entity
-// -------------------
 function getOrCreateStats(): Stats {
   let stats = Stats.load("singleton")
   if (!stats) {
@@ -63,8 +81,46 @@ function getOrCreateStats(): Stats {
   return stats as Stats
 }
 
+function getOrCreateDebtorList(): DebtorList {
+  let debtorList = DebtorList.load("singleton")
+  if (!debtorList) {
+    debtorList = new DebtorList("singleton")
+    debtorList.lastMonthlyUpdate = BigInt.zero()
+    debtorList.nextMonthlyUpdate = BigInt.zero()
+    debtorList.shouldTriggerUpdate = false
+    debtorList.save()
+  }
+  return debtorList as DebtorList
+}
+
+function getOrCreateMember(memberId: BigInt): Member {
+  let memberIdStr = memberId.toString();
+  let member = Member.load(memberIdStr);
+  if (!member) {
+    member = new Member(memberIdStr);
+    member.memberId = memberId;
+    member.linkedAt = BigInt.zero();
+    member.currentReputation = 0;
+    member.save();
+  }
+  return member as Member;
+}
+
+function getDebtStatusString(status: i32): string {
+  switch (status) {
+    case 0:
+      return "NoDebt"
+    case 1:
+      return "HasActiveDebt"
+    case 2:
+      return "HasOverdueDebt"
+    default:
+      return "NoDebt"
+  }
+}
+
 // -------------------
-// Event Handlers
+// Core Lending Event Handlers
 // -------------------
 export function handleNewDonor(event: NewDonor): void {
   let id = event.params.donor.toHexString()
@@ -108,7 +164,11 @@ export function handleBorrowed(event: Borrowed): void {
   user.totalBorrowed = user.totalBorrowed.plus(event.params.amount)
   user.currentDebt = user.currentDebt.plus(event.params.amount)
   user.lastActivity = event.block.timestamp
+  user.currentDebtStatus = "HasActiveDebt"
+  user.hasOpenDebt = true
   user.save()
+
+  updateDebtorList(borrowerId, true)
 }
 
 export function handleRepaid(event: Repaid): void {
@@ -124,6 +184,16 @@ export function handleRepaid(event: Repaid): void {
   if (user) {
     user.currentDebt = event.params.remainingDebt
     user.lastActivity = event.block.timestamp
+    
+    if (user.currentDebt.equals(BigInt.zero())) {
+      user.currentDebtStatus = "NoDebt"
+      user.hasOpenDebt = false
+      updateDebtorList(borrowerId, false)
+    } else {
+      user.currentDebtStatus = "HasActiveDebt"
+      user.hasOpenDebt = true
+    }
+    
     user.save()
   }
 }
@@ -239,9 +309,6 @@ export function handleLoanContractGenerated(event: LoanContractGenerated): void 
   }
 }
 
-// -------------------
-// NEW: ParcelPaid, LenderRepaid, LoanCompleted
-// -------------------
 export function handleParcelPaid(event: ParcelPaid): void {
   let id = event.params.requisitionId.toString();
   let loan = LoanRequest.load(id);
@@ -270,32 +337,23 @@ export function handleLoanCompleted(event: LoanCompleted): void {
   loan.save();
 }
 
-export function handleMemberToWalletVinculation(
-  event: MemberToWalletVinculation
-): void {
+// -------------------
+// Member System Event Handlers
+// -------------------
+export function handleMemberToWalletVinculation(event: MemberToWalletVinculation): void {
   let memberIdStr = event.params.memberId.toString();
-  let member = Member.load(memberIdStr);
-
-  if (!member) {
-    member = new Member(memberIdStr);
-    member.memberId = event.params.memberId;
-    member.currentReputation = 0;
-  }
+  let member = getOrCreateMember(event.params.memberId);
 
   let wallet = event.params.wallet.toHexString();
   member.wallet = wallet;
   member.linkedAt = event.block.timestamp;
   member.save();
 
-  // ensure corresponding User entity exists
   let user = getOrCreateUser(wallet);
   user.lastActivity = event.block.timestamp;
   user.save();
 }
 
-// ------------------------------------------
-// Handler: ReputationChanged
-// ------------------------------------------
 export function handleReputationChanged(event: ReputationChanged): void {
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
   let rc = new ReputationChange(id);
@@ -309,13 +367,11 @@ export function handleReputationChanged(event: ReputationChanged): void {
   rc.timestamp = event.block.timestamp;
   rc.save();
 
-  // Update Member reputation
   let member = Member.load(memberIdStr);
   if (member) {
     member.currentReputation = event.params.newReputation;
     member.save();
 
-    // update activity if member linked to a wallet
     if (member.wallet) {
       let user = User.load(member.wallet as string);
       if (user) {
@@ -324,4 +380,224 @@ export function handleReputationChanged(event: ReputationChanged): void {
       }
     }
   }
+}
+
+// -------------------
+// DebtTracker Event Handlers
+// -------------------
+export function handleBorrowerStatusUpdated(event: BorrowerStatusUpdated): void {
+  let borrowerId = event.params.borrower.toHexString()
+  let user = getOrCreateUser(borrowerId)
+  
+  let debtStatus = new DebtStatus(
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  )
+  debtStatus.borrower = borrowerId
+  debtStatus.status = getDebtStatusString(event.params.newStatus)
+  debtStatus.timestamp = event.block.timestamp
+  debtStatus.save()
+
+  user.currentDebtStatus = getDebtStatusString(event.params.newStatus)
+  user.hasOpenDebt = user.currentDebtStatus !== "NoDebt"
+  user.lastStatusUpdate = event.block.timestamp
+  user.lastActivity = event.block.timestamp
+  user.save()
+}
+
+export function handleDebtorAdded(event: DebtorAdded): void {
+  let borrowerId = event.params.borrower.toHexString()
+  let user = getOrCreateUser(borrowerId)
+  
+  user.isInDebtorList = true
+  user.lastActivity = event.block.timestamp
+  user.save()
+
+  let debtorList = getOrCreateDebtorList()
+  let currentDebtors = debtorList.borrowersWithOpenDebt
+  if (!currentDebtors.includes(borrowerId)) {
+    currentDebtors.push(borrowerId)
+    debtorList.borrowersWithOpenDebt = currentDebtors
+    debtorList.save()
+  }
+}
+
+export function handleDebtorRemoved(event: DebtorRemoved): void {
+  let borrowerId = event.params.borrower.toHexString()
+  let user = getOrCreateUser(borrowerId)
+  
+  user.isInDebtorList = false
+  user.lastActivity = event.block.timestamp
+  user.save()
+
+  let debtorList = getOrCreateDebtorList()
+  let currentDebtors = debtorList.borrowersWithOpenDebt
+  let updatedDebtors: string[] = []
+  
+  for (let i = 0; i < currentDebtors.length; i++) {
+    if (currentDebtors[i] !== borrowerId) {
+      updatedDebtors.push(currentDebtors[i])
+    }
+  }
+  
+  debtorList.borrowersWithOpenDebt = updatedDebtors
+  debtorList.save()
+}
+
+export function handleMonthlyUpdateTriggered(event: MonthlyUpdateTriggered): void {
+  let debtorList = getOrCreateDebtorList()
+  
+  debtorList.lastMonthlyUpdate = event.params.timestamp
+  debtorList.nextMonthlyUpdate = event.params.timestamp.plus(BigInt.fromI32(2592000))
+  debtorList.shouldTriggerUpdate = false
+  debtorList.save()
+}
+
+// -------------------
+// Authorization Event Handlers
+// -------------------
+export function handleAuthorizedCallerUpdated(event: AuthorizedCallerUpdated): void {
+  let callerId = event.params.caller.toHexString()
+  let authorizedCaller = AuthorizedCaller.load(callerId)
+  
+  if (!authorizedCaller) {
+    authorizedCaller = new AuthorizedCaller(callerId)
+    authorizedCaller.caller = callerId
+  }
+  
+  authorizedCaller.authorized = event.params.authorized
+  authorizedCaller.lastUpdated = event.block.timestamp
+  authorizedCaller.save()
+
+  let user = getOrCreateUser(callerId)
+  user.isAuthorizedCaller = event.params.authorized
+  user.lastActivity = event.block.timestamp
+  user.save()
+}
+
+// -------------------
+// Election System Event Handlers
+// -------------------
+export function handleElectionOpened(event: ElectionOpened): void {
+  let electionId = event.params.electionId.toString() + "-" + event.params.candidateId.toString()
+  let election = new Election(electionId)
+  
+  election.electionId = event.params.electionId
+  election.candidateId = event.params.candidateId
+  election.startTime = event.params.startTime
+  election.endTime = event.params.endTime
+  election.isOpen = true
+  election.createdAt = event.block.timestamp
+  election.save()
+
+  // Create the initial candidate
+  let candidateId = electionId + "-candidate-" + event.params.candidateId.toString()
+  let candidate = new Candidate(candidateId)
+  candidate.election = electionId
+  candidate.candidateId = event.params.candidateId
+  candidate.totalVotes = 0
+  candidate.addedAt = event.block.timestamp
+  
+  // Link candidate to member if exists
+  let member = Member.load(event.params.candidateId.toString())
+  if (member) {
+    candidate.member = member.id
+  }
+  
+  candidate.save()
+}
+
+export function handleCandidateAdded(event: CandidateAdded): void {
+  let electionId = event.params.electionId.toString() + "-" + event.params.candidateId.toString()
+  let election = Election.load(electionId)
+  
+  if (election) {
+    let candidateId = electionId + "-candidate-" + event.params.candidateId.toString()
+    let candidate = new Candidate(candidateId)
+    candidate.election = electionId
+    candidate.candidateId = event.params.candidateId
+    candidate.totalVotes = 0
+    candidate.addedAt = event.block.timestamp
+    
+    let member = Member.load(event.params.candidateId.toString())
+    if (member) {
+      candidate.member = member.id
+    }
+    
+    candidate.save()
+  }
+}
+
+export function handleVoteCast(event: VoteCast): void {
+  let electionId = event.params.electionId.toString() + "-" + event.params.candidateId.toString()
+  let election = Election.load(electionId)
+  
+  if (election) {
+    let candidateId = electionId + "-candidate-" + event.params.candidateId.toString()
+    let candidate = Candidate.load(candidateId)
+    
+    if (candidate) {
+      // Update candidate vote total
+      candidate.totalVotes = candidate.totalVotes + event.params.voteWeight
+      candidate.save()
+
+      // Create vote record
+      let voteId = electionId + "-vote-" + event.params.memberId.toString()
+      let vote = new Vote(voteId)
+      vote.election = electionId
+      vote.candidate = candidateId
+      vote.voter = event.params.memberId.toString()
+      vote.voteWeight = event.params.voteWeight
+      vote.timestamp = event.block.timestamp
+      vote.save()
+    }
+  }
+}
+
+export function handleElectionClosed(event: ElectionClosed): void {
+  let electionId = event.params.electionId.toString() + "-" + event.params.winnerId.toString()
+  let election = Election.load(electionId)
+  
+  if (election) {
+    election.isOpen = false
+    election.winnerId = event.params.winnerId
+    election.winningVotes = event.params.winningVotes
+    election.save()
+  }
+}
+
+export function handleUnbeatableMajorityReached(event: UnbeatableMajorityReached): void {
+  let electionId = event.params.electionId.toString() + "-" + event.params.winnerId.toString()
+  let election = Election.load(electionId)
+  
+  if (election) {
+    election.isOpen = false
+    election.winnerId = event.params.winnerId
+    election.winningVotes = event.params.winningVotes
+    election.save()
+  }
+}
+
+// -------------------
+// Helper Functions
+// -------------------
+function updateDebtorList(borrowerId: string, add: boolean): void {
+  let debtorList = getOrCreateDebtorList()
+  let currentDebtors = debtorList.borrowersWithOpenDebt
+  
+  if (add) {
+    if (!currentDebtors.includes(borrowerId)) {
+      currentDebtors.push(borrowerId)
+      debtorList.borrowersWithOpenDebt = currentDebtors
+    }
+  } else {
+    let updatedDebtors: string[] = []
+    for (let i = 0; i < currentDebtors.length; i++) {
+      if (currentDebtors[i] !== borrowerId) {
+        updatedDebtors.push(currentDebtors[i])
+      }
+    }
+    debtorList.borrowersWithOpenDebt = updatedDebtors
+  }
+  
+  debtorList.save()
 }

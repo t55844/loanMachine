@@ -8,9 +8,9 @@ dataSources:
     name: LoanMachine
     network: mainnet
     source:
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
       abi: LoanMachine
-      startBlock: 7
+      startBlock: 10
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -66,3 +66,21 @@ dataSources:
           handler: handleMemberToWalletVinculation
         - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
           handler: handleReputationChanged
+        - event: BorrowerStatusUpdated(indexed address,uint8)
+          handler: handleBorrowerStatusUpdated
+        - event: DebtorAdded(indexed address)
+          handler: handleDebtorAdded
+        - event: DebtorRemoved(indexed address)
+          handler: handleDebtorRemoved
+        - event: MonthlyUpdateTriggered(uint256)
+          handler: handleMonthlyUpdateTriggered
+        - event: ElectionOpened(indexed uint32,indexed uint32,uint256,uint256)
+          handler: handleElectionOpened
+        - event: CandidateAdded(indexed uint32,indexed uint32)
+          handler: handleCandidateAdded
+        - event: VoteCast(indexed uint32,indexed uint32,indexed uint32,int32)
+          handler: handleVoteCast
+        - event: ElectionClosed(indexed uint32,indexed uint32,int32)
+          handler: handleElectionClosed
+        - event: UnbeatableMajorityReached(indexed uint32,indexed uint32,int32)
+          handler: handleUnbeatableMajorityReached

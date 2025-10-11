@@ -31,6 +31,14 @@ type User @entity(immutable: false) {
   donations: [Donation!]! @derivedFrom(field: "donor")
   borrows: [Borrow!]! @derivedFrom(field: "borrower")
   repayments: [Repayment!]! @derivedFrom(field: "borrower")
+  # New debt tracking fields
+  currentDebtStatus: DebtStatusEnum!
+  debtStatusHistory: [DebtStatus!]! @derivedFrom(field: "borrower")
+  hasOpenDebt: Boolean!
+  isInDebtorList: Boolean!
+  lastStatusUpdate: BigInt!
+  # New authorized caller field
+  isAuthorizedCaller: Boolean!
 }
 
 type Stats @entity(immutable: false) {
@@ -40,29 +48,21 @@ type Stats @entity(immutable: false) {
   availableBalance: BigInt!
 }
 
-# loan request entity (one per requisition)
 type LoanRequest @entity(immutable: false) {
   id: ID!
   requisitionId: BigInt!
   borrower: User!
   amount: BigInt!
   timestamp: BigInt!
-  # sum of coverage amounts (wei)
   currentCoverageAmount: BigInt!
-  # number of distinct lenders who covered this requisition
   coveringLendersCount: Int!
-  # whether the loan was funded (minimum coverage reached and _fundLoan called)
   funded: Boolean!
   fundedAt: BigInt
-  # derived list of coverage entries
   coverages: [LoanCoverage!]! @derivedFrom(field: "loanRequest")
-  # parcelsCount isn't emitted in LoanRequisitionCreated but is available later in LoanContractGenerated
   parcelsCount: Int          
-  # optional list of covering lenders addresses (we only populate coveringLendersCount and LoanCoverage entities from events)
   coveringLenders: [User!] 
 }
 
-# per-lender coverage record (accumulates if same lender covers multiple times)
 type LoanCoverage @entity(immutable: false) {
   id: ID!
   loanRequest: LoanRequest!
@@ -71,18 +71,16 @@ type LoanCoverage @entity(immutable: false) {
   timestamp: BigInt!
 }
 
-# loan contract entity created when loan contract is generated on-chain
 type LoanContract @entity(immutable: false) {
   id: ID!
   walletAddress: User!
   requisitionId: BigInt!
-  status: Int!           # ContractStatus encoded as integer in event
-  parcelsPending: Int!   # number of parcels pending
-  parcelsValues: BigInt # new field for value per parcel
-  createdAt: BigInt!     # timestamp when LoanContractGenerated fired
-  completedAt: BigInt    # optional, set when LoanCompleted event fires
+  status: Int!
+  parcelsPending: Int!
+  parcelsValues: BigInt
+  createdAt: BigInt!
+  completedAt: BigInt
 }
-
 
 type ParcelPayment @entity(immutable: false) {
   id: ID!
@@ -101,23 +99,86 @@ type LenderRepayment @entity(immutable: false) {
   timestamp: BigInt!
 }
 
-# Member entity maps a numeric memberId to a wallet address and stores current reputation
 type Member @entity(immutable: false) {
-id: ID! # memberId as string (e.g. "1")
-memberId: BigInt! # numeric member id
-wallet: User # optional relation to User (by wallet address)
-linkedAt: BigInt! # timestamp when vinculation happened
-currentReputation: Int # updated by ReputationChanged events
+  id: ID!
+  memberId: BigInt!
+  wallet: User
+  linkedAt: BigInt!
+  currentReputation: Int
+  # Election participation
+  votesCast: [Vote!]! @derivedFrom(field: "voter")
 }
 
-
-# ReputationChange logs each reputation update
 type ReputationChange @entity(immutable: false) {
-id: ID!
-memberId: BigInt!
-member: Member # derived link not available from event, but we store relation when possible
-points: Int!
-increase: Boolean!
-newReputation: Int!
-timestamp: BigInt!
+  id: ID!
+  memberId: BigInt!
+  member: Member
+  points: Int!
+  increase: Boolean!
+  newReputation: Int!
+  timestamp: BigInt!
+}
+
+# Debt Status Tracking Entities
+type DebtStatus @entity(immutable: false) {
+  id: ID!
+  borrower: User!
+  status: DebtStatusEnum!
+  timestamp: BigInt!
+}
+
+type DebtorList @entity(immutable: false) {
+  id: ID!
+  borrowersWithOpenDebt: [User!]!
+  borrowersWithoutOpenDebt: [User!]!
+  lastMonthlyUpdate: BigInt!
+  nextMonthlyUpdate: BigInt!
+  shouldTriggerUpdate: Boolean!
+}
+
+# Election System Entities
+type Election @entity(immutable: false) {
+  id: ID!
+  electionId: BigInt!
+  candidateId: BigInt!
+  startTime: BigInt!
+  endTime: BigInt!
+  isOpen: Boolean!
+  winnerId: BigInt
+  winningVotes: Int
+  candidates: [Candidate!]! @derivedFrom(field: "election")
+  votes: [Vote!]! @derivedFrom(field: "election")
+  createdAt: BigInt!
+}
+
+type Candidate @entity(immutable: false) {
+  id: ID!
+  election: Election!
+  candidateId: BigInt!
+  member: Member
+  totalVotes: Int!
+  addedAt: BigInt!
+}
+
+type Vote @entity(immutable: false) {
+  id: ID!
+  election: Election!
+  candidate: Candidate!
+  voter: Member!
+  voteWeight: Int!
+  timestamp: BigInt!
+}
+
+type AuthorizedCaller @entity(immutable: false) {
+  id: ID!
+  caller: User!
+  authorized: Boolean!
+  lastUpdated: BigInt!
+}
+
+# Enum for debt status (matches Solidity enum)
+enum DebtStatusEnum {
+  NoDebt
+  HasActiveDebt
+  HasOverdueDebt
 }

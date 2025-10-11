@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "../libraries/DebtTracker.sol";
+
 interface ILoanMachine {
     enum BorrowStatus { Pending, PartiallyCovered, FullyCovered, Active, Repaid, Defaulted }
     
@@ -31,8 +33,6 @@ interface ILoanMachine {
 
 
     // Events
-    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
-    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
     event Donated(address indexed donor, uint256 amount, uint256 totalDonation);
     event Borrowed(address indexed borrower, uint256 amount, uint256 totalBorrowing);
     event Repaid(address indexed borrower, uint256 amount, uint256 remainingDebt);
@@ -50,6 +50,23 @@ interface ILoanMachine {
     event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
     event LoanCompleted(uint256 indexed requisitionId);
 
+    // Redeclare events from DebtTracker to include in ABI
+    event BorrowerStatusUpdated(address indexed borrower, DebtTracker.DebtStatus newStatus);
+    event DebtorAdded(address indexed borrower);
+    event DebtorRemoved(address indexed borrower);
+    event MonthlyUpdateTriggered(uint256 timestamp);
+
+    //redeclare reputation events to include in ABI
+    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
+    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
+    event AuthorizedCallerUpdated(address indexed caller, bool authorized);
+    event ElectionOpened(uint32 indexed electionId, uint32 indexed candidateId, uint256 startTime, uint256 endTime);
+    event CandidateAdded(uint32 indexed electionId, uint32 indexed candidateId);
+    event VoteCast(uint32 indexed electionId, uint32 indexed candidateId, uint32 indexed memberId, int32 voteWeight);
+    event ElectionClosed(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
+    event UnbeatableMajorityReached(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
+
+
     // Core functions
     function vinculationMemberToWallet(uint32 memberId, address wallet) external;
     function donate(uint256 amount, uint32 memberId) external;
@@ -57,7 +74,6 @@ interface ILoanMachine {
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage, uint32 memberId) external;
     function repay(uint256 requisitionId, uint256 amount, uint32 memberId) external;
     
-
     // View functions
     function getTotalDonations() external view returns (uint256);
     function getTotalBorrowed() external view returns (uint256);

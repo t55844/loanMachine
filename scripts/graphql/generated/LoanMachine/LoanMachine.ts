@@ -10,6 +10,28 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class AuthorizedCallerUpdated extends ethereum.Event {
+  get params(): AuthorizedCallerUpdated__Params {
+    return new AuthorizedCallerUpdated__Params(this);
+  }
+}
+
+export class AuthorizedCallerUpdated__Params {
+  _event: AuthorizedCallerUpdated;
+
+  constructor(event: AuthorizedCallerUpdated) {
+    this._event = event;
+  }
+
+  get caller(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get authorized(): boolean {
+    return this._event.parameters[1].value.toBoolean();
+  }
+}
+
 export class AvailableBalanceUpdated extends ethereum.Event {
   get params(): AvailableBalanceUpdated__Params {
     return new AvailableBalanceUpdated__Params(this);
@@ -72,6 +94,86 @@ export class Borrowed__Params {
   }
 }
 
+export class BorrowerStatusUpdated extends ethereum.Event {
+  get params(): BorrowerStatusUpdated__Params {
+    return new BorrowerStatusUpdated__Params(this);
+  }
+}
+
+export class BorrowerStatusUpdated__Params {
+  _event: BorrowerStatusUpdated;
+
+  constructor(event: BorrowerStatusUpdated) {
+    this._event = event;
+  }
+
+  get borrower(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get newStatus(): i32 {
+    return this._event.parameters[1].value.toI32();
+  }
+}
+
+export class CandidateAdded extends ethereum.Event {
+  get params(): CandidateAdded__Params {
+    return new CandidateAdded__Params(this);
+  }
+}
+
+export class CandidateAdded__Params {
+  _event: CandidateAdded;
+
+  constructor(event: CandidateAdded) {
+    this._event = event;
+  }
+
+  get electionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get candidateId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
+export class DebtorAdded extends ethereum.Event {
+  get params(): DebtorAdded__Params {
+    return new DebtorAdded__Params(this);
+  }
+}
+
+export class DebtorAdded__Params {
+  _event: DebtorAdded;
+
+  constructor(event: DebtorAdded) {
+    this._event = event;
+  }
+
+  get borrower(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
+export class DebtorRemoved extends ethereum.Event {
+  get params(): DebtorRemoved__Params {
+    return new DebtorRemoved__Params(this);
+  }
+}
+
+export class DebtorRemoved__Params {
+  _event: DebtorRemoved;
+
+  constructor(event: DebtorRemoved) {
+    this._event = event;
+  }
+
+  get borrower(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
 export class Donated extends ethereum.Event {
   get params(): Donated__Params {
     return new Donated__Params(this);
@@ -95,6 +197,62 @@ export class Donated__Params {
 
   get totalDonation(): BigInt {
     return this._event.parameters[2].value.toBigInt();
+  }
+}
+
+export class ElectionClosed extends ethereum.Event {
+  get params(): ElectionClosed__Params {
+    return new ElectionClosed__Params(this);
+  }
+}
+
+export class ElectionClosed__Params {
+  _event: ElectionClosed;
+
+  constructor(event: ElectionClosed) {
+    this._event = event;
+  }
+
+  get electionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get winnerId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get winningVotes(): i32 {
+    return this._event.parameters[2].value.toI32();
+  }
+}
+
+export class ElectionOpened extends ethereum.Event {
+  get params(): ElectionOpened__Params {
+    return new ElectionOpened__Params(this);
+  }
+}
+
+export class ElectionOpened__Params {
+  _event: ElectionOpened;
+
+  constructor(event: ElectionOpened) {
+    this._event = event;
+  }
+
+  get electionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get candidateId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get startTime(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+
+  get endTime(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -280,6 +438,24 @@ export class MemberToWalletVinculation__Params {
   }
 }
 
+export class MonthlyUpdateTriggered extends ethereum.Event {
+  get params(): MonthlyUpdateTriggered__Params {
+    return new MonthlyUpdateTriggered__Params(this);
+  }
+}
+
+export class MonthlyUpdateTriggered__Params {
+  _event: MonthlyUpdateTriggered;
+
+  constructor(event: MonthlyUpdateTriggered) {
+    this._event = event;
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+}
+
 export class NewBorrower extends ethereum.Event {
   get params(): NewBorrower__Params {
     return new NewBorrower__Params(this);
@@ -431,6 +607,62 @@ export class TotalDonationsUpdated__Params {
 
   get total(): BigInt {
     return this._event.parameters[0].value.toBigInt();
+  }
+}
+
+export class UnbeatableMajorityReached extends ethereum.Event {
+  get params(): UnbeatableMajorityReached__Params {
+    return new UnbeatableMajorityReached__Params(this);
+  }
+}
+
+export class UnbeatableMajorityReached__Params {
+  _event: UnbeatableMajorityReached;
+
+  constructor(event: UnbeatableMajorityReached) {
+    this._event = event;
+  }
+
+  get electionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get winnerId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get winningVotes(): i32 {
+    return this._event.parameters[2].value.toI32();
+  }
+}
+
+export class VoteCast extends ethereum.Event {
+  get params(): VoteCast__Params {
+    return new VoteCast__Params(this);
+  }
+}
+
+export class VoteCast__Params {
+  _event: VoteCast;
+
+  constructor(event: VoteCast) {
+    this._event = event;
+  }
+
+  get electionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get candidateId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get memberId(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+
+  get voteWeight(): i32 {
+    return this._event.parameters[3].value.toI32();
   }
 }
 
@@ -810,15 +1042,17 @@ export class LoanMachine extends ethereum.SmartContract {
     _minimumCoverage: BigInt,
     _durationDays: BigInt,
     parcelscount: BigInt,
+    memberId: BigInt,
   ): BigInt {
     let result = super.call(
       "createLoanRequisition",
-      "createLoanRequisition(uint256,uint32,uint256,uint32):(uint256)",
+      "createLoanRequisition(uint256,uint32,uint256,uint32,uint32):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(_amount),
         ethereum.Value.fromUnsignedBigInt(_minimumCoverage),
         ethereum.Value.fromUnsignedBigInt(_durationDays),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
+        ethereum.Value.fromUnsignedBigInt(memberId),
       ],
     );
 
@@ -830,15 +1064,17 @@ export class LoanMachine extends ethereum.SmartContract {
     _minimumCoverage: BigInt,
     _durationDays: BigInt,
     parcelscount: BigInt,
+    memberId: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "createLoanRequisition",
-      "createLoanRequisition(uint256,uint32,uint256,uint32):(uint256)",
+      "createLoanRequisition(uint256,uint32,uint256,uint32,uint32):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(_amount),
         ethereum.Value.fromUnsignedBigInt(_minimumCoverage),
         ethereum.Value.fromUnsignedBigInt(_durationDays),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
+        ethereum.Value.fromUnsignedBigInt(memberId),
       ],
     );
     if (result.reverted) {
@@ -948,6 +1184,29 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  getBorrowerDebtStatus(borrower: Address): i32 {
+    let result = super.call(
+      "getBorrowerDebtStatus",
+      "getBorrowerDebtStatus(address):(uint8)",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+
+    return result[0].toI32();
+  }
+
+  try_getBorrowerDebtStatus(borrower: Address): ethereum.CallResult<i32> {
+    let result = super.tryCall(
+      "getBorrowerDebtStatus",
+      "getBorrowerDebtStatus(address):(uint8)",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
+  }
+
   getBorrowerRequisitions(borrower: Address): Array<BigInt> {
     let result = super.call(
       "getBorrowerRequisitions",
@@ -971,6 +1230,52 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigIntArray());
+  }
+
+  getBorrowersWithDebt(): Array<Address> {
+    let result = super.call(
+      "getBorrowersWithDebt",
+      "getBorrowersWithDebt():(address[])",
+      [],
+    );
+
+    return result[0].toAddressArray();
+  }
+
+  try_getBorrowersWithDebt(): ethereum.CallResult<Array<Address>> {
+    let result = super.tryCall(
+      "getBorrowersWithDebt",
+      "getBorrowersWithDebt():(address[])",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddressArray());
+  }
+
+  getBorrowersWithoutDebt(): Array<Address> {
+    let result = super.call(
+      "getBorrowersWithoutDebt",
+      "getBorrowersWithoutDebt():(address[])",
+      [],
+    );
+
+    return result[0].toAddressArray();
+  }
+
+  try_getBorrowersWithoutDebt(): ethereum.CallResult<Array<Address>> {
+    let result = super.tryCall(
+      "getBorrowersWithoutDebt",
+      "getBorrowersWithoutDebt():(address[])",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddressArray());
   }
 
   getBorrowing(_user: Address): BigInt {
@@ -1174,6 +1479,25 @@ export class LoanMachine extends ethereum.SmartContract {
     );
   }
 
+  getMemberId(wallet: Address): BigInt {
+    let result = super.call("getMemberId", "getMemberId(address):(uint32)", [
+      ethereum.Value.fromAddress(wallet),
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_getMemberId(wallet: Address): ethereum.CallResult<BigInt> {
+    let result = super.tryCall("getMemberId", "getMemberId(address):(uint32)", [
+      ethereum.Value.fromAddress(wallet),
+    ]);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   getNextPaymentAmount(
     requisitionId: BigInt,
   ): LoanMachine__getNextPaymentAmountResult {
@@ -1275,6 +1599,27 @@ export class LoanMachine extends ethereum.SmartContract {
     );
   }
 
+  getReputation(memberId: BigInt): i32 {
+    let result = super.call("getReputation", "getReputation(uint32):(int32)", [
+      ethereum.Value.fromUnsignedBigInt(memberId),
+    ]);
+
+    return result[0].toI32();
+  }
+
+  try_getReputation(memberId: BigInt): ethereum.CallResult<i32> {
+    let result = super.tryCall(
+      "getReputation",
+      "getReputation(uint32):(int32)",
+      [ethereum.Value.fromUnsignedBigInt(memberId)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
+  }
+
   getRequisitionInfo(
     requisitionId: BigInt,
   ): LoanMachine__getRequisitionInfoResultValue0Struct {
@@ -1373,6 +1718,73 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  hasActiveDebt(borrower: Address): boolean {
+    let result = super.call("hasActiveDebt", "hasActiveDebt(address):(bool)", [
+      ethereum.Value.fromAddress(borrower),
+    ]);
+
+    return result[0].toBoolean();
+  }
+
+  try_hasActiveDebt(borrower: Address): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "hasActiveDebt",
+      "hasActiveDebt(address):(bool)",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
+  hasOverdueDebt(borrower: Address): boolean {
+    let result = super.call(
+      "hasOverdueDebt",
+      "hasOverdueDebt(address):(bool)",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_hasOverdueDebt(borrower: Address): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "hasOverdueDebt",
+      "hasOverdueDebt(address):(bool)",
+      [ethereum.Value.fromAddress(borrower)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
+  isWalletVinculated(wallet: Address): boolean {
+    let result = super.call(
+      "isWalletVinculated",
+      "isWalletVinculated(address):(bool)",
+      [ethereum.Value.fromAddress(wallet)],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_isWalletVinculated(wallet: Address): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "isWalletVinculated",
+      "isWalletVinculated(address):(bool)",
+      [ethereum.Value.fromAddress(wallet)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
   loanContracts(param0: BigInt): LoanMachine__loanContractsResult {
     let result = super.call(
       "loanContracts",
@@ -1414,6 +1826,52 @@ export class LoanMachine extends ethereum.SmartContract {
     );
   }
 
+  nextMonthlyUpdate(): BigInt {
+    let result = super.call(
+      "nextMonthlyUpdate",
+      "nextMonthlyUpdate():(uint256)",
+      [],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_nextMonthlyUpdate(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "nextMonthlyUpdate",
+      "nextMonthlyUpdate():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  reputationSystem(): Address {
+    let result = super.call(
+      "reputationSystem",
+      "reputationSystem():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_reputationSystem(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "reputationSystem",
+      "reputationSystem():(address)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
   requisitionCounter(): BigInt {
     let result = super.call(
       "requisitionCounter",
@@ -1435,6 +1893,29 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  shouldTriggerUpdate(): boolean {
+    let result = super.call(
+      "shouldTriggerUpdate",
+      "shouldTriggerUpdate():(bool)",
+      [],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_shouldTriggerUpdate(): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "shouldTriggerUpdate",
+      "shouldTriggerUpdate():(bool)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
   usdtToken(): Address {
@@ -1473,12 +1954,46 @@ export class ConstructorCall__Inputs {
   get _usdtToken(): Address {
     return this._call.inputValues[0].value.toAddress();
   }
+
+  get _reputationSystem(): Address {
+    return this._call.inputValues[1].value.toAddress();
+  }
 }
 
 export class ConstructorCall__Outputs {
   _call: ConstructorCall;
 
   constructor(call: ConstructorCall) {
+    this._call = call;
+  }
+}
+
+export class BatchUpdateDebtStatusCall extends ethereum.Call {
+  get inputs(): BatchUpdateDebtStatusCall__Inputs {
+    return new BatchUpdateDebtStatusCall__Inputs(this);
+  }
+
+  get outputs(): BatchUpdateDebtStatusCall__Outputs {
+    return new BatchUpdateDebtStatusCall__Outputs(this);
+  }
+}
+
+export class BatchUpdateDebtStatusCall__Inputs {
+  _call: BatchUpdateDebtStatusCall;
+
+  constructor(call: BatchUpdateDebtStatusCall) {
+    this._call = call;
+  }
+
+  get borrowers(): Array<Address> {
+    return this._call.inputValues[0].value.toAddressArray();
+  }
+}
+
+export class BatchUpdateDebtStatusCall__Outputs {
+  _call: BatchUpdateDebtStatusCall;
+
+  constructor(call: BatchUpdateDebtStatusCall) {
     this._call = call;
   }
 }
@@ -1506,6 +2021,10 @@ export class CoverLoanCall__Inputs {
 
   get coveragePercentage(): BigInt {
     return this._call.inputValues[1].value.toBigInt();
+  }
+
+  get memberId(): BigInt {
+    return this._call.inputValues[2].value.toBigInt();
   }
 }
 
@@ -1549,6 +2068,10 @@ export class CreateLoanRequisitionCall__Inputs {
   get parcelscount(): BigInt {
     return this._call.inputValues[3].value.toBigInt();
   }
+
+  get memberId(): BigInt {
+    return this._call.inputValues[4].value.toBigInt();
+  }
 }
 
 export class CreateLoanRequisitionCall__Outputs {
@@ -1582,6 +2105,10 @@ export class DonateCall__Inputs {
 
   get amount(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get memberId(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
   }
 }
 
@@ -1617,12 +2144,72 @@ export class RepayCall__Inputs {
   get amount(): BigInt {
     return this._call.inputValues[1].value.toBigInt();
   }
+
+  get memberId(): BigInt {
+    return this._call.inputValues[2].value.toBigInt();
+  }
 }
 
 export class RepayCall__Outputs {
   _call: RepayCall;
 
   constructor(call: RepayCall) {
+    this._call = call;
+  }
+}
+
+export class TriggerMonthlyUpdateCall extends ethereum.Call {
+  get inputs(): TriggerMonthlyUpdateCall__Inputs {
+    return new TriggerMonthlyUpdateCall__Inputs(this);
+  }
+
+  get outputs(): TriggerMonthlyUpdateCall__Outputs {
+    return new TriggerMonthlyUpdateCall__Outputs(this);
+  }
+}
+
+export class TriggerMonthlyUpdateCall__Inputs {
+  _call: TriggerMonthlyUpdateCall;
+
+  constructor(call: TriggerMonthlyUpdateCall) {
+    this._call = call;
+  }
+}
+
+export class TriggerMonthlyUpdateCall__Outputs {
+  _call: TriggerMonthlyUpdateCall;
+
+  constructor(call: TriggerMonthlyUpdateCall) {
+    this._call = call;
+  }
+}
+
+export class UpdateBorrowerDebtStatusCall extends ethereum.Call {
+  get inputs(): UpdateBorrowerDebtStatusCall__Inputs {
+    return new UpdateBorrowerDebtStatusCall__Inputs(this);
+  }
+
+  get outputs(): UpdateBorrowerDebtStatusCall__Outputs {
+    return new UpdateBorrowerDebtStatusCall__Outputs(this);
+  }
+}
+
+export class UpdateBorrowerDebtStatusCall__Inputs {
+  _call: UpdateBorrowerDebtStatusCall;
+
+  constructor(call: UpdateBorrowerDebtStatusCall) {
+    this._call = call;
+  }
+
+  get borrower(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class UpdateBorrowerDebtStatusCall__Outputs {
+  _call: UpdateBorrowerDebtStatusCall;
+
+  constructor(call: UpdateBorrowerDebtStatusCall) {
     this._call = call;
   }
 }

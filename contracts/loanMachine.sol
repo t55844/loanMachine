@@ -5,10 +5,20 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ILoanMachine.sol";
 import "./ReputationSystem.sol";
+import "./libraries/DebtTracker.sol";
 
 contract LoanMachine is ILoanMachine, ReentrancyGuard {
+    using DebtTracker for DebtTracker.DebtStorage;
+
     // Reputation system integration
     ReputationSystem public reputationSystem;
+    
+    // Debt tracker
+    DebtTracker.DebtStorage private debtStorage;
+
+    // Track all borrowers for monthly updates
+    address[] private allBorrowers;
+    mapping(address => bool) private isRegisteredBorrower;
 
     // State variables
     mapping(address => uint256) private donations;
@@ -118,18 +128,25 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     constructor(address _usdtToken, address _reputationSystem) {
         usdtToken = _usdtToken;
         reputationSystem = ReputationSystem(_reputationSystem);
+        debtStorage.initialize();
     }
     
-
+    /**
+     * @dev Repay loan with auto debt status update
+     */
     function repay(uint256 requisitionId, uint256 amount, uint32 memberId) 
         validMember(memberId, msg.sender) 
         borrowingActive(requisitionId) 
         external 
         nonReentrant 
     {
+        // Auto-trigger monthly update if needed
+        debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
+
         if (amount == 0) revert InvalidAmount();
 
         LoanContract storage loan = loanContracts[requisitionId];
+        address borrower = msg.sender;
         
         uint32 currentParcelIndex = loan.parcelsCount - loan.parcelsPending;
         uint256 currentParcelDueDate = loan.paymentDates[currentParcelIndex];
@@ -148,13 +165,13 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         if (!success) revert TokenTransferFailed();
 
         // Update global borrowing state
-        borrowings[msg.sender] -= amount;
+        borrowings[borrower] -= amount;
         totalBorrowed -= amount;
         availableBalance += amount;
 
         _distributeRepaymentToLenders(requisitionId, amount);
 
-        emit Repaid(msg.sender, amount, borrowings[msg.sender]);
+        emit Repaid(borrower, amount, borrowings[borrower]);
         emit ParcelPaid(requisitionId, loan.parcelsPending);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
@@ -164,20 +181,27 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             loan.status = ContractStatus.Closed;
             emit LoanCompleted(requisitionId);
         }
+        
+        // Update debt status after repayment
+        debtStorage.updateBorrowerDebtStatus(borrower, this.getActiveLoans);
     }
 
     function vinculationMemberToWallet(uint32 memberId, address wallet) external {
-        // Delegate to reputation system
-        reputationSystem.vinculationMemberToWallet(memberId, wallet);
+        reputationSystem.vinculationMemberToWallet(memberId, wallet); 
     }
 
-    // Donate function
+    /**
+     * @dev Donate function with auto debt status update
+     */
     function donate(uint256 amount, uint32 memberId) 
         validMember(memberId, msg.sender) 
         external 
         validAmount(amount) 
         nonReentrant 
     {
+        // Auto-trigger monthly update if needed
+        debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
+
         // Check donation limit
         if (amount > MAX_DONATION) {
             revert ExcessiveDonation();
@@ -308,7 +332,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) internal {
         uint256 startDate = block.timestamp;
-        uint256 oneMonthInSeconds = 30 days; // Approximate month as 30 days
+        uint256 oneMonthInSeconds = 30 days;
         
         for (uint32 i = 0; i < parcelsCount; i++) {
             uint256 paymentDate = startDate + (oneMonthInSeconds * (i + 1));
@@ -316,21 +340,33 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         }
     }
 
-    // Internal function to fund the loan
+    /**
+     * @dev Internal function to fund the loan with debt tracking
+     */
     function _fundLoan(uint256 requisitionId) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
+        address borrower = req.borrower;
         
-        borrowings[req.borrower] += req.amount;
+        // Register borrower if not already registered
+        if (!isRegisteredBorrower[borrower]) {
+            allBorrowers.push(borrower);
+            isRegisteredBorrower[borrower] = true;
+        }
+
+        borrowings[borrower] += req.amount;
         totalBorrowed += req.amount;
         availableBalance -= req.amount;
-        lastBorrowTime[req.borrower] = block.timestamp;
+        lastBorrowTime[borrower] = block.timestamp;
         req.status = BorrowStatus.Active;
 
+        // Update debt status for the borrower
+        debtStorage.updateBorrowerDebtStatus(borrower, this.getActiveLoans);
+
         // Transfer USDT to borrower
-        bool success = IERC20(usdtToken).transfer(req.borrower, req.amount);
+        bool success = IERC20(usdtToken).transfer(borrower, req.amount);
         if (!success) revert TokenTransferFailed();
 
-        emit Borrowed(req.borrower, req.amount, borrowings[req.borrower]);
+        emit Borrowed(borrower, req.amount, borrowings[borrower]);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
         emit LoanFunded(requisitionId);
@@ -348,13 +384,57 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             
             if (lenderShare > 0) {
                 if (lenderShare > donationsInCoverage[lender]) {
-                    lenderShare = donationsInCoverage[lender]; // Safety check
+                    lenderShare = donationsInCoverage[lender];
                 }
                 donationsInCoverage[lender] -= lenderShare;
                 donations[lender] += lenderShare;
                 emit LenderRepaid(requisitionId, lender, lenderShare);
             }
         }
+    }
+
+    // Debt tracker functions
+    function triggerMonthlyUpdate() external nonReentrant {
+        bool triggered = debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
+        require(triggered, "Monthly update not due yet");
+    }
+
+    function updateBorrowerDebtStatus(address borrower) external {
+        debtStorage.updateBorrowerDebtStatus(borrower, this.getActiveLoans);
+    }
+
+    function batchUpdateDebtStatus(address[] calldata borrowers) external {
+        for (uint i = 0; i < borrowers.length; i++) {
+            debtStorage.updateBorrowerDebtStatus(borrowers[i], this.getActiveLoans);
+        }
+    }
+
+    function getBorrowersWithDebt() external view returns (address[] memory) {
+        return debtStorage.getBorrowersWithDebt();
+    }
+
+    function getBorrowersWithoutDebt() external view returns (address[] memory) {
+        return debtStorage.getBorrowersWithoutDebt();
+    }
+
+    function getBorrowerDebtStatus(address borrower) external view returns (DebtTracker.DebtStatus) {
+        return debtStorage.getBorrowerStatus(borrower);
+    }
+
+    function hasOverdueDebt(address borrower) external view returns (bool) {
+        return debtStorage.hasOverdueDebt(borrower);
+    }
+
+    function hasActiveDebt(address borrower) external view returns (bool) {
+        return debtStorage.hasActiveDebt(borrower);
+    }
+
+    function nextMonthlyUpdate() external view returns (uint256) {
+        return debtStorage.nextMonthlyUpdate();
+    }
+
+    function shouldTriggerUpdate() external view returns (bool) {
+        return debtStorage.shouldTriggerUpdate();
     }
 
     // Helper function to get active loans for a borrower

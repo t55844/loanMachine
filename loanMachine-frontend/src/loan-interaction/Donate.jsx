@@ -18,15 +18,16 @@ function Donate() {
     contract, 
     getUSDTBalance, 
     approveUSDT,
-    needsUSDTApproval 
+    needsUSDTApproval,
+    member // ✅ Adicione o member do contexto
   } = useWeb3();
 
-  // Fetch USDT balance - FIXED
+  // Fetch USDT balance
   useEffect(() => {
     if (account) {
       fetchUSDTBalance();
     } else {
-      setUsdtBalance("0"); // Reset when no account
+      setUsdtBalance("0");
     }
   }, [account]);
 
@@ -36,10 +37,10 @@ function Donate() {
     setLoading(true);
     try {
       const balance = await getUSDTBalance();
-      setUsdtBalance(balance || "0"); // Ensure it's never undefined
+      setUsdtBalance(balance || "0");
     } catch (err) {
       console.error("❌ Error fetching USDT balance:", err);
-      setUsdtBalance("0"); // Set to 0 on error
+      setUsdtBalance("0");
       showError("Failed to load USDT balance");
     } finally {
       setLoading(false);
@@ -117,6 +118,12 @@ function Donate() {
       return;
     }
 
+    // ✅ Verifique se o member está disponível
+    if (!member || !member.id) {
+      showError("Member data not available. Please check your wallet connection.");
+      return;
+    }
+
     // Check balance
     if (parseFloat(usdtBalance) < parseFloat(amount)) {
       showError(`Insufficient USDT balance. You have ${parseFloat(usdtBalance).toFixed(2)} USDT`);
@@ -137,26 +144,31 @@ function Donate() {
     }
 
     const amountInWei = ethers.utils.parseUnits(amount, 6);
+    const memberId = member.id; // ✅ Obtenha o memberId do contexto
     
     showTransactionModal(
       {
         method: "donate",
-        params: [amountInWei.toString()],
+        params: [amountInWei, memberId], // ✅ Agora com DOIS parâmetros
         value: "0"
       },
       {
         type: 'donate',
         amount: amount,
         token: 'USDT',
-        from: account
+        from: account,
+        memberId: memberId // ✅ Adicione ao contexto também
       }
     );
   }
 
   async function confirmTransaction(transactionData) {
     try {
+      // ✅ Agora temos dois parâmetros
       const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
-      const tx = await contract.donate(amountInWei);
+      const memberId = transactionData.params[1];
+      
+      const tx = await contract.donate(amountInWei, memberId); // ✅ Passe ambos os parâmetros
       const receipt = await tx.wait();
       
       if (receipt.status === 1) {
@@ -173,13 +185,23 @@ function Donate() {
   }
 
   const hasSufficientBalance = parseFloat(usdtBalance) >= parseFloat(amount);
-  const canDonate = account && amount && hasSufficientBalance && !needsApproval;
+  const hasMemberData = member && member.id; // ✅ Verifique se member data está disponível
+  const canDonate = account && amount && hasSufficientBalance && !needsApproval && hasMemberData;
 
   return (
     <div className="donate-block">
       <div className="balance-info">
         <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
         {loading && <p>Loading balance...</p>}
+        {/* ✅ Mostre informações do member */}
+        {member && (
+          <p className="member-info">
+            Member ID: {member.id} {member.name && `- ${member.name}`}
+          </p>
+        )}
+        {!member && account && (
+          <p className="warning-text">⚠️ Member data not loaded</p>
+        )}
       </div>
 
       <input
@@ -207,7 +229,7 @@ function Donate() {
         className="donate-button" 
         disabled={!canDonate}
       >
-        Donate USDT
+        {!hasMemberData ? "Maybe wallet not vinculated" : "Donate USDT"}
       </button>
 
       <ModalWrapper onConfirm={confirmTransaction} />

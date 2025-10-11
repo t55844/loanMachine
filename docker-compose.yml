@@ -37,7 +37,7 @@ services:
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
       # HTTP with maximum optimizations
-      ethereum: 'mainnet:http://host.docker.internal:8545'
+      ethereum: 'localhost:http://host.docker.internal:8545'
       # MAXIMUM PERFORMANCE OPTIMIZATIONS
       ETHEREUM_RPC_MAX_PARALLEL_REQUESTS: '200'
       ETHEREUM_BLOCK_BATCH_SIZE: '100'

@@ -92,12 +92,14 @@ function GasCostModal({
             <div><strong>Requisition ID:</strong> #{transactionContext.requisitionId}</div>
           </div>
         );
+      // GasCostModal.jsx - na função renderTransactionDetails
       case 'donate':
         return (
           <div className="transaction-details">
             <div><strong>Donation Amount:</strong> {transactionContext.amount} USDT</div>
+            <div><strong>Member ID:</strong> {transactionContext.memberId}</div>
             <div><strong>Token:</strong> USDT</div>
-            <div><strong>From:</strong> {transactionContext.from}</div>
+            <div><strong>From:</strong> {transactionContext.from?.slice(0, 8)}...{transactionContext.from?.slice(-6)}</div>
           </div>
         );
       case 'borrow':

@@ -1,169 +1,121 @@
 const hre = require("hardhat");
-const CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+const fs = require('fs');
 
-// Get contract instance
-async function getContract(signer = null) {
-  const LoanMachine = await hre.ethers.getContractFactory("LoanMachine");
-  const contract = await LoanMachine.attach(CONTRACT_ADDRESS);
-  return signer ? contract.connect(signer) : contract;
-}
-
-// Get USDT contract
-async function getUSDTContract(signer = null) {
-  const contract = await getContract();
-  const usdtAddress = await contract.usdtToken();
-  const USDT = await hre.ethers.getContractFactory("IERC20");
-  const usdtContract = await USDT.attach(usdtAddress);
-  return signer ? usdtContract.connect(signer) : usdtContract;
-}
-
-// Approve USDT spending
-async function approveUSDT(signer) {
-  try {
-    const usdtContract = await getUSDTContract(signer);
-    const amount = 4000000; // 4 USDT
-    
-    console.log(`Approving 4 USDT for contract...`);
-    
-    const tx = await usdtContract.approve(CONTRACT_ADDRESS, amount);
-    await tx.wait();
-    
-    console.log(`✅ Approved 4 USDT`);
-    return true;
-  } catch (error) {
-    console.error('❌ Approval failed:', error.message);
-    return false;
-  }
-}
-
-// Vinulate member to wallet
-async function vinulateMember(memberId, signer) {
-  try {
-    const contract = await getContract(signer);
-    console.log(`Vinulating member ${memberId}...`);
-    
-    const tx = await contract.vinculationMemberToWallet(memberId, signer.address);
-    await tx.wait();
-    
-    console.log(`✅ Member ${memberId} vinculated`);
-    return true;
-  } catch (error) {
-    console.error('❌ Vinulation failed:', error.message);
-    return false;
-  }
-}
-
-// Make donation
-async function donate(signer) {
-  try {
-    const contract = await getContract(signer);
-    const donationAmount = 4000000; // 4 USDT (6 decimals)
-    
-    console.log(`Donating 4 USDT...`);
-    
-    const tx = await contract.donate(donationAmount);
-    await tx.wait();
-    
-    console.log(`✅ Donated 4 USDT`);
-    return true;
-  } catch (error) {
-    console.error('❌ Donation failed:', error.message);
-    return false;
-  }
-}
-
-// Cover loan
-async function coverLoan(requisitionId, coveragePercentage, signer) {
-  try {
-    const contract = await getContract(signer);
-    
-    console.log(`Covering loan ${requisitionId} with ${coveragePercentage}%...`);
-    
-    const tx = await contract.coverLoan(requisitionId, coveragePercentage);
-    await tx.wait();
-    
-    console.log(`✅ Covered loan ${requisitionId}`);
-    return true;
-  } catch (error) {
-    console.error('❌ Coverage failed:', error.message);
-    return false;
-  }
-}
-
-// Check USDT balance
-async function checkUSDTBalance(user) {
-  const usdtContract = await getUSDTContract();
-  const balance = await usdtContract.balanceOf(user.address);
-  console.log(`USDT Balance: ${balance} (${hre.ethers.formatUnits(balance, 6)} USDT)`);
-  return balance;
-}
-
-// Check donation balance
-async function checkDonationBalance(user) {
-  const contract = await getContract();
-  const donationBalance = await contract.getDonation(user.address);
-  console.log(`Donation Balance: ${donationBalance} (${hre.ethers.formatUnits(donationBalance, 6)} USDT)`);
-  return donationBalance;
-}
-
-// Check allowance
-async function checkAllowance(user) {
-  const usdtContract = await getUSDTContract();
-  const allowance = await usdtContract.allowance(user.address, CONTRACT_ADDRESS);
-  console.log(`Allowance: ${allowance} (${hre.ethers.formatUnits(allowance, 6)} USDT)`);
-  return allowance;
-}
-
-// Main workflow
 async function main() {
-  const [owner, user1, user2, user3, user4] = await hre.ethers.getSigners();
-  const user = user3; // Using user3
-  const memberId = 123;
-  const requisitionId = 0;
-  const coveragePercentage = 25;
+  console.log("🧪 Testing Member Events...");
 
-  console.log('🚀 Starting cover loan workflow...\n');
+  // Read deployment addresses from file
+  let deploymentAddresses;
+  try {
+    deploymentAddresses = JSON.parse(fs.readFileSync('deployment-addresses.json', 'utf8'));
+    console.log("✅ Loaded deployment addresses");
+  } catch (error) {
+    console.log("❌ Could not read deployment-addresses.json");
+    console.log("Please run: npx hardhat run scripts/deploy.js --network localhost");
+    process.exit(1);
+  }
 
-  // 1. Check USDT balance
-  console.log('1. Checking USDT balance...');
-  await checkUSDTBalance(user);
+  const CONTRACT_ADDRESS = deploymentAddresses.loanMachine;
+  const DEBT_TRACKER_ADDRESS = deploymentAddresses.debtTracker;
 
-  // 2. Check current allowance
-  console.log('2. Checking allowance...');
-  await checkAllowance(user);
+  const [owner, user9, user3] = await hre.ethers.getSigners();
+  const testUser = user9;
+  const memberId = 456;
 
-  // 3. Approve USDT
-  console.log('3. Approving USDT...');
-  const approved = await approveUSDT(user);
-  if (!approved) return;
+  console.log(`🧪 Test User: ${testUser.address}`);
+  console.log(`🧪 Member ID: ${memberId}`);
+  console.log(`📋 LoanMachine: ${CONTRACT_ADDRESS}`);
+  console.log(`📋 DebtTracker: ${DEBT_TRACKER_ADDRESS}`);
 
-  // 4. Donate 4 USDT
-  console.log('4. Making donation...');
-  const donated = await donate(user);
-  if (!donated) return;
+  // Get contract instance WITH library linking
+  const LoanMachine = await hre.ethers.getContractFactory("LoanMachine", {
+    libraries: {
+      "DebtTracker": DEBT_TRACKER_ADDRESS
+    }
+  });
+  
+  const contract = await LoanMachine.attach(CONTRACT_ADDRESS);
 
-  // 5. Check donation balance
-  console.log('5. Checking donation balance...');
-  await checkDonationBalance(user);
+  // Test 1: Check if wallet is already vinculated
+  console.log("\n1. Checking wallet vinculated status...");
+  try {
+    const isVinculated = await contract.isWalletVinculated(testUser.address);
+    console.log(`   Is wallet vinculated: ${isVinculated}`);
+    
+    if (isVinculated) {
+      const currentMemberId = await contract.getMemberId(testUser.address);
+      console.log(`   Current member ID: ${currentMemberId}`);
+    }
+  } catch (error) {
+    console.log("   ❌ Check failed:", error.message);
+  }
 
-  // 6. Vinulate member
-  console.log('6. Vinulating member...');
-  const vinculated = await vinulateMember(memberId, user);
-  if (!vinculated) return;
+  // Test 2: Vinculate member to wallet
+  console.log("\n2. Vinculating member to wallet...");
+  try {
+    const tx = await contract.connect(testUser).vinculationMemberToWallet(memberId, testUser.address);
+    console.log("   📝 Transaction sent...");
+    
+    const receipt = await tx.wait();
+    console.log("   ✅ Transaction confirmed!");
+    console.log(`   📦 Block: ${receipt.blockNumber}`);
+    console.log(`   🔗 Tx Hash: ${receipt.hash}`);
+    
+    // Check for MemberToWalletVinculation event
+    const eventTopic = hre.ethers.id("MemberToWalletVinculation(uint32,address,uint256)");
+    const memberEvents = receipt.logs.filter(log => log.topics[0] === eventTopic);
+    
+    if (memberEvents.length > 0) {
+      console.log("   🎉 MemberToWalletVinculation event emitted!");
+      console.log("   📡 This event should be captured by your GraphQL subgraph");
+    } else {
+      console.log("   ⚠️  No MemberToWalletVinculation event found in logs");
+    }
+  } catch (error) {
+    console.log("   ❌ Vinculation failed:", error.message);
+    return;
+  }
 
-  // 7. Cover loan
-  console.log('7. Covering loan...');
-  const covered = await coverLoan(requisitionId, coveragePercentage, user);
-  if (!covered) return;
+  // Test 3: Verify vinculation worked
+  console.log("\n3. Verifying vinculation...");
+  try {
+    const isVinculated = await contract.isWalletVinculated(testUser.address);
+    console.log(`   Is wallet vinculated: ${isVinculated}`);
+    
+    const memberIdFromWallet = await contract.getMemberId(testUser.address);
+    console.log(`   Member ID from wallet: ${memberIdFromWallet}`);
+    
+    // Convert BigInt to Number for comparison
+    const memberIdFromWalletNum = Number(memberIdFromWallet);
+    
+    if (memberIdFromWalletNum === memberId) {
+      console.log("   ✅ Vinculation verified successfully!");
+    } else {
+      console.log(`   ❌ Vinculation verification failed! ${memberIdFromWalletNum} !== ${memberId}`);
+    }
+  } catch (error) {
+    console.log("   ❌ Verification failed:", error.message);
+  }
 
-  // 8. Check final donation balance
-  console.log('8. Final donation balance...');
-  await checkDonationBalance(user);
+  // Test 4: Check reputation
+  console.log("\n4. Checking reputation...");
+  try {
+    const reputation = await contract.getReputation(memberId);
+    console.log(`   Reputation: ${reputation}`);
+  } catch (error) {
+    console.log("   ❌ Reputation check failed:", error.message);
+  }
 
-  console.log('\n🎉 Workflow completed!');
+  console.log("\n🎉 Member events test completed!");
+  console.log("\n📋 Next steps to check GraphQL:");
+  console.log("   1. Check subgraph logs: graph logs <deployment-id>");
+  console.log("   2. Query members: Run the test-query.graphql file");
+  console.log("   3. Look for the MemberToWalletVinculation event in logs");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("Test failed:", error);
+    process.exit(1);
+  });

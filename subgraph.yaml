@@ -6,11 +6,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: LoanMachine
-    network: mainnet  
+    network: localhost    
     source:
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
       abi: LoanMachine
-      startBlock: 7
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -51,9 +51,9 @@ dataSources:
         # events for loan requests and coverage
         - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256,uint32)
           handler: handleLoanRequisitionCreated
-        - event: LoanCovered(indexed uint256,indexed address,uint256)
+        - event: LoanRequisitionCovered(indexed uint256,indexed address,uint256)
           handler: handleLoanCovered
-        - event: LoanFunded(indexed uint256)
+        - event: LoanRequisitionFunded(indexed uint256)
           handler: handleLoanFunded
         # event for loan contract generation 
         - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32,uint256,uint256[])
@@ -65,8 +65,65 @@ dataSources:
           handler: handleLenderRepaid
         - event: LoanCompleted(indexed uint256)
           handler: handleLoanCompleted
-        # Member system events
+        # Election system events (assuming emitted by LoanMachine)
+        - event: ElectionOpened(indexed uint32,indexed uint32,uint256,uint256)
+          handler: handleElectionOpened
+        - event: CandidateAdded(indexed uint32,indexed uint32)
+          handler: handleCandidateAdded
+        - event: VoteCast(indexed uint32,indexed uint32,indexed uint32,int32)
+          handler: handleVoteCast
+        - event: ElectionClosed(indexed uint32,indexed uint32,int32)
+          handler: handleElectionClosed
+        - event: UnbeatableMajorityReached(indexed uint32,indexed uint32,int32)
+          handler: handleUnbeatableMajorityReached
+  - kind: ethereum/contract
+    name: ReputationSystem
+    network: localhost    
+    source:
+      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+      abi: ReputationSystem
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./scripts/graphql/mapping.ts
+      entities:
+        - Member
+        - ReputationChange
+      abis:
+        - name: ReputationSystem
+          file: ./scripts/graphql/abis/ReputationSystem.json  # Add this ABI file
+      eventHandlers:
+        # Member system events (move these here)
         - event: MemberToWalletVinculation(indexed uint32,indexed address,uint256)
           handler: handleMemberToWalletVinculation
         - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
           handler: handleReputationChanged
+  - kind: ethereum/contract
+    name: DebtTracker
+    network: localhost    
+    source:
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      abi: DebtTracker
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./scripts/graphql/mapping.ts
+      entities:
+        - User  # Adjust entities as needed
+      abis:
+        - name: DebtTracker
+          file: ./scripts/graphql/abis/DebtTracker.json  # Add this ABI file
+      eventHandlers:
+        # DebtTracker events (move these here)
+        - event: BorrowerStatusUpdated(indexed address,uint8)
+          handler: handleBorrowerStatusUpdated
+        - event: DebtorAdded(indexed address)
+          handler: handleDebtorAdded
+        - event: DebtorRemoved(indexed address)
+          handler: handleDebtorRemoved
+        - event: MonthlyUpdateTriggered(uint256)
+          handler: handleMonthlyUpdateTriggered

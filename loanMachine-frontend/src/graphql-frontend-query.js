@@ -272,7 +272,7 @@ export async function fetchWalletMember(walletAddress) {
     const { data } = await response.json();
     
     // Return the first member if exists, otherwise null
-    return data.members && data.members.length > 0 ? data.members[0] : null;
+    return data.members && data.members.length > 0 ? data.members[0] : '';
   } catch (error) {
     console.error("Error fetching wallet member:", error);
     throw error;

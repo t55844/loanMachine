@@ -36,13 +36,9 @@ http://127.0.0.1:3000/  http://localhost:5173/ caso o site não abra por não co
 
 
 proximos possos:
-quando uma requisição atingir as condições para liber o emprestimo, deve gerar uma nova funcionalidade que tera os dados 
-de valor total, valor das parcelas, prazos etc e essa funcionalidade vai ficar monitorando os pagamaentos
 
 sistema para que na hora de criar o smartcontract, só permitir se tiver no minimo tres pessoase as tres fizerem uma doação
 
-sistemas de moderação baseado na seguinte logica: usuarios com a maior reputação decidem que será o moderador, se queiserem mudar o 
--moderador podem abrir um pedido de mudança, se mais da metade dos usuarios aceitarem então é aberto o processo
 
 sistema de monitoramento de pagamento
 

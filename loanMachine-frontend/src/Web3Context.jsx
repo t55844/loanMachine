@@ -19,20 +19,13 @@ const USDT_ABI = [
   "function transferFrom(address from, address to, uint256 amount) returns (bool)",
   "function decimals() view returns (uint8)",
   "function name() view returns (string)",
-  "function symbol() view returns (string)"
+  "function symbol() view returns (string)",
+  "function mint(address to, uint256 amount) returns (bool)"
 ];
 
-// USDT addresses for different networks
-const USDT_ADDRESSES = {
-  // Mainnet
-  1: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-  // Goerli (testnet - you might need to deploy mock USDT for testing)
-  5: "0xdc31Ee1784292379Fbb2964b3B9C4124D8F89C60", // Goerli USDT
-  // Sepolia
-  11155111: "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0", // Sepolia USDT
-  // Local Hardhat (you'll need to deploy a mock)
-  31337: "0x5FbDB2315678afecb367f032d93F642f64180aa3" // Default Hardhat first contract
-};
+// Para desenvolvimento local, use o endereço do MockUSDT do seu deploy
+const MOCK_USDT_ADDRESS = import.meta.env.VITE_MOCK_USDT_ADDRESS;
+
 const Web3Context = createContext();
 
 export function Web3Provider({ children }) {
@@ -43,24 +36,79 @@ export function Web3Provider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chainId, setChainId] = useState(null);
-  const [member, setMember] = useState(null); // New state for member data
+  const [member, setMember] = useState(null);
+
+  // ✅ ADICIONE ESTA FUNÇÃO: Function to fetch member data
+  const fetchMemberData = async (walletAddress) => {
+  try {
+    console.log('🔍 Fetching member data for:', walletAddress);
+    
+    let memberData;
+    let hasVinculation = true;
+    
+    try {
+      // Tente buscar do subgraph
+      memberData = await fetchWalletMember(walletAddress);
+      console.log('✅ Member data from subgraph:', memberData);
+      
+      // Verifique se o member foi encontrado
+      if (!memberData || (!memberData.id && !memberData.memberId)) {
+        console.warn('⚠️ Wallet not vinculated to any member');
+        hasVinculation = false;
+        memberData = null;
+      }
+      
+    } catch (subgraphError) {
+      console.warn('❌ Subgraph query failed:', subgraphError);
+      hasVinculation = false;
+      memberData = null;
+    }
+    
+    // Se não tem vinculação, setar member como null mas com flag de erro
+    if (!hasVinculation || !memberData) {
+      const noMemberData = {
+        id: null,
+        memberId: null,
+        walletAddress: walletAddress,
+        hasVinculation: false,
+        error: 'Wallet not vinculated to any member'
+      };
+      setMember(noMemberData);
+      return noMemberData;
+    }
+    
+    // Se tem vinculação, processar os dados
+    const finalMemberData = {
+      id: memberData.memberId || memberData.id,
+      memberId: memberData.memberId || memberData.id,
+      walletAddress: memberData.wallet?.id || walletAddress,
+      name: memberData.name || `Member ${memberData.memberId || memberData.id}`,
+      hasVinculation: true,
+      ...memberData
+    };
+    
+    console.log('✅ Final member data:', finalMemberData);
+    setMember(finalMemberData);
+    return finalMemberData;
+    
+  } catch (err) {
+    console.error('❌ Error in fetchMemberData:', err);
+    
+    const errorMemberData = {
+      id: null,
+      memberId: null,
+      walletAddress: walletAddress,
+      hasVinculation: false,
+      error: 'Failed to check member vinculation'
+    };
+    setMember(errorMemberData);
+    return errorMemberData;
+  }
+};
 
   useEffect(() => {
     connectToLocalNode();
   }, []);
-
-  // Function to fetch member data
-  const fetchMemberData = async (walletAddress) => {
-    try {
-      const memberData = await fetchWalletMember(walletAddress);
-      setMember(memberData);
-      return memberData;
-    } catch (err) {
-      console.error('Error fetching member data:', err);
-      setMember(null);
-      return null;
-    }
-  };
 
   const connectToLocalNode = async () => {
     try {
@@ -81,7 +129,7 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[5];
+      const defaultAccount = accounts[0];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);
@@ -89,13 +137,24 @@ export function Web3Provider({ children }) {
       // Create LoanMachine contract instance
       const loanContract = new ethers.Contract(CONTRACT_ADDRESS, LoanMachineABI.abi, signer);
       
-      // Create USDT contract instance
-      const usdtAddress = USDT_ADDRESSES[network.chainId];
+      // Use MockUSDT address
+      const usdtAddress = MOCK_USDT_ADDRESS;
+      
       if (!usdtAddress) {
-        throw new Error(`No USDT address configured for chain ID ${network.chainId}`);
+        throw new Error('Mock USDT address not configured. Check VITE_MOCK_USDT_ADDRESS env variable');
       }
       
       const usdtTokenContract = new ethers.Contract(usdtAddress, USDT_ABI, signer);
+      
+      // Test the USDT contract connection
+      try {
+        const symbol = await usdtTokenContract.symbol();
+        const decimals = await usdtTokenContract.decimals();
+        console.log(`✅ USDT Contract: ${symbol} with ${decimals} decimals`);
+      } catch (testError) {
+        console.error('❌ Failed to connect to USDT contract:', testError);
+        throw new Error(`USDT contract not working at ${usdtAddress}. Please check deployment.`);
+      }
       
       setProvider(localProvider);
       setContract(loanContract);
@@ -103,6 +162,7 @@ export function Web3Provider({ children }) {
       setAccount(defaultAccount);
       setError('');
       
+      // ✅ AGORA fetchMemberData ESTÁ DEFINIDA
       // Fetch member data after setting account
       await fetchMemberData(defaultAccount);
       
@@ -151,7 +211,7 @@ export function Web3Provider({ children }) {
     
     const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
     const tx = await usdtContract.approve(contract.address, amountInWei);
-    return tx; // ✅ Return the transaction object, not tx.wait()
+    return tx;
   };
 
   // Helper function to get USDT info
@@ -197,10 +257,10 @@ export function Web3Provider({ children }) {
     loading,
     error,
     chainId,
-    member, // Include member data in context value
+    member,
     switchAccount,
     connectToLocalNode,
-    refreshMemberData, // Function to manually refresh member data
+    refreshMemberData,
     // USDT helper functions
     getUSDTBalance,
     approveUSDT,
