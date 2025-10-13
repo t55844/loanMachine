@@ -37,6 +37,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     uint256 public requisitionCounter;
     mapping(address => uint256[]) public borrowerRequisitions;
     mapping(address => uint256) private donationsInCoverage;
+    mapping (uint32 => uint32) private loanRequisitionNumber;
 
     // Loan Contracts
     mapping(uint256 => LoanContract) public loanContracts;
@@ -54,6 +55,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error InvalidCoveragePercentage();
     error OverCoverage();
     error LoanNotAvailable();
+    error MaxLoanRequisitionPendingReached();
     error InsufficientDonationBalance();
     error NoActiveBorrowing();
     error RepaymentExceedsBorrowed();
@@ -122,6 +124,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         if (loan.walletAddress != msg.sender) revert NoActiveBorrowing();
         if (loan.status != ContractStatus.Active) revert NoActiveBorrowing();
         if (loan.parcelsPending == 0) revert NoActiveBorrowing();
+        _;
+    }
+
+    modifier checkLoanRequisitionOpened(uint32 memberId){
+        if(loanRequisitionNumber[memberId] >= 3) revert MaxLoanRequisitionPendingReached();
         _;
     }
 
@@ -230,36 +237,38 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     // Create loan requisition
     function createLoanRequisition(
-        uint256 _amount,
-        uint32 _minimumCoverage,
-        uint256 _durationDays,
+        uint256 amount,
+        uint32 minimumCoverage,
+        uint256 durationDays,
         uint32 parcelscount,
         uint32 memberId
     ) 
         external 
+        checkLoanRequisitionOpened(memberId)
         validMember(memberId, msg.sender) 
-        validAmount(_amount) 
-        minimumPercentCoveragePermited(_minimumCoverage) 
+        validAmount(amount) 
+        minimumPercentCoveragePermited(minimumCoverage) 
         maxParcelsCount(parcelscount) 
         returns (uint256) 
     {
-        if (_amount > availableBalance) revert InsufficientFunds();
+        if (amount > availableBalance) revert InsufficientFunds();
         
         uint256 requisitionId = requisitionCounter++;
         
         LoanRequisition storage newReq = loanRequisitions[requisitionId];
         newReq.borrower = msg.sender;
-        newReq.amount = _amount;
-        newReq.minimumCoverage = _minimumCoverage;
+        newReq.amount = amount;
+        newReq.minimumCoverage = minimumCoverage;
         newReq.currentCoverage = 0;
         newReq.status = BorrowStatus.Pending;
-        newReq.durationDays = _durationDays;
+        newReq.durationDays = durationDays;
         newReq.creationTime = block.timestamp;
         newReq.parcelsCount = parcelscount;
         newReq.requisitionId = requisitionId;
         borrowerRequisitions[msg.sender].push(requisitionId);
         
-        emit LoanRequisitionCreated(requisitionId, msg.sender, _amount, parcelscount);
+        loanRequisitionNumber[memberId] += 1;
+        emit LoanRequisitionCreated(requisitionId, msg.sender, amount, parcelscount);
         return requisitionId;
     }
 
@@ -299,6 +308,8 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         
         if (req.currentCoverage >= req.minimumCoverage) {
             req.status = BorrowStatus.FullyCovered;
+
+            loanRequisitionNumber[memberId] = 0;
             _generateLoanContract(requisitionId);
             _fundLoan(requisitionId);
         } else {

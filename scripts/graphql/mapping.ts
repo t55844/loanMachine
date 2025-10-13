@@ -14,21 +14,24 @@ import {
   LoanContractGenerated,
   ParcelPaid,
   LenderRepaid,
-  LoanCompleted,
+  LoanCompleted
+} from "./generated/LoanMachine/LoanMachine"
+import {
   MemberToWalletVinculation,
   ReputationChanged,
-  BorrowerStatusUpdated,
-  DebtorAdded,
-  DebtorRemoved,
-  MonthlyUpdateTriggered,
   AuthorizedCallerUpdated,
   ElectionOpened,
   CandidateAdded,
   VoteCast,
   ElectionClosed,
   UnbeatableMajorityReached
-} from "./generated/LoanMachine/LoanMachine"
-
+} from "./generated/ReputationSystem/ReputationSystem"
+import {
+  BorrowerStatusUpdated,
+  DebtorAdded,
+  DebtorRemoved,
+  MonthlyUpdateTriggered
+} from "./generated/DebtTracker/DebtTracker"
 import {
   Donation,
   Borrow,
@@ -101,6 +104,7 @@ function getOrCreateMember(memberId: BigInt): Member {
     member.memberId = memberId;
     member.linkedAt = BigInt.zero();
     member.currentReputation = 0;
+    member.wallets = [];  // Initialize empty array
     member.save();
   }
   return member as Member;
@@ -345,7 +349,14 @@ export function handleMemberToWalletVinculation(event: MemberToWalletVinculation
   let member = getOrCreateMember(event.params.memberId);
 
   let wallet = event.params.wallet.toHexString();
-  member.wallet = wallet;
+  
+  // Append wallet to array if not already present
+  let wallets = member.wallets;
+  if (!wallets.includes(wallet)) {
+    wallets.push(wallet);
+    member.wallets = wallets;
+  }
+
   member.linkedAt = event.block.timestamp;
   member.save();
 
@@ -372,8 +383,10 @@ export function handleReputationChanged(event: ReputationChanged): void {
     member.currentReputation = event.params.newReputation;
     member.save();
 
-    if (member.wallet) {
-      let user = User.load(member.wallet as string);
+    // Updated to loop over wallets array
+    let wallets = member.wallets;
+    for (let i = 0; i < wallets.length; i++) {
+      let user = User.load(wallets[i]);
       if (user) {
         user.lastActivity = event.block.timestamp;
         user.save();

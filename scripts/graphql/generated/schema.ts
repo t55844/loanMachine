@@ -442,19 +442,6 @@ export class User extends Entity {
     this.set("isInDebtorList", Value.fromBoolean(value));
   }
 
-  get lastStatusUpdate(): BigInt {
-    let value = this.get("lastStatusUpdate");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBigInt();
-    }
-  }
-
-  set lastStatusUpdate(value: BigInt) {
-    this.set("lastStatusUpdate", Value.fromBigInt(value));
-  }
-
   get isAuthorizedCaller(): boolean {
     let value = this.get("isAuthorizedCaller");
     if (!value || value.kind == ValueKind.NULL) {
@@ -466,6 +453,19 @@ export class User extends Entity {
 
   set isAuthorizedCaller(value: boolean) {
     this.set("isAuthorizedCaller", Value.fromBoolean(value));
+  }
+
+  get lastStatusUpdate(): BigInt {
+    let value = this.get("lastStatusUpdate");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set lastStatusUpdate(value: BigInt) {
+    this.set("lastStatusUpdate", Value.fromBigInt(value));
   }
 }
 
@@ -1224,21 +1224,17 @@ export class Member extends Entity {
     this.set("memberId", Value.fromBigInt(value));
   }
 
-  get wallet(): string | null {
-    let value = this.get("wallet");
+  get wallets(): Array<string> {
+    let value = this.get("wallets");
     if (!value || value.kind == ValueKind.NULL) {
-      return null;
+      throw new Error("Cannot return null for a required field.");
     } else {
-      return value.toString();
+      return value.toStringArray();
     }
   }
 
-  set wallet(value: string | null) {
-    if (!value) {
-      this.unset("wallet");
-    } else {
-      this.set("wallet", Value.fromString(<string>value));
-    }
+  set wallets(value: Array<string>) {
+    this.set("wallets", Value.fromStringArray(value));
   }
 
   get linkedAt(): BigInt {

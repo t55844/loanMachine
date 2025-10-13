@@ -10,28 +10,6 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
-export class AuthorizedCallerUpdated extends ethereum.Event {
-  get params(): AuthorizedCallerUpdated__Params {
-    return new AuthorizedCallerUpdated__Params(this);
-  }
-}
-
-export class AuthorizedCallerUpdated__Params {
-  _event: AuthorizedCallerUpdated;
-
-  constructor(event: AuthorizedCallerUpdated) {
-    this._event = event;
-  }
-
-  get caller(): Address {
-    return this._event.parameters[0].value.toAddress();
-  }
-
-  get authorized(): boolean {
-    return this._event.parameters[1].value.toBoolean();
-  }
-}
-
 export class AvailableBalanceUpdated extends ethereum.Event {
   get params(): AvailableBalanceUpdated__Params {
     return new AvailableBalanceUpdated__Params(this);
@@ -116,28 +94,6 @@ export class BorrowerStatusUpdated__Params {
   }
 }
 
-export class CandidateAdded extends ethereum.Event {
-  get params(): CandidateAdded__Params {
-    return new CandidateAdded__Params(this);
-  }
-}
-
-export class CandidateAdded__Params {
-  _event: CandidateAdded;
-
-  constructor(event: CandidateAdded) {
-    this._event = event;
-  }
-
-  get electionId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get candidateId(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
-  }
-}
-
 export class DebtorAdded extends ethereum.Event {
   get params(): DebtorAdded__Params {
     return new DebtorAdded__Params(this);
@@ -197,62 +153,6 @@ export class Donated__Params {
 
   get totalDonation(): BigInt {
     return this._event.parameters[2].value.toBigInt();
-  }
-}
-
-export class ElectionClosed extends ethereum.Event {
-  get params(): ElectionClosed__Params {
-    return new ElectionClosed__Params(this);
-  }
-}
-
-export class ElectionClosed__Params {
-  _event: ElectionClosed;
-
-  constructor(event: ElectionClosed) {
-    this._event = event;
-  }
-
-  get electionId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get winnerId(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
-  }
-
-  get winningVotes(): i32 {
-    return this._event.parameters[2].value.toI32();
-  }
-}
-
-export class ElectionOpened extends ethereum.Event {
-  get params(): ElectionOpened__Params {
-    return new ElectionOpened__Params(this);
-  }
-}
-
-export class ElectionOpened__Params {
-  _event: ElectionOpened;
-
-  constructor(event: ElectionOpened) {
-    this._event = event;
-  }
-
-  get electionId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get candidateId(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
-  }
-
-  get startTime(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
-  }
-
-  get endTime(): BigInt {
-    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -412,32 +312,6 @@ export class LoanRequisitionCreated__Params {
   }
 }
 
-export class MemberToWalletVinculation extends ethereum.Event {
-  get params(): MemberToWalletVinculation__Params {
-    return new MemberToWalletVinculation__Params(this);
-  }
-}
-
-export class MemberToWalletVinculation__Params {
-  _event: MemberToWalletVinculation;
-
-  constructor(event: MemberToWalletVinculation) {
-    this._event = event;
-  }
-
-  get memberId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get wallet(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get timestamp(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
-  }
-}
-
 export class MonthlyUpdateTriggered extends ethereum.Event {
   get params(): MonthlyUpdateTriggered__Params {
     return new MonthlyUpdateTriggered__Params(this);
@@ -540,40 +414,6 @@ export class Repaid__Params {
   }
 }
 
-export class ReputationChanged extends ethereum.Event {
-  get params(): ReputationChanged__Params {
-    return new ReputationChanged__Params(this);
-  }
-}
-
-export class ReputationChanged__Params {
-  _event: ReputationChanged;
-
-  constructor(event: ReputationChanged) {
-    this._event = event;
-  }
-
-  get memberId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get points(): i32 {
-    return this._event.parameters[1].value.toI32();
-  }
-
-  get increase(): boolean {
-    return this._event.parameters[2].value.toBoolean();
-  }
-
-  get newReputation(): i32 {
-    return this._event.parameters[3].value.toI32();
-  }
-
-  get timestamp(): BigInt {
-    return this._event.parameters[4].value.toBigInt();
-  }
-}
-
 export class TotalBorrowedUpdated extends ethereum.Event {
   get params(): TotalBorrowedUpdated__Params {
     return new TotalBorrowedUpdated__Params(this);
@@ -607,62 +447,6 @@ export class TotalDonationsUpdated__Params {
 
   get total(): BigInt {
     return this._event.parameters[0].value.toBigInt();
-  }
-}
-
-export class UnbeatableMajorityReached extends ethereum.Event {
-  get params(): UnbeatableMajorityReached__Params {
-    return new UnbeatableMajorityReached__Params(this);
-  }
-}
-
-export class UnbeatableMajorityReached__Params {
-  _event: UnbeatableMajorityReached;
-
-  constructor(event: UnbeatableMajorityReached) {
-    this._event = event;
-  }
-
-  get electionId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get winnerId(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
-  }
-
-  get winningVotes(): i32 {
-    return this._event.parameters[2].value.toI32();
-  }
-}
-
-export class VoteCast extends ethereum.Event {
-  get params(): VoteCast__Params {
-    return new VoteCast__Params(this);
-  }
-}
-
-export class VoteCast__Params {
-  _event: VoteCast;
-
-  constructor(event: VoteCast) {
-    this._event = event;
-  }
-
-  get electionId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get candidateId(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
-  }
-
-  get memberId(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
-  }
-
-  get voteWeight(): i32 {
-    return this._event.parameters[3].value.toI32();
   }
 }
 
@@ -1038,9 +822,9 @@ export class LoanMachine extends ethereum.SmartContract {
   }
 
   createLoanRequisition(
-    _amount: BigInt,
-    _minimumCoverage: BigInt,
-    _durationDays: BigInt,
+    amount: BigInt,
+    minimumCoverage: BigInt,
+    durationDays: BigInt,
     parcelscount: BigInt,
     memberId: BigInt,
   ): BigInt {
@@ -1048,9 +832,9 @@ export class LoanMachine extends ethereum.SmartContract {
       "createLoanRequisition",
       "createLoanRequisition(uint256,uint32,uint256,uint32,uint32):(uint256)",
       [
-        ethereum.Value.fromUnsignedBigInt(_amount),
-        ethereum.Value.fromUnsignedBigInt(_minimumCoverage),
-        ethereum.Value.fromUnsignedBigInt(_durationDays),
+        ethereum.Value.fromUnsignedBigInt(amount),
+        ethereum.Value.fromUnsignedBigInt(minimumCoverage),
+        ethereum.Value.fromUnsignedBigInt(durationDays),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
         ethereum.Value.fromUnsignedBigInt(memberId),
       ],
@@ -1060,9 +844,9 @@ export class LoanMachine extends ethereum.SmartContract {
   }
 
   try_createLoanRequisition(
-    _amount: BigInt,
-    _minimumCoverage: BigInt,
-    _durationDays: BigInt,
+    amount: BigInt,
+    minimumCoverage: BigInt,
+    durationDays: BigInt,
     parcelscount: BigInt,
     memberId: BigInt,
   ): ethereum.CallResult<BigInt> {
@@ -1070,9 +854,9 @@ export class LoanMachine extends ethereum.SmartContract {
       "createLoanRequisition",
       "createLoanRequisition(uint256,uint32,uint256,uint32,uint32):(uint256)",
       [
-        ethereum.Value.fromUnsignedBigInt(_amount),
-        ethereum.Value.fromUnsignedBigInt(_minimumCoverage),
-        ethereum.Value.fromUnsignedBigInt(_durationDays),
+        ethereum.Value.fromUnsignedBigInt(amount),
+        ethereum.Value.fromUnsignedBigInt(minimumCoverage),
+        ethereum.Value.fromUnsignedBigInt(durationDays),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
         ethereum.Value.fromUnsignedBigInt(memberId),
       ],
@@ -2053,15 +1837,15 @@ export class CreateLoanRequisitionCall__Inputs {
     this._call = call;
   }
 
-  get _amount(): BigInt {
+  get amount(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
   }
 
-  get _minimumCoverage(): BigInt {
+  get minimumCoverage(): BigInt {
     return this._call.inputValues[1].value.toBigInt();
   }
 
-  get _durationDays(): BigInt {
+  get durationDays(): BigInt {
     return this._call.inputValues[2].value.toBigInt();
   }
 

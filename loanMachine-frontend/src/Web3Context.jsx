@@ -41,7 +41,6 @@ export function Web3Provider({ children }) {
   // ✅ ADICIONE ESTA FUNÇÃO: Function to fetch member data
   const fetchMemberData = async (walletAddress) => {
   try {
-    console.log('🔍 Fetching member data for:', walletAddress);
     
     let memberData;
     let hasVinculation = true;
@@ -49,7 +48,6 @@ export function Web3Provider({ children }) {
     try {
       // Tente buscar do subgraph
       memberData = await fetchWalletMember(walletAddress);
-      console.log('✅ Member data from subgraph:', memberData);
       
       // Verifique se o member foi encontrado
       if (!memberData || (!memberData.id && !memberData.memberId)) {
@@ -87,7 +85,6 @@ export function Web3Provider({ children }) {
       ...memberData
     };
     
-    console.log('✅ Final member data:', finalMemberData);
     setMember(finalMemberData);
     return finalMemberData;
     
@@ -129,7 +126,7 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[0];
+      const defaultAccount = accounts[4];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);
@@ -150,7 +147,6 @@ export function Web3Provider({ children }) {
       try {
         const symbol = await usdtTokenContract.symbol();
         const decimals = await usdtTokenContract.decimals();
-        console.log(`✅ USDT Contract: ${symbol} with ${decimals} decimals`);
       } catch (testError) {
         console.error('❌ Failed to connect to USDT contract:', testError);
         throw new Error(`USDT contract not working at ${usdtAddress}. Please check deployment.`);

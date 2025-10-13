@@ -8,7 +8,7 @@ import UserLoanContracts from "./UserLoanContracts"; // Add this import
 function LoanRequisitionBlock() {
   const [activeTab, setActiveTab] = useState("create");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { account, contract } = useWeb3();
+  const { account, contract, member} = useWeb3();
 
   const handleRequisitionCreated = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -94,6 +94,7 @@ function LoanRequisitionBlock() {
           contract={contract}
           account={account}
           onRequisitionCreated={handleRequisitionCreated}
+          member={member}
         />
       )}
       
@@ -111,6 +112,7 @@ function LoanRequisitionBlock() {
           account={account}
           key={refreshTrigger}
           onCoverLoan={handleCoverLoan}
+          member={member}
         />
       )}
 

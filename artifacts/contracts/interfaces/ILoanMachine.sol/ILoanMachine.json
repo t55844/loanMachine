@@ -7,25 +7,6 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "caller",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "authorized",
-          "type": "bool"
-        }
-      ],
-      "name": "AuthorizedCallerUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
           "indexed": false,
           "internalType": "uint256",
           "name": "total",
@@ -97,25 +78,6 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
-          "name": "electionId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "candidateId",
-          "type": "uint32"
-        }
-      ],
-      "name": "CandidateAdded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
           "internalType": "address",
           "name": "borrower",
           "type": "address"
@@ -160,62 +122,6 @@
         }
       ],
       "name": "Donated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "electionId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "winnerId",
-          "type": "uint32"
-        },
-        {
-          "indexed": false,
-          "internalType": "int32",
-          "name": "winningVotes",
-          "type": "int32"
-        }
-      ],
-      "name": "ElectionClosed",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "electionId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "candidateId",
-          "type": "uint32"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "startTime",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "endTime",
-          "type": "uint256"
-        }
-      ],
-      "name": "ElectionOpened",
       "type": "event"
     },
     {
@@ -372,31 +278,6 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "memberId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "wallet",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        }
-      ],
-      "name": "MemberToWalletVinculation",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
           "indexed": false,
           "internalType": "uint256",
           "name": "timestamp",
@@ -480,43 +361,6 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "memberId",
-          "type": "uint32"
-        },
-        {
-          "indexed": false,
-          "internalType": "int32",
-          "name": "points",
-          "type": "int32"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "increase",
-          "type": "bool"
-        },
-        {
-          "indexed": false,
-          "internalType": "int32",
-          "name": "newReputation",
-          "type": "int32"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        }
-      ],
-      "name": "ReputationChanged",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
           "indexed": false,
           "internalType": "uint256",
           "name": "total",
@@ -537,62 +381,6 @@
         }
       ],
       "name": "TotalDonationsUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "electionId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "winnerId",
-          "type": "uint32"
-        },
-        {
-          "indexed": false,
-          "internalType": "int32",
-          "name": "winningVotes",
-          "type": "int32"
-        }
-      ],
-      "name": "UnbeatableMajorityReached",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "electionId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "candidateId",
-          "type": "uint32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "memberId",
-          "type": "uint32"
-        },
-        {
-          "indexed": false,
-          "internalType": "int32",
-          "name": "voteWeight",
-          "type": "int32"
-        }
-      ],
-      "name": "VoteCast",
       "type": "event"
     },
     {

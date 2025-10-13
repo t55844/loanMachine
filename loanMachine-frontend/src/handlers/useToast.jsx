@@ -1,47 +1,24 @@
 // hooks/useToast.js
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { eventSystem } from '../handlers/EventSystem';
+import { extractErrorMessage, getErrorType } from '../handlers/errorMapping';
 
 export function useToast() {
-  const [toasts, setToasts] = useState([]);
-
   const showToast = useCallback((message, type = 'info', options = {}) => {
-    const id = Date.now() + Math.random();
-    const toast = {
-      id,
+    // Use the event system to show toasts
+    eventSystem.emit('showToast', {
       message,
       type,
-      show: true,
       isError: type === 'error',
-      autoClose: options.autoClose ?? true,
       duration: options.duration || 5000,
       ...options
-    };
-
-    setToasts(prev => [...prev, toast]);
-
-    // Auto-remove if autoClose is enabled
-    if (toast.autoClose) {
-      setTimeout(() => {
-        removeToast(id);
-      }, toast.duration);
-    }
-
-    return id;
-  }, []);
-
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.map(toast => 
-      toast.id === id ? { ...toast, show: false } : toast
-    ));
-    
-    // Remove from state after animation
-    setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, 300);
+    });
   }, []);
 
   const showError = useCallback((error, options = {}) => {
-    return showToast(error, 'error', options);
+    const message = extractErrorMessage(error);
+    const type = getErrorType(error);
+    return showToast(message, type, options);
   }, [showToast]);
 
   const showSuccess = useCallback((message, options = {}) => {
@@ -56,13 +33,17 @@ export function useToast() {
     return showToast(message, 'info', options);
   }, [showToast]);
 
+  const handleContractError = useCallback((error, context = '') => {
+    console.error(`Error in ${context}:`, error);
+    showError(error);
+  }, [showError]);
+
   return {
-    toasts,
     showToast,
     showError,
     showSuccess,
     showWarning,
     showInfo,
-    removeToast
+    handleContractError
   };
 }

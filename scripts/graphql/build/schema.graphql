@@ -23,7 +23,7 @@ type Repayment @entity(immutable: false) {
 }
 
 type User @entity(immutable: false) {
-  id: ID!
+  id: ID!  # Wallet address
   totalDonated: BigInt!
   totalBorrowed: BigInt!
   currentDebt: BigInt!
@@ -36,9 +36,8 @@ type User @entity(immutable: false) {
   debtStatusHistory: [DebtStatus!]! @derivedFrom(field: "borrower")
   hasOpenDebt: Boolean!
   isInDebtorList: Boolean!
-  lastStatusUpdate: BigInt!
-  # New authorized caller field
   isAuthorizedCaller: Boolean!
+  lastStatusUpdate: BigInt!
 }
 
 type Stats @entity(immutable: false) {
@@ -102,7 +101,7 @@ type LenderRepayment @entity(immutable: false) {
 type Member @entity(immutable: false) {
   id: ID!
   memberId: BigInt!
-  wallet: User
+  wallets: [String!]!  # Array of wallet addresses as strings
   linkedAt: BigInt!
   currentReputation: Int
   # Election participation

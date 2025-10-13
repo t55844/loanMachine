@@ -249,30 +249,38 @@ export async function fetchUserData(userAddress) {
     throw error;
   }
 }
-
 export async function fetchWalletMember(walletAddress) {
   const query = `
-    query GetWalletMember {
-      members(where: {wallet: "${walletAddress.toLowerCase()}"}) {
+    query GetWalletMember($wallet: String!) {
+      members(where: {wallets_contains_nocase: [$wallet]}) {
         memberId
-        wallet {
-          id
-        }
+        wallets
+        currentReputation
       }
     }
   `;
 
   try {
-    const response = await fetch(VITE_SUBGRAPH_URL, {
+    const response = await fetch(import.meta.env.VITE_SUBGRAPH_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ 
+        query,
+        variables: {
+          wallet: walletAddress.toLowerCase()
+        }
+      }),
     });
     
-    const { data } = await response.json();
+    const { data, errors } = await response.json();
+    
+    if (errors) {
+      console.error("GraphQL errors:", errors);
+      throw new Error(errors[0].message);
+    }
     
     // Return the first member if exists, otherwise null
-    return data.members && data.members.length > 0 ? data.members[0] : '';
+    return data.members && data.members.length > 0 ? data.members[0] : null;
   } catch (error) {
     console.error("Error fetching wallet member:", error);
     throw error;

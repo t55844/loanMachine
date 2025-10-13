@@ -6,12 +6,10 @@ export function useGasCostModal() {
   const [showModal, setShowModal] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState(null);
   const [transactionContext, setTransactionContext] = useState(null);
-  const [transactionStatus, setTransactionStatus] = useState('pending'); // 'pending', 'processing', 'success', 'error'
 
   const showTransactionModal = (transactionData, context = null) => {
     setPendingTransaction(transactionData);
     setTransactionContext(context);
-    setTransactionStatus('pending');
     setShowModal(true);
   };
 
@@ -19,19 +17,19 @@ export function useGasCostModal() {
     setShowModal(false);
     setPendingTransaction(null);
     setTransactionContext(null);
-    setTransactionStatus('pending');
   };
 
   const ModalWrapper = ({ onConfirm }) => {
     const handleConfirm = async (transactionData) => {
       try {
-        setTransactionStatus('processing');
+        // Close modal immediately when user confirms
+        hideModal();
+        // Execute the transaction
         await onConfirm(transactionData);
-        setTransactionStatus('success');
-        // DON'T auto-close - let user close manually
       } catch (error) {
-        setTransactionStatus('error');
-        // DON'T auto-close - let user close manually
+        // Error handling is done by the onConfirm function itself
+        // No need to show modal for errors since you have toast notifications
+        console.error("Transaction error:", error);
       }
     };
 
@@ -42,7 +40,7 @@ export function useGasCostModal() {
         onConfirm={handleConfirm}
         transactionData={pendingTransaction}
         transactionContext={transactionContext}
-        transactionStatus={transactionStatus}
+        transactionStatus={'pending'} // Always show as pending since we close immediately
       />
     );
   };

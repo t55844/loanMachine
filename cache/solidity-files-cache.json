@@ -2,12 +2,13 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\codigos\\loan-machine\\contracts\\interfaces\\ILoanMachine.sol": {
-      "lastModificationDate": 1760158840009,
-      "contentHash": "9b4ba5b03c5c1826b2817379ac4d24b1",
+      "lastModificationDate": 1760219503094,
+      "contentHash": "52f46708b7d281c5547b9b4d195108b4",
       "sourceName": "contracts/interfaces/ILoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -45,6 +46,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -82,6 +84,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -113,12 +116,13 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1760158279599,
-      "contentHash": "e09466682ddc469fa943249995041a3d",
+      "lastModificationDate": 1760316536957,
+      "contentHash": "209e9d1d616b1eae0d8dc4f875a44b12",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -154,12 +158,13 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\ReputationSystem.sol": {
-      "lastModificationDate": 1760158445973,
-      "contentHash": "ad53d4e5447ff27ba730598508b1d73e",
+      "lastModificationDate": 1760314894165,
+      "contentHash": "a163869d74f15b7ae1bf4c439d0c67f0",
       "sourceName": "contracts/ReputationSystem.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -199,6 +204,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -234,6 +240,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -263,12 +270,13 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\interfaces\\IReputationSystem.sol": {
-      "lastModificationDate": 1760158805959,
+      "lastModificationDate": 1760314872092,
       "contentHash": "18f08a55e8db7afe1ed37fcc7e4d9bad",
       "sourceName": "contracts/interfaces/IReputationSystem.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -304,6 +312,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -341,6 +350,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -376,6 +386,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -413,6 +424,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -452,6 +464,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200
@@ -489,6 +502,7 @@
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
+          "viaIR": true,
           "optimizer": {
             "enabled": true,
             "runs": 200

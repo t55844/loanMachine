@@ -146,12 +146,12 @@ export default function UserStatus() {
         </div>
       )}
 
-      {/* Donate Component */}
-      <Donate />
-
       <button onClick={refreshAllData} className="refresh-button" disabled={loading}>
         {loading ? "Refreshing..." : "Refresh Data"}
       </button>
+
+      {/* Donate Component */}
+      <Donate />
     </div>
   );
 }

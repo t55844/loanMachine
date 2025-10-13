@@ -19,7 +19,7 @@ function Donate() {
     getUSDTBalance, 
     approveUSDT,
     needsUSDTApproval,
-    member // ✅ Adicione o member do contexto
+    member
   } = useWeb3();
 
   // Fetch USDT balance
@@ -112,13 +112,33 @@ function Donate() {
     }
   }
 
+  async function confirmTransaction(transactionData) {
+    try {
+      const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
+      const memberId = transactionData.params[1];
+      
+      const tx = await contract.donate(amountInWei, memberId);
+      const receipt = await tx.wait();
+      
+      if (receipt.status === 1) {
+        showSuccess(`Successfully donated ${amount} USDT!`);
+        setAmount("");
+        fetchUSDTBalance();
+      } else {
+        throw new Error("Transaction failed");
+      }
+    } catch (err) {
+      showError(err.message || "Donation failed");
+      throw err;
+    }
+  }
+
   async function handleDonate() {
     if (!account || !amount) {
       showWarning("Please connect wallet and enter amount");
       return;
     }
 
-    // ✅ Verifique se o member está disponível
     if (!member || !member.id) {
       showError("Member data not available. Please check your wallet connection.");
       return;
@@ -144,12 +164,13 @@ function Donate() {
     }
 
     const amountInWei = ethers.utils.parseUnits(amount, 6);
-    const memberId = member.id; // ✅ Obtenha o memberId do contexto
+    const memberId = member.id;
     
+    // Show the gas cost modal with the confirmation function
     showTransactionModal(
       {
         method: "donate",
-        params: [amountInWei, memberId], // ✅ Agora com DOIS parâmetros
+        params: [amountInWei, memberId],
         value: "0"
       },
       {
@@ -157,35 +178,13 @@ function Donate() {
         amount: amount,
         token: 'USDT',
         from: account,
-        memberId: memberId // ✅ Adicione ao contexto também
+        memberId: memberId
       }
     );
   }
 
-  async function confirmTransaction(transactionData) {
-    try {
-      // ✅ Agora temos dois parâmetros
-      const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
-      const memberId = transactionData.params[1];
-      
-      const tx = await contract.donate(amountInWei, memberId); // ✅ Passe ambos os parâmetros
-      const receipt = await tx.wait();
-      
-      if (receipt.status === 1) {
-        showSuccess(`Successfully donated ${amount} USDT!`);
-        setAmount("");
-        fetchUSDTBalance();
-      } else {
-        throw new Error("Transaction failed");
-      }
-    } catch (err) {
-      showError(err.message || "Donation failed");
-      throw err;
-    }
-  }
-
   const hasSufficientBalance = parseFloat(usdtBalance) >= parseFloat(amount);
-  const hasMemberData = member && member.id; // ✅ Verifique se member data está disponível
+  const hasMemberData = member && member.id;
   const canDonate = account && amount && hasSufficientBalance && !needsApproval && hasMemberData;
 
   return (
@@ -193,7 +192,6 @@ function Donate() {
       <div className="balance-info">
         <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
         {loading && <p>Loading balance...</p>}
-        {/* ✅ Mostre informações do member */}
         {member && (
           <p className="member-info">
             Member ID: {member.id} {member.name && `- ${member.name}`}

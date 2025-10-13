@@ -3,14 +3,19 @@ import { ethers } from "ethers";
 import { useToast } from "../handlers/useToast";
 import Toast from "../handlers/Toast";
 
-export default function LoanRequisitionForm({ contract, account, onRequisitionCreated }) {
+export default function LoanRequisitionForm({ 
+  contract, 
+  account, 
+  onRequisitionCreated, 
+  member 
+}) {
   const [amount, setAmount] = useState("");
   const [minimumCoverage, setMinimumCoverage] = useState("80");
   const [parcelsQuantity, setParcelsQuantity] = useState("1");
   const [durationDays, setDurationDays] = useState("30");
   const [loading, setLoading] = useState(false);
   
-  const { toast, showToast, hideToast, handleContractError } = useToast();
+  const { showToast, showSuccess, showError, handleContractError } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,17 +24,26 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
       showToast("Please connect to Hardhat node first");
       return;
     }
+
+    // Check if member data is available
+    if (!member || !member.id) {
+      showToast("Member data not available. Please check your wallet connection.");
+      return;
+    }
     
     setLoading(true);
 
     try {
-      // Convert to USDT (6 decimals) instead of ETH (18 decimals)
+      // Convert to USDT (6 decimals)
       const amountWei = ethers.utils.parseUnits(amount, 6);
+      const memberId = member.id; // Get memberId from member context
+      
       const tx = await contract.createLoanRequisition(
         amountWei,
         parseInt(minimumCoverage),
         parseInt(durationDays),
-        parseInt(parcelsQuantity)
+        parseInt(parcelsQuantity),
+        memberId // Add memberId as parameter
       );
       
       await tx.wait();
@@ -39,7 +53,7 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
       setMinimumCoverage("80");
       setDurationDays("30");
       
-      showToast("Loan requisition created successfully!", "success");
+      showSuccess("Loan requisition created successfully!");
       
       if (onRequisitionCreated) {
         onRequisitionCreated();
@@ -52,9 +66,12 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
     }
   };
 
+  // Check if member data is available for button state
+  const hasMemberData = member && member.id;
+
   return (
     <>
-      <Toast toast={toast} onClose={hideToast} />
+      <Toast />
       
       <div style={{
         background: 'var(--bg-tertiary)',
@@ -64,6 +81,21 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
         marginTop: '16px'
       }}>
         <h2>Create Loan Requisition</h2>
+        
+        {/* Show warning if no member data */}
+        {!member && account && (
+          <div style={{
+            background: 'var(--warning-bg)',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            border: '1px solid var(--warning-color)'
+          }}>
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--warning-color)' }}>
+              ⚠️ Member data not loaded. Please check your wallet connection.
+            </p>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px', textAlign: 'center' }}>
@@ -149,10 +181,10 @@ export default function LoanRequisitionForm({ contract, account, onRequisitionCr
           <button 
             type="submit" 
             className="borrow-button"
-            disabled={loading}
+            disabled={loading || !hasMemberData} // Disable if no member data
             style={{width: '100%'}}
           >
-            {loading ? "Creating..." : "Create Loan Requisition"}
+            {loading ? "Creating..." : !hasMemberData ? "Wallet Not Vinculated" : "Create Loan Requisition"}
           </button>
         </form>
       </div>

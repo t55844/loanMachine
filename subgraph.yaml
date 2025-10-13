@@ -25,8 +25,6 @@ dataSources:
         - LoanRequest
         - LoanCoverage
         - LoanContract
-        - Member
-        - ReputationChange
       abis:
         - name: LoanMachine
           file: ./scripts/graphql/abis/LoanMachine.json
@@ -41,41 +39,26 @@ dataSources:
           handler: handleNewDonor
         - event: NewBorrower(indexed address)
           handler: handleNewBorrower
-        # aggregate events
         - event: TotalDonationsUpdated(uint256)
           handler: handleTotalDonationsUpdated
         - event: TotalBorrowedUpdated(uint256)
           handler: handleTotalBorrowedUpdated
         - event: AvailableBalanceUpdated(uint256)
           handler: handleAvailableBalanceUpdated
-        # events for loan requests and coverage
         - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256,uint32)
           handler: handleLoanRequisitionCreated
-        - event: LoanRequisitionCovered(indexed uint256,indexed address,uint256)
+        - event: LoanCovered(indexed uint256,indexed address,uint256)
           handler: handleLoanCovered
-        - event: LoanRequisitionFunded(indexed uint256)
+        - event: LoanFunded(indexed uint256)
           handler: handleLoanFunded
-        # event for loan contract generation 
         - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32,uint256,uint256[])
           handler: handleLoanContractGenerated
-        # events for loan repayments
         - event: ParcelPaid(indexed uint256,uint256)
           handler: handleParcelPaid
         - event: LenderRepaid(indexed uint256,indexed address,uint256)
           handler: handleLenderRepaid
         - event: LoanCompleted(indexed uint256)
           handler: handleLoanCompleted
-        # Election system events (assuming emitted by LoanMachine)
-        - event: ElectionOpened(indexed uint32,indexed uint32,uint256,uint256)
-          handler: handleElectionOpened
-        - event: CandidateAdded(indexed uint32,indexed uint32)
-          handler: handleCandidateAdded
-        - event: VoteCast(indexed uint32,indexed uint32,indexed uint32,int32)
-          handler: handleVoteCast
-        - event: ElectionClosed(indexed uint32,indexed uint32,int32)
-          handler: handleElectionClosed
-        - event: UnbeatableMajorityReached(indexed uint32,indexed uint32,int32)
-          handler: handleUnbeatableMajorityReached
   - kind: ethereum/contract
     name: ReputationSystem
     network: localhost    
@@ -91,15 +74,30 @@ dataSources:
       entities:
         - Member
         - ReputationChange
+        - AuthorizedCaller
+        - Election
+        - Candidate
+        - Vote
       abis:
         - name: ReputationSystem
-          file: ./scripts/graphql/abis/ReputationSystem.json  # Add this ABI file
+          file: ./scripts/graphql/abis/ReputationSystem.json
       eventHandlers:
-        # Member system events (move these here)
         - event: MemberToWalletVinculation(indexed uint32,indexed address,uint256)
           handler: handleMemberToWalletVinculation
         - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
           handler: handleReputationChanged
+        - event: AuthorizedCallerUpdated(indexed address,bool)
+          handler: handleAuthorizedCallerUpdated
+        - event: ElectionOpened(indexed uint32,indexed uint32,uint256,uint256)
+          handler: handleElectionOpened
+        - event: CandidateAdded(indexed uint32,indexed uint32)
+          handler: handleCandidateAdded
+        - event: VoteCast(indexed uint32,indexed uint32,indexed uint32,int32)
+          handler: handleVoteCast
+        - event: ElectionClosed(indexed uint32,indexed uint32,int32)
+          handler: handleElectionClosed
+        - event: UnbeatableMajorityReached(indexed uint32,indexed uint32,int32)
+          handler: handleUnbeatableMajorityReached
   - kind: ethereum/contract
     name: DebtTracker
     network: localhost    
@@ -113,12 +111,13 @@ dataSources:
       language: wasm/assemblyscript
       file: ./scripts/graphql/mapping.ts
       entities:
-        - User  # Adjust entities as needed
+        - User
+        - DebtStatus
+        - DebtorList
       abis:
         - name: DebtTracker
-          file: ./scripts/graphql/abis/DebtTracker.json  # Add this ABI file
+          file: ./scripts/graphql/abis/DebtTracker.json
       eventHandlers:
-        # DebtTracker events (move these here)
         - event: BorrowerStatusUpdated(indexed address,uint8)
           handler: handleBorrowerStatusUpdated
         - event: DebtorAdded(indexed address)

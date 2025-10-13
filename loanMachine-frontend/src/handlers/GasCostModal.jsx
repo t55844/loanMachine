@@ -9,8 +9,7 @@ function GasCostModal({
   onClose, 
   onConfirm, 
   transactionData,
-  transactionContext,
-  transactionStatus = 'pending' // 'pending', 'processing', 'success', 'error'
+  transactionContext
 }) {
   const [gasCost, setGasCost] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,10 +18,10 @@ function GasCostModal({
   const { contract, provider } = useWeb3();
 
   useEffect(() => {
-    if (isOpen && contract && transactionData && transactionStatus === 'pending') {
+    if (isOpen && contract && transactionData) {
       estimateGasCost();
     }
-  }, [isOpen, transactionData, transactionStatus]);
+  }, [isOpen, transactionData]);
 
   async function estimateGasCost() {
     try {
@@ -36,6 +35,10 @@ function GasCostModal({
         throw new Error(`Method ${method} not found on contract`);
       }
 
+      console.log(`Estimating gas for ${method} with params:`, params);
+      console.log("Transaction context:", transactionContext);
+
+      // Try to estimate gas
       const gasEstimate = await contract.estimateGas[method](...params, {
         value: ethers.BigNumber.from(value)
       });
@@ -46,8 +49,10 @@ function GasCostModal({
 
       setGasCost(gasCostEth);
     } catch (err) {
-      console.error("Error estimating gas:", err);
-      const userFriendlyError = extractErrorMessage(err);
+      console.error("Detailed gas estimation error:", err);
+      
+      let userFriendlyError = extractErrorMessage(err);
+      
       setGasError(userFriendlyError);
     } finally {
       setLoading(false);
@@ -64,102 +69,10 @@ function GasCostModal({
     parseFloat(ethers.utils.formatEther(transactionData.value)) : 0;
   const totalCost = (parseFloat(gasCost || 0) + transactionValue).toFixed(6);
 
-  const formatUSDTAmount = (amount) => {
-    if (!amount) return '0';
-    try {
-      return parseFloat(ethers.utils.formatUnits(amount, 6)).toFixed(2);
-    } catch {
-      return amount;
-    }
-  };
-
-  const renderTransactionDetails = () => {
-    if (!transactionContext) return null;
-
-    switch (transactionContext.type) {
-      case 'coverLoan':
-        return (
-          <div className="transaction-details">
-            <div><strong>Covering Loan:</strong> Requisition #{transactionContext.requisitionId}</div>
-            <div><strong>Coverage Percentage:</strong> {transactionContext.percentage}%</div>
-            <div><strong>Coverage Amount:</strong> {formatUSDTAmount(transactionContext.coverageAmount)} USDT</div>
-          </div>
-        );
-      case 'repay':
-        return (
-          <div className="transaction-details">
-            <div><strong>Repayment Amount:</strong> {formatUSDTAmount(transactionContext.amount)} USDT</div>
-            <div><strong>Requisition ID:</strong> #{transactionContext.requisitionId}</div>
-          </div>
-        );
-      // GasCostModal.jsx - na função renderTransactionDetails
-      case 'donate':
-        return (
-          <div className="transaction-details">
-            <div><strong>Donation Amount:</strong> {transactionContext.amount} USDT</div>
-            <div><strong>Member ID:</strong> {transactionContext.memberId}</div>
-            <div><strong>Token:</strong> USDT</div>
-            <div><strong>From:</strong> {transactionContext.from?.slice(0, 8)}...{transactionContext.from?.slice(-6)}</div>
-          </div>
-        );
-      case 'borrow':
-        return (
-          <div className="transaction-details">
-            <div><strong>Loan Amount:</strong> {formatUSDTAmount(transactionContext.amount)} USDT</div>
-            <div><strong>Requisition ID:</strong> #{transactionContext.requisitionId}</div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const renderContent = () => {
-    // Show transaction status if processing, success, or error
-    if (transactionStatus === 'processing') {
-      return (
-        <div className="transaction-status processing">
-          <h4>Processing Transaction...</h4>
-          <p>Your transaction is being processed on the blockchain.</p>
-          <div className="loading-spinner">⏳</div>
-        </div>
-      );
-    }
-
-    if (transactionStatus === 'success') {
-      return (
-        <div className="transaction-status success">
-          <h4>✅ Transaction Successful!</h4>
-          <p>Your transaction was completed successfully.</p>
-          <button onClick={onClose} className="close-button">
-            Close
-          </button>
-        </div>
-      );
-    }
-
-    if (transactionStatus === 'error') {
-      return (
-        <div className="transaction-status error">
-          <h4>❌ Transaction Failed</h4>
-          <p>There was an error processing your transaction.</p>
-          <p className="error-note">Check the toast notification for details.</p>
-          <div className="error-actions">
-            <button onClick={onClose} className="close-button">
-              Close
-            </button>
-            <button onClick={() => onConfirm(transactionData)} className="retry-button">
-              Try Again
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Default: show gas estimation and confirmation
-    return (
-      <>
-        {renderTransactionDetails()}
+  return (
+    <div className="confirmation-modal-overlay">
+      <div className="confirmation-modal">
+        <h3>Gas Cost Estimation</h3>
         
         <div className="gas-info">
           {loading ? (
@@ -226,15 +139,6 @@ function GasCostModal({
             {loading ? "Calculating..." : "Confirm Transaction"}
           </button>
         </div>
-      </>
-    );
-  };
-
-  return (
-    <div className="confirmation-modal-overlay">
-      <div className="confirmation-modal">
-        <h3>Transaction Confirmation</h3>
-        {renderContent()}
       </div>
     </div>
   );

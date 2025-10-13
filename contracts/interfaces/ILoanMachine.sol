@@ -50,21 +50,11 @@ interface ILoanMachine {
     event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
     event LoanCompleted(uint256 indexed requisitionId);
 
-    // Redeclare events from DebtTracker to include in ABI
+    // declare events from DebtTracker to include in ABI
     event BorrowerStatusUpdated(address indexed borrower, DebtTracker.DebtStatus newStatus);
     event DebtorAdded(address indexed borrower);
     event DebtorRemoved(address indexed borrower);
     event MonthlyUpdateTriggered(uint256 timestamp);
-
-    //redeclare reputation events to include in ABI
-    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
-    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
-    event AuthorizedCallerUpdated(address indexed caller, bool authorized);
-    event ElectionOpened(uint32 indexed electionId, uint32 indexed candidateId, uint256 startTime, uint256 endTime);
-    event CandidateAdded(uint32 indexed electionId, uint32 indexed candidateId);
-    event VoteCast(uint32 indexed electionId, uint32 indexed candidateId, uint32 indexed memberId, int32 voteWeight);
-    event ElectionClosed(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
-    event UnbeatableMajorityReached(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
 
 
     // Core functions

@@ -6,7 +6,7 @@ import { useToast } from "../handlers/useToast";
 import Toast from "../handlers/Toast";
 import TransactionPendingRequisition from "./TransactionPendingRequisition";
 
-export default function PendingRequisitionsList({ contract, account, onCoverLoan }) {
+export default function PendingRequisitionsList({ contract, account, onCoverLoan, member }) {
   const [requisitions, setRequisitions] = useState([]);
   const [selectedRequisition, setSelectedRequisition] = useState(null);
   const [customPercentage, setCustomPercentage] = useState("");
@@ -17,7 +17,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     free: "0"
   });
 
-  const { toast, showToast, hideToast } = useToast();
+  const { showToast, showSuccess, showError, handleContractError } = useToast();
   const quickPercentages = [1, 3, 5, 10, 15, 20, 25, 33, 50, 75, 100];
 
   useEffect(() => {
@@ -167,12 +167,30 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     return parseFloat(amount).toFixed(2);
   };
 
+  // Check if member data is available
+  const hasMemberData = member && member.id;
+
   return (
     <div className="requsitionBlock">
-      <Toast toast={toast} onClose={hideToast} />
+      <Toast />
       
       <h2>Available Loan Requisitions</h2>
-      
+
+      {/* Show warning if no member data */}
+      {!member && account && (
+        <div style={{
+          background: 'var(--warning-bg)',
+          padding: '12px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          border: '1px solid var(--warning-color)'
+        }}>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--warning-color)' }}>
+            ⚠️ Member data not loaded. Please check your wallet connection.
+          </p>
+        </div>
+      )}
+
       {/* Donation Balance Display */}
       <div className="stats-box">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center' }}>
@@ -260,6 +278,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                   quickPercentages={quickPercentages}
                   contract={contract}
                   account={account}
+                  member={member} // Pass member to child component
                   onCoverLoan={onCoverLoan}
                   onRefresh={() => {
                     loadPendingRequisitions();
@@ -269,6 +288,9 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                   isPercentageValid={isPercentageValid}
                   formatUSDT={formatUSDT}
                   showToast={showToast}
+                  showSuccess={showSuccess}
+                  showError={showError}
+                  handleContractError={handleContractError}
                 />
               )}
             </div>
