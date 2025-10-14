@@ -14,7 +14,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
   const [needsApproval, setNeedsApproval] = useState({});
 
   const { toast, showToast, hideToast, handleContractError } = useToast();
-  const { needsUSDTApproval, approveUSDT } = useWeb3();
+  const { needsUSDTApproval, approveUSDT, member } = useWeb3();
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
   useEffect(() => {
@@ -94,7 +94,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const amountInWei = loan.nextPaymentAmountWei;
       const amountForDisplay = ethers.utils.formatUnits(amountInWei, 6);
       
-      
       await approveUSDT(amountForDisplay);
       showToast("USDT approved successfully!", "success");
       
@@ -126,6 +125,12 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       return;
     }
 
+    // Check if member data is available
+    if (!member || !member.id) {
+      showToast("Member data not available. Please check your wallet connection.", "error");
+      return;
+    }
+
     // Check if payment is available
     let canPay;
     try {
@@ -142,7 +147,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
     // Final approval check with the exact Wei amount
     try {
-
       const currentApprovalNeeded = await needsUSDTApproval(loan.nextPaymentAmount);
       
       if (currentApprovalNeeded) {
@@ -153,8 +157,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         }));
         return;
       }
-
-
     } catch (err) {
       console.error("Error in final approval check:", err);
       
@@ -167,55 +169,56 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       return;
     }
 
-    // Show gas cost modal for payment - using the exact Wei amount from the loan data
+    // Show gas cost modal for payment - using the exact Wei amount from the loan data and member ID
     showTransactionModal(
       {
         method: "repay",
-        params: [loan.requisitionId, loan.nextPaymentAmountWei.toString()],
+        params: [loan.requisitionId, loan.nextPaymentAmountWei.toString(), member.id],
         value: "0"
       },
       {
         type: 'repay',
         requisitionId: loan.requisitionId,
         amount: loan.nextPaymentAmount,
-        token: 'USDT'
+        token: 'USDT',
+        memberId: member.id
       }
     );
   };
 
   const confirmRepayTransaction = async (transactionData) => {
-  setPaying(true);
-  try {
-    const { params } = transactionData;
-    const [requisitionId, amount] = params;
+    setPaying(true);
+    try {
+      const { params } = transactionData;
+      const [requisitionId, amount, memberId] = params;
 
-    const tx = await contract.repay(requisitionId, amount);
-    await tx.wait();
+      const tx = await contract.repay(requisitionId, amount, memberId);
+      await tx.wait();
 
-    showToast(`Payment successful for loan #${requisitionId}`, "success");
-    await loadUserActiveLoans();
-    setExpandedLoan(null);
-    
-    if (onLoanUpdate) {
-      onLoanUpdate();
+      showToast(`Payment successful for loan #${requisitionId}`, "success");
+      await loadUserActiveLoans();
+      setExpandedLoan(null);
+      
+      if (onLoanUpdate) {
+        onLoanUpdate();
+      }
+    } catch (err) {
+      console.error("Transaction failed:", err);
+      
+      if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
+        setNeedsApproval(prev => ({
+          ...prev,
+          [requisitionId]: true
+        }));
+        showToast("USDT approval required. Please approve USDT first.", "error");
+      } else {
+        handleContractError(err, "payInstallment");
+      }
+      throw err;
+    } finally {
+      setPaying(false);
     }
-  } catch (err) {
-    console.error("Transaction failed:", err);
-    
-    if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
-      setNeedsApproval(prev => ({
-        ...prev,
-        [requisitionId]: true
-      }));
-      showToast("USDT approval required. Please approve USDT first.", "error");
-    } else {
-      handleContractError(err, "payInstallment");
-    }
-    throw err;
-  } finally {
-    setPaying(false);
-  }
-};
+  };
 
   const getStatusText = (status) => {
     switch (status) {
@@ -259,6 +262,31 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         marginTop: '16px'
       }}>
         <h2>My Loan Contracts</h2>
+
+        {/* Member Info Display */}
+        {member && (
+          <div className="member-info-section" style={{
+            marginBottom: '16px',
+            padding: '12px',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <p style={{ margin: 0, fontSize: '0.9em' }}>
+              <strong>Member ID:</strong> {member.id} 
+              {member.name && ` - ${member.name}`}
+            </p>
+            {!member.hasVinculation && (
+              <p style={{ 
+                margin: '4px 0 0 0', 
+                fontSize: '0.8em', 
+                color: 'var(--accent-orange)' 
+              }}>
+                ⚠️ Wallet not vinculated to any member
+              </p>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <p>Loading your active loans...</p>
@@ -342,6 +370,20 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
                     {loan.canPay && loan.status === 0 && (
                       <div style={{ marginTop: '16px' }}>
+                        {/* Member validation check */}
+                        {(!member || !member.id) && (
+                          <div style={{ 
+                            padding: '12px',
+                            backgroundColor: 'rgba(242, 54, 69, 0.1)',
+                            borderRadius: '6px',
+                            color: 'var(--accent-red)',
+                            marginBottom: '12px',
+                            textAlign: 'center'
+                          }}>
+                            ⚠️ Member data not available. Cannot process payment.
+                          </div>
+                        )}
+
                         {/* Approval button - shown when approval is needed */}
                         {needsApproval[loan.requisitionId] && (
                           <button
@@ -349,7 +391,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                               e.stopPropagation();
                               handleApprove(loan);
                             }}
-                            disabled={approving}
+                            disabled={approving || !member?.id}
                             className="approve-button"
                             style={{ 
                               width: '100%', 
@@ -367,7 +409,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                             e.stopPropagation();
                             handlePayInstallment(loan);
                           }}
-                          disabled={paying || needsApproval[loan.requisitionId]}
+                          disabled={paying || needsApproval[loan.requisitionId] || !member?.id}
                           className="repay-button"
                           style={{ width: '100%' }}
                         >
@@ -473,4 +515,4 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       `}</style>
     </>
   );
-} 
+}

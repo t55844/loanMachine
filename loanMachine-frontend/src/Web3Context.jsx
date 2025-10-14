@@ -37,7 +37,7 @@ export function Web3Provider({ children }) {
   const [error, setError] = useState('');
   const [chainId, setChainId] = useState(null);
   const [member, setMember] = useState(null);
-
+console.log('Imported ABI Errors:', LoanMachineABI.abi.filter(item => item.type === 'error'));
   // ✅ ADICIONE ESTA FUNÇÃO: Function to fetch member data
   const fetchMemberData = async (walletAddress) => {
   try {
