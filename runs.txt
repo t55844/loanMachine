@@ -51,13 +51,19 @@ AuthorizedCallerUpdated emiter is needed
 
 sistema para que na hora de criar o smartcontract, só permitir se tiver no minimo tres pessoase as tres fizerem uma doação
 
-limitador de itens abertos por pessoa
+melhorar o sistema de ganho de reputação quando cobrir um emprestimo (ele aumenta conforme eu peço, então se for cobrir 30
+-em uma vez aumenta 3, o mesmo 30 mas em tres vezes aumnenta 9, a cobertura foi a mesma), tambem teve problemadas das pessoas que
+-cobriram um emprestimo, não para o Graphql
 
 sistema de monitoramento de pagamento
 
 sistema de eleição de mdoerador/es
 
-adicionar validação de membro em todas as operações
+reputação não esta sendo pega pelo Graphql totalmente
+
+emprestimos não são atualizados nas informações gerais
+
+exposição das requisições de emprestimos e dados do usuario 
 
 --------------------------------------------------------------
 

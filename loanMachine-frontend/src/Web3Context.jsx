@@ -126,7 +126,7 @@ console.log('Imported ABI Errors:', LoanMachineABI.abi.filter(item => item.type 
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[4];
+      const defaultAccount = accounts[3];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);
