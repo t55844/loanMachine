@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: LoanMachine contract indexing
+description: Simplified LoanMachine contract indexing
 repository: https://github.com/your-repo/loan-machine-subgraph
 schema:
   file: schema.graphql
@@ -17,14 +17,22 @@ dataSources:
       language: wasm/assemblyscript
       file: LoanMachine\LoanMachine.wasm
       entities:
-        - Donation
-        - Borrow
-        - Repayment
-        - User
-        - Stats
-        - LoanRequest
-        - LoanCoverage
-        - LoanContract
+        - DonatedEvent
+        - BorrowedEvent
+        - RepaidEvent
+        - TotalDonationsUpdatedEvent
+        - TotalBorrowedUpdatedEvent
+        - AvailableBalanceUpdatedEvent
+        - NewDonorEvent
+        - NewBorrowerEvent
+        - BorrowLimitReachedEvent
+        - LoanRequisitionCreatedEvent
+        - LoanCoveredEvent
+        - LoanFundedEvent
+        - LoanContractGeneratedEvent
+        - ParcelPaidEvent
+        - LenderRepaidEvent
+        - LoanCompletedEvent
       abis:
         - name: LoanMachine
           file: LoanMachine\LoanMachine.json
@@ -35,16 +43,18 @@ dataSources:
           handler: handleBorrowed
         - event: Repaid(indexed address,uint256,uint256)
           handler: handleRepaid
-        - event: NewDonor(indexed address)
-          handler: handleNewDonor
-        - event: NewBorrower(indexed address)
-          handler: handleNewBorrower
         - event: TotalDonationsUpdated(uint256)
           handler: handleTotalDonationsUpdated
         - event: TotalBorrowedUpdated(uint256)
           handler: handleTotalBorrowedUpdated
         - event: AvailableBalanceUpdated(uint256)
           handler: handleAvailableBalanceUpdated
+        - event: NewDonor(indexed address)
+          handler: handleNewDonor
+        - event: NewBorrower(indexed address)
+          handler: handleNewBorrower
+        - event: BorrowLimitReached(indexed address)
+          handler: handleBorrowLimitReached
         - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256,uint32)
           handler: handleLoanRequisitionCreated
         - event: LoanCovered(indexed uint256,indexed address,uint256)
@@ -73,12 +83,14 @@ dataSources:
       language: wasm/assemblyscript
       file: LoanMachine\LoanMachine.wasm
       entities:
-        - Member
-        - ReputationChange
-        - AuthorizedCaller
-        - Election
-        - Candidate
-        - Vote
+        - MemberToWalletVinculationEvent
+        - ReputationChangedEvent
+        - AuthorizedCallerUpdatedEvent
+        - ElectionOpenedEvent
+        - CandidateAddedEvent
+        - VoteCastEvent
+        - ElectionClosedEvent
+        - UnbeatableMajorityReachedEvent
       abis:
         - name: ReputationSystem
           file: ReputationSystem\ReputationSystem.json
@@ -112,9 +124,10 @@ dataSources:
       language: wasm/assemblyscript
       file: LoanMachine\LoanMachine.wasm
       entities:
-        - User
-        - DebtStatus
-        - DebtorList
+        - BorrowerStatusUpdatedEvent
+        - DebtorAddedEvent
+        - DebtorRemovedEvent
+        - MonthlyUpdateTriggeredEvent
       abis:
         - name: DebtTracker
           file: DebtTracker\DebtTracker.json

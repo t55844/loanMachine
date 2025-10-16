@@ -1,4 +1,3 @@
-// TransactionPendingRequisition.jsx - Updated to match Donate component pattern
 import { useState } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
@@ -77,134 +76,134 @@ export default function TransactionPendingRequisition({
     }
   };
 
-const handleCoverLoan = async (requisitionId, percentage) => {
-  if (!contract || !account) {
-    showWarning("Please connect your wallet first");
-    return;
-  }
-
-  // Check member data
-  if (!member || !member.id) {
-    showError("Member data not available. Please check your wallet connection.");
-    return;
-  }
-
-  // Convert to uint32 compatible values with validation
-  const requisitionIdUint32 = Number(requisitionId);
-  const percentageUint32 = Number(percentage);
-  const memberIdUint32 = Number(member.id);
-
-  console.log("Cover loan validation:", {
-    currentAccount: account,
-    memberId: memberIdUint32,
-    requisitionId: requisitionIdUint32,
-    percentage: percentageUint32
-  });
-
-  // Validate parameters
-  if (isNaN(requisitionIdUint32) || requisitionIdUint32 < 0) {
-    showError("Invalid requisition ID");
-    return;
-  }
-
-  if (isNaN(percentageUint32) || percentageUint32 < 1 || percentageUint32 > 100) {
-    showError("Invalid coverage percentage");
-    return;
-  }
-
-  if (isNaN(memberIdUint32) || memberIdUint32 < 1) {
-    showError("Invalid member ID");
-    return;
-  }
-
-  const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
-  
-  if (parseFloat(donationBalances.free) < coverageAmount) {
-    showError(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(2)} USDT free but need ${coverageAmount.toFixed(2)} USDT`);
-    return;
-  }
-
-  // Check if approval is needed
-  const approvalNeeded = await checkApproval(coverageAmount.toString());
-  if (approvalNeeded) {
-    setCurrentCoverageAmount(coverageAmount.toString());
-    setNeedsApproval(true);
-    showWarning("Please approve USDT first before covering this loan");
-    return;
-  }
-
-  // CRITICAL: Check if the current wallet is properly vinculated to the member ID
-  try {
-    console.log("Checking wallet vinculated status...");
-    const isVinculated = await contract.isWalletVinculated(account);
-    console.log("Is wallet vinculated:", isVinculated);
-    
-    if (!isVinculated) {
-      showError("Your wallet is not vinculated to any member. Please register first.");
+  const handleCoverLoan = async (requisitionId, percentage) => {
+    if (!contract || !account) {
+      showWarning("Please connect your wallet first");
       return;
     }
 
-    // Check if the member ID matches what's registered for this wallet
-    const contractMemberId = await contract.getMemberId(account);
-    console.log("Contract member ID for wallet:", contractMemberId.toString());
-    console.log("Our context member ID:", memberIdUint32);
-
-    if (Number(contractMemberId.toString()) !== memberIdUint32) {
-      showError(`Member ID mismatch! Wallet ${account} is vinculated to member ${contractMemberId.toString()} but you're trying to use member ${memberIdUint32}. Please use the correct wallet.`);
+    // Check member data
+    if (!member || !member.id) {
+      showError("Member data not available. Please check your wallet connection.");
       return;
     }
 
-    console.log("✅ Member validation passed!");
+    // Convert to uint32 compatible values with validation
+    const requisitionIdUint32 = Number(requisitionId);
+    const percentageUint32 = Number(percentage);
+    const memberIdUint32 = Number(member.id);
 
-  } catch (err) {
-    console.error("Error during member validation:", err);
-    showError("Error verifying member registration. Please try again.");
-    return;
-  }
-
-  showTransactionModal(
-    {
-      method: "coverLoan",
-      params: [requisitionIdUint32, percentageUint32, memberIdUint32],
-      value: "0"
-    },
-    {
-      type: 'coverLoan',
+    console.log("Cover loan validation:", {
+      currentAccount: account,
+      memberId: memberIdUint32,
       requisitionId: requisitionIdUint32,
-      percentage: percentageUint32,
-      coverageAmount: coverageAmount.toFixed(2),
-      loanAmount: requisition.amount,
-      borrower: requisition.borrower,
-      memberId: memberIdUint32
+      percentage: percentageUint32
+    });
+
+    // Validate parameters
+    if (isNaN(requisitionIdUint32) || requisitionIdUint32 < 0) {
+      showError("Invalid requisition ID");
+      return;
     }
-  );
-};
 
-// Also update the confirmCoverLoanTransaction function:
-const confirmCoverLoanTransaction = async (transactionData) => {
-  setCovering(true);
-  try {
-    const { params } = transactionData;
-    const [requisitionId, percentage, memberId] = params;
-
-    const tx = await contract.coverLoan(requisitionId, percentage, memberId);
-    await tx.wait();
-
-    showSuccess(`Successfully covered ${percentage}% of loan #${requisitionId}`);
-    
-    if (onCoverLoan) {
-      onCoverLoan();
+    if (isNaN(percentageUint32) || percentageUint32 < 1 || percentageUint32 > 100) {
+      showError("Invalid coverage percentage");
+      return;
     }
+
+    if (isNaN(memberIdUint32) || memberIdUint32 < 1) {
+      showError("Invalid member ID");
+      return;
+    }
+
+    const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
     
-    setCustomPercentage("");
-    
-    await onRefresh();
-  } catch (err) {
-    showError(err.message || "Cover loan failed");
-  } finally {
-    setCovering(false);
-  }
-};
+    if (parseFloat(donationBalances.free) < coverageAmount) {
+      showError(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(2)} USDT free but need ${coverageAmount.toFixed(2)} USDT`);
+      return;
+    }
+
+    // Check if approval is needed
+    const approvalNeeded = await checkApproval(coverageAmount.toString());
+    if (approvalNeeded) {
+      setCurrentCoverageAmount(coverageAmount.toString());
+      setNeedsApproval(true);
+      showWarning("Please approve USDT first before covering this loan");
+      return;
+    }
+
+    // CRITICAL: Check if the current wallet is properly vinculated to the member ID
+    try {
+      console.log("Checking wallet vinculated status...");
+      const isVinculated = await contract.isWalletVinculated(account);
+      console.log("Is wallet vinculated:", isVinculated);
+      
+      if (!isVinculated) {
+        showError("Your wallet is not vinculated to any member. Please register first.");
+        return;
+      }
+
+      // Check if the member ID matches what's registered for this wallet
+      const contractMemberId = await contract.getMemberId(account);
+      console.log("Contract member ID for wallet:", contractMemberId.toString());
+      console.log("Our context member ID:", memberIdUint32);
+
+      if (Number(contractMemberId.toString()) !== memberIdUint32) {
+        showError(`Member ID mismatch! Wallet ${account} is vinculated to member ${contractMemberId.toString()} but you're trying to use member ${memberIdUint32}. Please use the correct wallet.`);
+        return;
+      }
+
+      console.log("✅ Member validation passed!");
+
+    } catch (err) {
+      console.error("Error during member validation:", err);
+      showError("Error verifying member registration. Please try again.");
+      return;
+    }
+
+    showTransactionModal(
+      {
+        method: "coverLoan",
+        params: [requisitionIdUint32, percentageUint32, memberIdUint32],
+        value: "0"
+      },
+      {
+        type: 'coverLoan',
+        requisitionId: requisitionIdUint32,
+        percentage: percentageUint32,
+        coverageAmount: coverageAmount.toFixed(2),
+        loanAmount: requisition.amount,
+        borrower: requisition.borrower,
+        memberId: memberIdUint32
+      }
+    );
+  };
+
+  // Also update the confirmCoverLoanTransaction function:
+  const confirmCoverLoanTransaction = async (transactionData) => {
+    setCovering(true);
+    try {
+      const { params } = transactionData;
+      const [requisitionId, percentage, memberId] = params;
+
+      const tx = await contract.coverLoan(requisitionId, percentage, memberId);
+      await tx.wait();
+
+      showSuccess(`Successfully covered ${percentage}% of loan #${requisitionId}`);
+      
+      if (onCoverLoan) {
+        onCoverLoan();
+      }
+      
+      setCustomPercentage("");
+      
+      await onRefresh();
+    } catch (err) {
+      showError(err.message || "Cover loan failed");
+    } finally {
+      setCovering(false);
+    }
+  };
 
   const handlePercentageClick = async (percentage) => {
     const coverageAmount = parseFloat(requisition.amount) * percentage / 100;

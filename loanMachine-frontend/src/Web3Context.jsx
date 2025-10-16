@@ -37,7 +37,6 @@ export function Web3Provider({ children }) {
   const [error, setError] = useState('');
   const [chainId, setChainId] = useState(null);
   const [member, setMember] = useState(null);
-console.log('Imported ABI Errors:', LoanMachineABI.abi.filter(item => item.type === 'error'));
   // ✅ ADICIONE ESTA FUNÇÃO: Function to fetch member data
   const fetchMemberData = async (walletAddress) => {
   try {
@@ -126,7 +125,7 @@ console.log('Imported ABI Errors:', LoanMachineABI.abi.filter(item => item.type 
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[3];
+      const defaultAccount = accounts[2];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);

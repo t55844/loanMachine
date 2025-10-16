@@ -20,7 +20,10 @@ services:
       - '5432:5432'
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
+    command: 
+      - "postgres"
+      - "-cshared_preload_libraries=pg_stat_statements"
+      - "-clisten_addresses=*"
 
   graph-node:
     image: graphprotocol/graph-node:latest

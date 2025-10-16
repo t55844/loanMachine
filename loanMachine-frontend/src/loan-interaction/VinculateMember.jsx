@@ -2,12 +2,13 @@
 import { useState, useEffect } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
-import { fetchWalletMember } from "../graphql-frontend-query";
+import { fetchCompleteMemberData } from "../graphql-frontend-query";
 
 function VinculateMember() {
   const [memberId, setMemberId] = useState("");
   const [loading, setLoading] = useState(false);
   const [memberData, setMemberData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
   const { account, contract } = useWeb3();
@@ -19,11 +20,15 @@ function VinculateMember() {
 
   async function checkExistingVinculation() {
     if (!account) return;
+    setRefreshing(true);
     try {
-      const data = await fetchWalletMember(account);
+      const data = await fetchCompleteMemberData(account);
       setMemberData(data);
     } catch (error) {
+      console.error("Error checking vinculation:", error);
       setMemberData(null);
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -73,28 +78,31 @@ function VinculateMember() {
             <strong style={{ color: 'var(--accent-green)' }}>Wallet Already Vinculated</strong>
           </div>
           
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+          {/* Member Information - Simplified */}
+          <div style={{ 
+            background: 'var(--bg-primary)', 
+            padding: '15px', 
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            marginBottom: '15px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span><strong>Member ID:</strong></span>
-              <span>{memberData.memberId}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-blue)' }}>#{memberData.memberId}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-              <span><strong>Reputation:</strong></span>
-              <span>{memberData.currentReputation || 0} points</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span><strong>Reputation Score:</strong></span>
+              <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>
+                {memberData.currentReputation} points
+              </span>
             </div>
-            {memberData.isModerator && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span><strong>Status:</strong></span>
-                <span>⭐ Moderator</span>
-              </div>
-            )}
           </div>
 
           {/* Wallets List */}
           <div style={{ marginBottom: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <strong>Vinculated Wallets:</strong>
-              <span>({memberData.wallets ? memberData.wallets.length : 0})</span>
+              <span style={{ color: 'var(--text-secondary)' }}>({memberData.wallets ? memberData.wallets.length : 0})</span>
             </div>
             <div style={{ 
               background: 'var(--bg-primary)', 
@@ -110,9 +118,20 @@ function VinculateMember() {
                       padding: '4px 0',
                       fontFamily: 'monospace', 
                       fontSize: '12px',
-                      color: wallet.toLowerCase() === account.toLowerCase() ? 'var(--accent-green)' : 'var(--text-primary)'
+                      color: wallet.toLowerCase() === account.toLowerCase() ? 'var(--accent-green)' : 'var(--text-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
-                      {wallet.toLowerCase() === account.toLowerCase() ? '✓ ' : '• '}{wallet}
+                      <span>
+                        {wallet.toLowerCase() === account.toLowerCase() ? '✓ ' : '• '}
+                      </span>
+                      <span>
+                        {wallet.toLowerCase() === account.toLowerCase() 
+                          ? `${wallet.substring(0, 8)}...${wallet.substring(36)} (Current)` 
+                          : `${wallet.substring(0, 8)}...${wallet.substring(36)}`
+                        }
+                      </span>
                     </div>
                   ))
                 : <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>No wallets vinculated</div>
@@ -120,8 +139,21 @@ function VinculateMember() {
             </div>
           </div>
 
-          <button onClick={checkExistingVinculation} className="refresh-button" disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh Status"}
+          <button 
+            onClick={checkExistingVinculation} 
+            className="refresh-button" 
+            disabled={refreshing}
+            style={{
+              width: '100%',
+              padding: '10px',
+              background: refreshing ? 'var(--bg-secondary)' : 'var(--accent-blue)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: refreshing ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {refreshing ? "Refreshing..." : "Refresh Status"}
           </button>
         </div>
       </div>
@@ -148,12 +180,35 @@ function VinculateMember() {
             onChange={(e) => setMemberId(e.target.value)}
             className="member-id-input"
             disabled={!account}
+            style={{
+              flex: 1,
+              padding: '10px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)'
+            }}
           />
-          <button onClick={handleVinculate} className="vinculate-button" disabled={!canVinculate || loading}>
+          <button 
+            onClick={handleVinculate} 
+            className="vinculate-button" 
+            disabled={!canVinculate || loading}
+            style={{
+              padding: '10px 20px',
+              background: !canVinculate ? 'var(--bg-secondary)' : 'var(--accent-green)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: !canVinculate ? 'not-allowed' : 'pointer',
+              marginLeft: '10px'
+            }}
+          >
             {loading ? "Processing..." : "Vinculate Member"}
           </button>
         </div>
-        <p className="vinculation-info">This will link Member ID {memberId || '___'} to your wallet</p>
+        <p className="vinculation-info" style={{ marginTop: '10px', color: 'var(--text-secondary)' }}>
+          This will link Member ID {memberId || '___'} to your wallet
+        </p>
       </div>
 
       <ModalWrapper onConfirm={confirmTransaction} />

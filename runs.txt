@@ -59,11 +59,9 @@ sistema de monitoramento de pagamento
 
 sistema de eleição de mdoerador/es
 
-reputação não esta sendo pega pelo Graphql totalmente
+exposição dados do usuario 
 
-emprestimos não são atualizados nas informações gerais
-
-exposição das requisições de emprestimos e dados do usuario 
+menos de 10% não contabiliza
 
 --------------------------------------------------------------
 

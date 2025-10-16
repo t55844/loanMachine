@@ -1,4 +1,3 @@
-// PendingRequisitionsList.jsx
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { fetchLoanRequisitions, fetchUserDonations } from "../graphql-frontend-query";
@@ -54,50 +53,64 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     if (!contract || !account) return;
     setLoading(true);
     try {
+      // Use GraphQL to get pending requisitions
       const graphRequisitions = await fetchLoanRequisitions();
+      console.log("GraphQL requisitions:", graphRequisitions);
+      
       const requisitionDetails = await Promise.all(
         graphRequisitions.map(async (graphReq) => {
           try {
             const requisitionId = parseInt(graphReq.requisitionId);
-            const info = await contract.getRequisitionInfo(requisitionId);
             
-            const safeNumber = (val) => {
-              if (val && typeof val.toNumber === "function") return val.toNumber();
-              if (typeof val === 'bigint') return Number(val);
-              return Number(val);
-            };
-
-            let coveringLendersCount = 0;
+            // Fallback to contract for additional data
+            let contractData = {};
             try {
-              const coveringLenders = info.coveringLenders;
-              
-              if (Array.isArray(coveringLenders)) {
-                coveringLendersCount = coveringLenders.filter(addr => 
-                  addr && addr !== ethers.constants.AddressZero
-                ).length;
-              } else if (typeof coveringLenders === 'string' && coveringLenders.startsWith('0x')) {
-                coveringLendersCount = coveringLenders !== ethers.constants.AddressZero ? 1 : 0;
+              const info = await contract.getRequisitionInfo(requisitionId);
+              contractData = {
+                borrower: info.borrower,
+                minimumCoverage: safeNumber(info.minimumCoverage),
+                currentCoverage: safeNumber(info.currentCoverage),
+                status: safeNumber(info.status),
+                durationDays: safeNumber(info.durationDays),
+                creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
+              };
+            } catch (contractErr) {
+              console.warn(`Could not get contract data for requisition ${requisitionId}:`, contractErr);
+              // Use GraphQL data as fallback
+              contractData = {
+                borrower: graphReq.borrower,
+                minimumCoverage: graphReq.minimumCoverage || 0,
+                currentCoverage: graphReq.currentCoveragePercentage || 0,
+                status: getStatusNumber(graphReq.status),
+                durationDays: graphReq.durationDays || 0,
+                creationTime: new Date(parseInt(graphReq.creationTime) * 1000).toLocaleString(),
+              };
+            }
+
+            let coveringLendersCount = graphReq.coveringLendersCount || 0;
+
+            // Handle amount conversion
+            let amount;
+            try {
+              if (typeof graphReq.amount === 'string') {
+                amount = ethers.utils.formatUnits(graphReq.amount, 6);
               } else {
-                coveringLendersCount = safeNumber(coveringLenders);
+                amount = ethers.utils.formatUnits(graphReq.amount.toString(), 6);
               }
-              
-              if (isNaN(coveringLendersCount) || coveringLendersCount < 0) {
-                coveringLendersCount = 0;
-              }
-            } catch (countErr) {
-              console.warn(`Error parsing coveringLenders for requisition ${requisitionId}:`, countErr);
-              coveringLendersCount = 0;
+            } catch (e) {
+              console.error("Error formatting amount:", e);
+              amount = "0";
             }
 
             return {
               id: requisitionId.toString(),
-              borrower: info.borrower,
-              amount: ethers.utils.formatUnits(info.amount, 6),
-              minimumCoverage: safeNumber(info.minimumCoverage),
-              currentCoverage: safeNumber(info.currentCoverage),
-              status: safeNumber(info.status),
-              durationDays: safeNumber(info.durationDays),
-              creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
+              borrower: contractData.borrower,
+              amount: amount,
+              minimumCoverage: contractData.minimumCoverage,
+              currentCoverage: contractData.currentCoverage,
+              status: contractData.status,
+              durationDays: contractData.durationDays,
+              creationTime: contractData.creationTime,
               coveringLendersCount: coveringLendersCount
             };
           } catch (err) {
@@ -109,13 +122,44 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
       const pendingRequisitions = requisitionDetails
         .filter(req => req !== null)
-        .filter(req => req.status === 0 || req.status === 1);
+        .filter(req => req.status === 0 || req.status === 1); // Pending or Partially Covered
 
+      console.log("Pending requisitions:", pendingRequisitions);
       setRequisitions(pendingRequisitions);
     } catch (err) {
+      console.error("Error loading pending requisitions:", err);
       showToast("Failed to load available requisitions");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function for safe number conversion
+  const safeNumber = (val) => {
+    try {
+      if (val && typeof val.toNumber === "function") return val.toNumber();
+      if (typeof val === 'bigint') return Number(val);
+      if (typeof val === 'string') return parseInt(val);
+      return Number(val);
+    } catch (e) {
+      console.warn("Error converting number:", val, e);
+      return 0;
+    }
+  };
+
+  // Helper function to convert status string to number
+  const getStatusNumber = (status) => {
+    if (typeof status === 'number') return status;
+    
+    switch (status) {
+      case "Pending": return 0;
+      case "PartiallyCovered": return 1;
+      case "FullyCovered": return 2;
+      case "Active": return 3;
+      case "Completed": return 4;
+      case "Defaulted": return 5;
+      case "Cancelled": return 6;
+      default: return 0;
     }
   };
 
@@ -164,7 +208,8 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
   };
 
   const formatUSDT = (amount) => {
-    return parseFloat(amount).toFixed(2);
+    const num = parseFloat(amount);
+    return isNaN(num) ? "0.00" : num.toFixed(2);
   };
 
   // Check if member data is available
@@ -278,7 +323,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                   quickPercentages={quickPercentages}
                   contract={contract}
                   account={account}
-                  member={member} // Pass member to child component
+                  member={member}
                   onCoverLoan={onCoverLoan}
                   onRefresh={() => {
                     loadPendingRequisitions();

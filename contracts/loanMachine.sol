@@ -315,8 +315,10 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         } else {
             req.status = BorrowStatus.PartiallyCovered;
         }
-        
-        reputationSystem.reputationChange(memberId, int32(reputationSystem.REPUTATION_GAIN_BY_COVERING_LOAN()), true);
+
+
+        int32 reputationGain = (reputationSystem.REPUTATION_GAIN_BY_COVERING_LOAN() * int32(coveragePercentage))/10;
+        reputationSystem.reputationChange(memberId, int32(reputationGain), true);
         emit LoanCovered(requisitionId, msg.sender, coverageAmount);
     }
 

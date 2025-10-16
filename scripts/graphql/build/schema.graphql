@@ -1,183 +1,243 @@
-type Donation @entity(immutable: false) {
+type DonatedEvent @entity(immutable: true) {
   id: ID!
-  donor: User! 
+  donor: Bytes!
   amount: BigInt!
-  timestamp: BigInt!
   totalDonation: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type Borrow @entity(immutable: false) {
+type BorrowedEvent @entity(immutable: true) {
   id: ID!
-  borrower: User! 
+  borrower: Bytes!
   amount: BigInt!
-  timestamp: BigInt!
   totalBorrowing: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type Repayment @entity(immutable: false) {
+type RepaidEvent @entity(immutable: true) {
   id: ID!
-  borrower: User! 
+  borrower: Bytes!
   amount: BigInt!
-  timestamp: BigInt!
   remainingDebt: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type User @entity(immutable: false) {
-  id: ID!  # Wallet address
-  totalDonated: BigInt!
-  totalBorrowed: BigInt!
-  currentDebt: BigInt!
-  lastActivity: BigInt!
-  donations: [Donation!]! @derivedFrom(field: "donor")
-  borrows: [Borrow!]! @derivedFrom(field: "borrower")
-  repayments: [Repayment!]! @derivedFrom(field: "borrower")
-  # New debt tracking fields
-  currentDebtStatus: DebtStatusEnum!
-  debtStatusHistory: [DebtStatus!]! @derivedFrom(field: "borrower")
-  hasOpenDebt: Boolean!
-  isInDebtorList: Boolean!
-  isAuthorizedCaller: Boolean!
-  lastStatusUpdate: BigInt!
-}
-
-type Stats @entity(immutable: false) {
+type TotalDonationsUpdatedEvent @entity(immutable: true) {
   id: ID!
-  totalDonations: BigInt!
-  totalBorrowed: BigInt!
-  availableBalance: BigInt!
+  total: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type LoanRequest @entity(immutable: false) {
+type TotalBorrowedUpdatedEvent @entity(immutable: true) {
+  id: ID!
+  total: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type AvailableBalanceUpdatedEvent @entity(immutable: true) {
+  id: ID!
+  total: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type NewDonorEvent @entity(immutable: true) {
+  id: ID!
+  donor: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type NewBorrowerEvent @entity(immutable: true) {
+  id: ID!
+  borrower: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type BorrowLimitReachedEvent @entity(immutable: true) {
+  id: ID!
+  borrower: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type LoanRequisitionCreatedEvent @entity(immutable: true) {
   id: ID!
   requisitionId: BigInt!
-  borrower: User!
+  borrower: Bytes!
   amount: BigInt!
-  timestamp: BigInt!
-  currentCoverageAmount: BigInt!
-  coveringLendersCount: Int!
-  funded: Boolean!
-  fundedAt: BigInt
-  coverages: [LoanCoverage!]! @derivedFrom(field: "loanRequest")
-  parcelsCount: Int          
-  coveringLenders: [User!] 
+  parcelsCount: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type LoanCoverage @entity(immutable: false) {
+type LoanCoveredEvent @entity(immutable: true) {
   id: ID!
-  loanRequest: LoanRequest!
-  lender: User!
-  amount: BigInt!
-  timestamp: BigInt!
+  requisitionId: BigInt!
+  lender: Bytes!
+  coverageAmount: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type LoanContract @entity(immutable: false) {
+type LoanFundedEvent @entity(immutable: true) {
   id: ID!
-  walletAddress: User!
+  requisitionId: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type LoanContractGeneratedEvent @entity(immutable: true) {
+  id: ID!
+  walletAddress: Bytes!
   requisitionId: BigInt!
   status: Int!
   parcelsPending: Int!
-  parcelsValues: BigInt
-  createdAt: BigInt!
-  completedAt: BigInt
+  parcelsValues: BigInt!
+  paymentDates: [String!]!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type ParcelPayment @entity(immutable: false) {
+type ParcelPaidEvent @entity(immutable: true) {
   id: ID!
   requisitionId: BigInt!
-  borrower: User!
-  amount: BigInt!
-  timestamp: BigInt!
-  parcelsRemaining: Int!
+  parcelsRemaining: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type LenderRepayment @entity(immutable: false) {
+type LenderRepaidEvent @entity(immutable: true) {
   id: ID!
   requisitionId: BigInt!
-  lender: User!
+  lender: Bytes!
   amount: BigInt!
-  timestamp: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type Member @entity(immutable: false) {
+type LoanCompletedEvent @entity(immutable: true) {
   id: ID!
-  memberId: BigInt!
-  wallets: [String!]!  # Array of wallet addresses as strings
-  linkedAt: BigInt!
-  currentReputation: Int
-  # Election participation
-  votesCast: [Vote!]! @derivedFrom(field: "voter")
+  requisitionId: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-type ReputationChange @entity(immutable: false) {
+type MemberToWalletVinculationEvent @entity(immutable: true) {
   id: ID!
-  memberId: BigInt!
-  member: Member
+  memberId: Int!
+  wallet: Bytes!
+  timestamp: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+  # Remove the derived field from here
+}
+
+type WalletVinculated @entity (immutable:false) {
+  id: ID!
+  memberId: Int!
+  wallet: Bytes!
+  walletInfo: String
+  # You can add a reference to the event if needed
+  vinculationEvent: MemberToWalletVinculationEvent!
+}
+
+type ReputationChangedEvent @entity(immutable: true) {
+  id: ID!
+  memberId: Int!
   points: Int!
   increase: Boolean!
   newReputation: Int!
-  timestamp: BigInt!
+  timestamp: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-# Debt Status Tracking Entities
-type DebtStatus @entity(immutable: false) {
+type AuthorizedCallerUpdatedEvent @entity(immutable: true) {
   id: ID!
-  borrower: User!
-  status: DebtStatusEnum!
-  timestamp: BigInt!
-}
-
-type DebtorList @entity(immutable: false) {
-  id: ID!
-  borrowersWithOpenDebt: [User!]!
-  borrowersWithoutOpenDebt: [User!]!
-  lastMonthlyUpdate: BigInt!
-  nextMonthlyUpdate: BigInt!
-  shouldTriggerUpdate: Boolean!
-}
-
-# Election System Entities
-type Election @entity(immutable: false) {
-  id: ID!
-  electionId: BigInt!
-  candidateId: BigInt!
-  startTime: BigInt!
-  endTime: BigInt!
-  isOpen: Boolean!
-  winnerId: BigInt
-  winningVotes: Int
-  candidates: [Candidate!]! @derivedFrom(field: "election")
-  votes: [Vote!]! @derivedFrom(field: "election")
-  createdAt: BigInt!
-}
-
-type Candidate @entity(immutable: false) {
-  id: ID!
-  election: Election!
-  candidateId: BigInt!
-  member: Member
-  totalVotes: Int!
-  addedAt: BigInt!
-}
-
-type Vote @entity(immutable: false) {
-  id: ID!
-  election: Election!
-  candidate: Candidate!
-  voter: Member!
-  voteWeight: Int!
-  timestamp: BigInt!
-}
-
-type AuthorizedCaller @entity(immutable: false) {
-  id: ID!
-  caller: User!
+  caller: Bytes!
   authorized: Boolean!
-  lastUpdated: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
 
-# Enum for debt status (matches Solidity enum)
-enum DebtStatusEnum {
-  NoDebt
-  HasActiveDebt
-  HasOverdueDebt
+type ElectionOpenedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  candidateId: Int!
+  startTime: String!
+  endTime: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type CandidateAddedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  candidateId: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type VoteCastEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  candidateId: Int!
+  memberId: Int!
+  voteWeight: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type ElectionClosedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  winnerId: Int!
+  winningVotes: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type UnbeatableMajorityReachedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  winnerId: Int!
+  winningVotes: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type BorrowerStatusUpdatedEvent @entity(immutable: true) {
+  id: ID!
+  borrower: Bytes!
+  newStatus: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type DebtorAddedEvent @entity(immutable: true) {
+  id: ID!
+  borrower: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type DebtorRemovedEvent @entity(immutable: true) {
+  id: ID!
+  borrower: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type MonthlyUpdateTriggeredEvent @entity(immutable: true) {
+  id: ID!
+  timestamp: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
 }
