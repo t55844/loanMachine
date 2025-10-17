@@ -65,6 +65,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error MemberIdOrWalletInvalid();
     error WalletAlreadyVinculated();
     error ParcelAlreadyPaid();
+    error MinimumPercentageCover();
 
     // Structs
     struct LoanRequisition {    
@@ -104,6 +105,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     modifier validCoverage(uint32 coveragePercentage) {
         if (coveragePercentage == 0 || coveragePercentage > 100) revert InvalidCoveragePercentage();
+        if(coveragePercentage <= 9) revert MinimumPercentageCover();
         _;
     }
 

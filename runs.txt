@@ -63,6 +63,8 @@ exposição dados do usuario
 
 menos de 10% não contabiliza
 
+alterar o formato de timestamp para ter o milisegundos
+
 --------------------------------------------------------------
 
 componente para mostrar error de blockchain --feito falta estressar 

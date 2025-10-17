@@ -133,20 +133,12 @@ type MemberToWalletVinculationEvent @entity(immutable: true) {
   id: ID!
   memberId: Int!
   wallet: Bytes!
+  walletVinculated: [Bytes!]!
   timestamp: String!
   blockTimestamp: String!
   transactionHash: Bytes!
-  # Remove the derived field from here
 }
 
-type WalletVinculated @entity (immutable:false) {
-  id: ID!
-  memberId: Int!
-  wallet: Bytes!
-  walletInfo: String
-  # You can add a reference to the event if needed
-  vinculationEvent: MemberToWalletVinculationEvent!
-}
 
 type ReputationChangedEvent @entity(immutable: true) {
   id: ID!

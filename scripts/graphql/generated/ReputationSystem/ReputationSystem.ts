@@ -131,8 +131,12 @@ export class MemberToWalletVinculation__Params {
     return this._event.parameters[1].value.toAddress();
   }
 
+  get walletVinculated(): Array<Address> {
+    return this._event.parameters[2].value.toAddressArray();
+  }
+
   get timestamp(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -1044,6 +1048,38 @@ export class ReputationSystem extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  walletsOfMember(param0: BigInt, param1: BigInt): Address {
+    let result = super.call(
+      "walletsOfMember",
+      "walletsOfMember(uint32,uint256):(address)",
+      [
+        ethereum.Value.fromUnsignedBigInt(param0),
+        ethereum.Value.fromUnsignedBigInt(param1),
+      ],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_walletsOfMember(
+    param0: BigInt,
+    param1: BigInt,
+  ): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "walletsOfMember",
+      "walletsOfMember(uint32,uint256):(address)",
+      [
+        ethereum.Value.fromUnsignedBigInt(param0),
+        ethereum.Value.fromUnsignedBigInt(param1),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 }
 

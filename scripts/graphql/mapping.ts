@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt, Bytes } from "@graphprotocol/graph-ts"
 import {
   Donated,
   Borrowed,
@@ -62,7 +62,6 @@ import {
   DebtorAddedEvent,
   DebtorRemovedEvent,
   MonthlyUpdateTriggeredEvent,
-  WalletVinculated
 } from "./generated/schema"
 
 function formatTimestamp(ts: BigInt): string {
@@ -79,7 +78,7 @@ function formatTimestamp(ts: BigInt): string {
     monthStr = "0" + monthStr
   }
 
-  return dayStr + "/" + monthStr + "/" + yearStr
+  return dayStr + "/" + monthStr + "/" + yearStr + ' ' + ms
 }
 
 export function handleDonated(event: Donated): void {
@@ -236,21 +235,22 @@ export function handleLoanCompleted(event: LoanCompleted): void {
 }
 
 export function handleMemberToWalletVinculation(event: MemberToWalletVinculation): void {
-  let entity = new MemberToWalletVinculationEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  let entity = new MemberToWalletVinculationEvent(
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  )
   entity.memberId = event.params.memberId.toI32()
   entity.wallet = event.params.wallet
+  
+  let walletVinculatedBytes: Bytes[] = []
+  for (let i = 0; i < event.params.walletVinculated.length; i++) {
+    walletVinculatedBytes.push(event.params.walletVinculated[i] as Bytes)
+  }
+  entity.walletVinculated = walletVinculatedBytes
+
   entity.timestamp = formatTimestamp(event.params.timestamp)
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()
-
-  // Also create/update WalletVinculated entity
-  let walletEntity = new WalletVinculated(event.params.memberId.toString()); 
-walletEntity.memberId = event.params.memberId.toI32(); 
-walletEntity.wallet = event.params.wallet;
-walletEntity.walletInfo = "Some info";
-walletEntity.vinculationEvent = entity.id;
-walletEntity.save();
 }
 
 export function handleReputationChanged(event: ReputationChanged): void {

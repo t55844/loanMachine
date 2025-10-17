@@ -1665,6 +1665,19 @@ export class MemberToWalletVinculationEvent extends Entity {
     this.set("wallet", Value.fromBytes(value));
   }
 
+  get walletVinculated(): Array<Bytes> {
+    let value = this.get("walletVinculated");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytesArray();
+    }
+  }
+
+  set walletVinculated(value: Array<Bytes>) {
+    this.set("walletVinculated", Value.fromBytesArray(value));
+  }
+
   get timestamp(): string {
     let value = this.get("timestamp");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1702,106 +1715,6 @@ export class MemberToWalletVinculationEvent extends Entity {
 
   set transactionHash(value: Bytes) {
     this.set("transactionHash", Value.fromBytes(value));
-  }
-}
-
-export class WalletVinculated extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(id != null, "Cannot save WalletVinculated entity without an ID");
-    if (id) {
-      assert(
-        id.kind == ValueKind.STRING,
-        `Entities of type WalletVinculated must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
-      );
-      store.set("WalletVinculated", id.toString(), this);
-    }
-  }
-
-  static loadInBlock(id: string): WalletVinculated | null {
-    return changetype<WalletVinculated | null>(
-      store.get_in_block("WalletVinculated", id),
-    );
-  }
-
-  static load(id: string): WalletVinculated | null {
-    return changetype<WalletVinculated | null>(
-      store.get("WalletVinculated", id),
-    );
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get memberId(): i32 {
-    let value = this.get("memberId");
-    if (!value || value.kind == ValueKind.NULL) {
-      return 0;
-    } else {
-      return value.toI32();
-    }
-  }
-
-  set memberId(value: i32) {
-    this.set("memberId", Value.fromI32(value));
-  }
-
-  get wallet(): Bytes {
-    let value = this.get("wallet");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set wallet(value: Bytes) {
-    this.set("wallet", Value.fromBytes(value));
-  }
-
-  get walletInfo(): string | null {
-    let value = this.get("walletInfo");
-    if (!value || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toString();
-    }
-  }
-
-  set walletInfo(value: string | null) {
-    if (!value) {
-      this.unset("walletInfo");
-    } else {
-      this.set("walletInfo", Value.fromString(<string>value));
-    }
-  }
-
-  get vinculationEvent(): string {
-    let value = this.get("vinculationEvent");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set vinculationEvent(value: string) {
-    this.set("vinculationEvent", Value.fromString(value));
   }
 }
 

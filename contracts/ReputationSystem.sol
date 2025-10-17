@@ -15,8 +15,9 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     mapping(address => bool) public override authorizedCallers;
 
     // User system mappings - WITH REVERSE MAPPING
-    mapping(uint32 => mapping(address => bool)) private memberWallet;
+    mapping(uint32 => address) private memberToWallet; // Primary wallet (first vinculated)
     mapping(address => uint32) public walletToMemberId; // REVERSE MAPPING
+    mapping(uint32 => address[]) public walletsOfMember;
     mapping(uint32 => int32) public memberReputation;
 
     // INCREMENTAL TRACKING FOR POTENTIAL VOTES - SOLUTION 1
@@ -51,7 +52,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
 
     modifier registerMemberData(uint32 memberId, address wallet) {
         if (memberId == 0 || wallet == address(0)) revert MemberIdOrWalletInvalid();
-        if (memberWallet[memberId][wallet]) revert WalletAlreadyVinculated();
+        // Removed: if (memberToWallet[memberId] > address(0)) revert WalletAlreadyVinculated(); // Now allows multiple
         if (walletToMemberId[wallet] != 0 && walletToMemberId[wallet] != memberId) {
             revert WalletAlreadyLinkedToAnotherMember();
         }
@@ -59,7 +60,8 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     }
 
     modifier validMember(uint32 memberId, address wallet) {
-        if (memberId == 0 || !memberWallet[memberId][wallet]) revert MemberIdOrWalletInvalid();
+        if (memberId == 0 || memberToWallet[memberId] == address(0)) revert MemberIdOrWalletInvalid();
+        if (memberId == 0 || walletToMemberId[wallet] == 0) revert MemberIdOrWalletInvalid();
         _;
     }
 
@@ -92,9 +94,21 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         override
         registerMemberData(memberId, wallet) 
     {
-        memberWallet[memberId][wallet] = true;
+        // Check for duplicate wallet on this member
+        for (uint i = 0; i < walletsOfMember[memberId].length; i++) {
+            if (walletsOfMember[memberId][i] == wallet) {
+                revert WalletAlreadyVinculated();
+            }
+        }
+
+        if (memberToWallet[memberId] == address(0)) {
+            memberToWallet[memberId] = wallet; // Set primary only if not set
+        }
         walletToMemberId[wallet] = memberId;
-        emit MemberToWalletVinculation(memberId, wallet, block.timestamp);
+        walletsOfMember[memberId].push(wallet);
+        address[] memory wallets = walletsOfMember[memberId];
+
+        emit MemberToWalletVinculation(memberId, wallet, wallets, block.timestamp);
     }
 
     function getMemberId(address wallet) external view override returns (uint32) {
@@ -270,7 +284,6 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         );
     }
 
-    // NEW: View functions for active members tracking
     function getActiveMemberCount() external view returns (uint32) {
         return uint32(membersWithPositiveReputation.length);
     }

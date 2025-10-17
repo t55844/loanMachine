@@ -95,7 +95,7 @@ dataSources:
         - name: ReputationSystem
           file: ReputationSystem\ReputationSystem.json
       eventHandlers:
-        - event: MemberToWalletVinculation(indexed uint32,indexed address,uint256)
+        - event: MemberToWalletVinculation(indexed uint32,indexed address,address[],uint256)
           handler: handleMemberToWalletVinculation
         - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
           handler: handleReputationChanged

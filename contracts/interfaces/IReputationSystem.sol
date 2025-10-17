@@ -16,7 +16,7 @@ interface IReputationSystem {
     
 
     // Events
-    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, uint256 timestamp);
+    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet,address[] walletVinculated, uint256 timestamp);
     event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
     event AuthorizedCallerUpdated(address indexed caller, bool authorized);
     event ElectionOpened(uint32 indexed electionId, uint32 indexed candidateId, uint256 startTime, uint256 endTime);

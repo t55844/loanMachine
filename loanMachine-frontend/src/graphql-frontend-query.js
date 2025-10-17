@@ -336,17 +336,21 @@ export async function fetchWalletMember(walletAddress) {
 
 
 export async function fetchCompleteMemberData(walletAddress, memberId = null) {
-  // If memberId is not provided, first get it from the wallet
+  // If memberId is not provided, find it from MemberToWalletVinculationEvent
   let targetMemberId = memberId;
   
   if (!targetMemberId) {
     const memberQuery = `
       query GetWalletMember($wallet: Bytes!) {
-        walletVinculateds(where: { wallet: $wallet }, first: 1) {
+        memberToWalletVinculationEvents(
+          where: { wallet: $wallet }
+          orderBy: blockTimestamp
+          orderDirection: desc
+          first: 1
+        ) {
           memberId
-          vinculationEvent {
-            blockTimestamp
-          }
+          walletVinculated
+          blockTimestamp
         }
       }
     `;
@@ -356,114 +360,79 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
         wallet: walletAddress.toLowerCase(),
       });
 
-      const walletVinculated = memberData.walletVinculateds?.[0];
-      if (!walletVinculated) return null;
+      const memberEvent = memberData.memberToWalletVinculationEvents?.[0];
+      if (!memberEvent) return null;
       
-      targetMemberId = walletVinculated.memberId;
+      targetMemberId = memberEvent.memberId;
     } catch (error) {
       console.error("Error fetching wallet member:", error);
       throw error;
     }
   }
 
-  // Now fetch complete member data including reputation and all wallets
+  // Fetch all data in one query
   const completeQuery = `
-    query GetCompleteMemberData($wallet: Bytes!, $memberId: Int!) {
-      # Get the specific wallet details
-      specificWallet: walletVinculateds(where: { wallet: $wallet }, first: 1) {
-        id
-        memberId
+    query GetCompleteMemberData($memberId: Int!, $wallet: Bytes!) {
+      # Get all wallet vinculations for this member
+      memberWalletEvents: memberToWalletVinculationEvents(
+        where: { memberId: $memberId }
+        orderBy: blockTimestamp
+        orderDirection: desc
+      ) {
         wallet
-        walletInfo
-        vinculationEvent {
-          id
-          timestamp
-          blockTimestamp
-          transactionHash
-        }
+        walletVinculated
+        blockTimestamp
       }
       
-      # Get all wallets for this member
-      allMemberWallets: walletVinculateds(where: { memberId: $memberId }) {
-        id
-        wallet
-        walletInfo
-        vinculationEvent {
-          timestamp
-          blockTimestamp
-        }
-      }
-      
-      # Get latest reputation for this member
+      # Get latest reputation
       reputation: reputationChangedEvents(
         where: { memberId: $memberId }
         orderBy: timestamp
         orderDirection: desc
         first: 1
       ) {
-        memberId
         newReputation
         points
         increase
         timestamp
       }
       
-      # Get member's vote history count
-      voteHistory: voteCastEvents(where: { memberId: $memberId }) {
+      # Get vote count
+      voteCount: voteCastEvents(where: { memberId: $memberId }) {
         id
-        electionId
-        candidateId
-        voteWeight
       }
       
-      # Get loan requisitions by this wallet
+      # Get loan requisitions
       loanRequisitions: loanRequisitionCreatedEvents(where: { borrower: $wallet }) {
-        id
-        requisitionId
         amount
-        parcelsCount
-        blockTimestamp
       }
       
-      # Get donation history for this wallet
+      # Get donations
       donations: donatedEvents(where: { donor: $wallet }) {
-        id
         amount
-        totalDonation
-        blockTimestamp
       }
     }
   `;
 
   try {
-    const completeData = await client.request(completeQuery, {
+    const data = await client.request(completeQuery, {
       wallet: walletAddress.toLowerCase(),
       memberId: targetMemberId
     });
 
-    // Process and merge the data
-    const specificWallet = completeData.specificWallet?.[0];
-    const allWallets = completeData.allMemberWallets || [];
-    const latestReputation = completeData.reputation?.[0];
-    const voteHistory = completeData.voteHistory || [];
-    const loanRequisitions = completeData.loanRequisitions || [];
-    const donations = completeData.donations || [];
-
-    if (!specificWallet) return null;
+    const latestWalletEvent = data.memberWalletEvents?.[0];
+    if (!latestWalletEvent) return null;
 
     return {
       memberId: targetMemberId,
-      wallets: allWallets.map(w => w.wallet),
-      currentReputation: latestReputation?.newReputation || 0,
-      reputationHistory: completeData.reputation,
-      voteCount: voteHistory.length,
-      totalVoteWeight: voteHistory.reduce((sum, vote) => sum + vote.voteWeight, 0),
-      loanRequisitionCount: loanRequisitions.length,
-      totalLoansRequested: loanRequisitions.reduce((sum, loan) => sum + parseInt(loan.amount), 0),
-      donationCount: donations.length,
-      totalDonated: donations.reduce((sum, donation) => sum + parseInt(donation.amount), 0),
-      walletDetails: allWallets,
-      isModerator: false,
+      wallets: latestWalletEvent.walletVinculated || [],
+      currentReputation: data.reputation?.[0]?.newReputation || 0,
+      voteCount: data.voteCount?.length || 0,
+      loanRequisitionCount: data.loanRequisitions?.length || 0,
+      totalLoansRequested: data.loanRequisitions?.reduce((sum, loan) => sum + parseInt(loan.amount), 0) || 0,
+      donationCount: data.donations?.length || 0,
+      totalDonated: data.donations?.reduce((sum, donation) => sum + parseInt(donation.amount), 0) || 0,
+      lastActivity: latestWalletEvent.blockTimestamp,
       lastUpdated: new Date().toISOString()
     };
   } catch (error) {
