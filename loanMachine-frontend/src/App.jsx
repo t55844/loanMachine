@@ -10,10 +10,11 @@ import SideMenu from "./siteStrcture/SideMenu";
 import "./App.css";
 import WalletVerificationBanner from "./siteStrcture/WalletVerificationBanner";
 import Toast from "./handlers/Toast";
+import ElectionManagement from "./electionModeration/ElectionManagement";
 
 export default function App() {
   const [account, setAccount] = useState(null);
-  const { account: web3Account, contract, loading } = useWeb3();
+  const { account: web3Account, contract, loading, memberId } = useWeb3();
 
   // Use the web3 account if available, otherwise use the local state
   const currentAccount = web3Account || account;
@@ -35,9 +36,13 @@ export default function App() {
         <ContractOverview />
         <LoanRequisitionBlock />
 
-        {/* Remove these from main content since they're now in the side menu */}
-        {/* <VinculateMember /> */}
-        {/* <UserStatus /> */}
+          
+      {/* Election Management with Tabs */}
+        <ElectionManagement 
+          contract={contract}
+          currentAccount={currentAccount}
+          memberId={memberId}
+        />
       </div>
     </div>
   );

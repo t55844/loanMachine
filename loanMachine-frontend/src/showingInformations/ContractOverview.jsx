@@ -30,11 +30,12 @@ export default function ContractOverview() {
         // Get last transactions
         const rawTxs = await fetchLastTransactions({ limit: 5 });
         if (!mounted) return;
-console.log(rawTxs)
         const mapped = rawTxs.map((tx) => ({
-          wallet: tx.donor||tx.donor?.id || tx.borrower?.id || "unknown",
-          amount: ethers.utils.formatUnits(tx.amount ?? "0", 6), // USDT (6 decimals)
-          time: new Date(Number(tx.timestamp) * 1000).toLocaleString(),
+          wallet: (typeof tx.donor === 'string' ? tx.donor : tx.donor?.id) || 
+                  (typeof tx.borrower === 'string' ? tx.borrower : tx.borrower?.id) || 
+                  "unknown",
+          amount: ethers.utils.formatUnits(tx.amount ?? "0", 6),
+          time: tx.timestamp,
           type: tx.type
         }));
 

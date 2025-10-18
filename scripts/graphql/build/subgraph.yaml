@@ -33,6 +33,7 @@ dataSources:
         - ParcelPaidEvent
         - LenderRepaidEvent
         - LoanCompletedEvent
+        - WithdrawnEvent
       abis:
         - name: LoanMachine
           file: LoanMachine\LoanMachine.json
@@ -70,6 +71,8 @@ dataSources:
           handler: handleLenderRepaid
         - event: LoanCompleted(indexed uint256)
           handler: handleLoanCompleted
+        - event: Withdrawn(indexed address,uint256,uint256)
+          handler: handleWithdrawn
   - kind: ethereum/contract
     name: ReputationSystem
     network: localhost

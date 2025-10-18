@@ -17,7 +17,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
   });
 
   const { showToast, showSuccess, showError, handleContractError } = useToast();
-  const quickPercentages = [1, 3, 5, 10, 15, 20, 25, 33, 50, 75, 100];
+  const quickPercentages = [10, 15, 20, 25, 33, 50, 75, 100];
 
   useEffect(() => {
     if (contract && account) {

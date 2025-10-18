@@ -33,6 +33,7 @@ interface ILoanMachine {
 
 
     // Events
+    event Withdrawn(address indexed donor,uint256 amount,uint256 donations);
     event Donated(address indexed donor, uint256 amount, uint256 totalDonation);
     event Borrowed(address indexed borrower, uint256 amount, uint256 totalBorrowing);
     event Repaid(address indexed borrower, uint256 amount, uint256 remainingDebt);

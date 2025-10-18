@@ -1,4 +1,3 @@
-// VinculateMember.jsx
 import { useState, useEffect } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
@@ -8,7 +7,6 @@ function VinculateMember() {
   const [memberId, setMemberId] = useState("");
   const [loading, setLoading] = useState(false);
   const [memberData, setMemberData] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
   const { account, contract } = useWeb3();
@@ -20,15 +18,12 @@ function VinculateMember() {
 
   async function checkExistingVinculation() {
     if (!account) return;
-    setRefreshing(true);
     try {
       const data = await fetchCompleteMemberData(account);
       setMemberData(data);
     } catch (error) {
       console.error("Error checking vinculation:", error);
       setMemberData(null);
-    } finally {
-      setRefreshing(false);
     }
   }
 
@@ -138,23 +133,6 @@ function VinculateMember() {
               }
             </div>
           </div>
-
-          <button 
-            onClick={checkExistingVinculation} 
-            className="refresh-button" 
-            disabled={refreshing}
-            style={{
-              width: '100%',
-              padding: '10px',
-              background: refreshing ? 'var(--bg-secondary)' : 'var(--accent-blue)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: refreshing ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {refreshing ? "Refreshing..." : "Refresh Status"}
-          </button>
         </div>
       </div>
     );

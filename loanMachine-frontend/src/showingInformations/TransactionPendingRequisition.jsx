@@ -218,7 +218,7 @@ export default function TransactionPendingRequisition({
 
   const handleCustomPercentageCover = async () => {
     const percentage = parseInt(customPercentage);
-    if (percentage >= 1 && percentage <= 100) {
+    if (percentage >= 10 && percentage <= 100) {
       await handleCoverLoan(requisition.id, percentage);
     }
   };
@@ -281,11 +281,11 @@ export default function TransactionPendingRequisition({
       </div>
 
       <div className="custom-percentage">
-        <p>Or enter custom percentage (1-100):</p>
+        <p>Or enter custom percentage (10-100):</p>
         <div className="custom-input-group">
           <input
             type="number"
-            min="1"
+            min="10"
             max="100"
             value={customPercentage}
             onChange={(e) => setCustomPercentage(e.target.value)}

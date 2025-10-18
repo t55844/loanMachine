@@ -113,6 +113,12 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
         amount
         blockTimestamp
       }
+      withdrawnEvents(first: $limit, orderBy: blockTimestamp, orderDirection: desc) {
+        id
+        donor
+        amount
+        blockTimestamp
+      }
     }
   `;
 
@@ -123,6 +129,8 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
       ...(data?.donatedEvents || []).map((tx) => ({ ...tx, type: "donation", timestamp: tx.blockTimestamp })),
       ...(data?.borrowedEvents || []).map((tx) => ({ ...tx, type: "borrow", timestamp: tx.blockTimestamp, borrower: { id: tx.borrower } })),
       ...(data?.repaidEvents || []).map((tx) => ({ ...tx, type: "repayment", timestamp: tx.blockTimestamp, borrower: { id: tx.borrower } })),
+      ...(data?.withdrawnEvents || []).map((tx) => ({ ...tx, type: "withdrawn", timestamp: tx.blockTimestamp, donor: { id: tx.donor } })),
+
     ]
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
       .slice(0, limit);

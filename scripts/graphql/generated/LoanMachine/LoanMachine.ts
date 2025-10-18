@@ -450,6 +450,32 @@ export class TotalDonationsUpdated__Params {
   }
 }
 
+export class Withdrawn extends ethereum.Event {
+  get params(): Withdrawn__Params {
+    return new Withdrawn__Params(this);
+  }
+}
+
+export class Withdrawn__Params {
+  _event: Withdrawn;
+
+  constructor(event: Withdrawn) {
+    this._event = event;
+  }
+
+  get donor(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get amount(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get donations(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
 export class LoanMachine__getActiveLoansResultActiveLoansStruct extends ethereum.Tuple {
   get walletAddress(): Address {
     return this[0].toAddress();
@@ -1502,6 +1528,29 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  getWithdrawableBalance(user: Address): BigInt {
+    let result = super.call(
+      "getWithdrawableBalance",
+      "getWithdrawableBalance(address):(uint256)",
+      [ethereum.Value.fromAddress(user)],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_getWithdrawableBalance(user: Address): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "getWithdrawableBalance",
+      "getWithdrawableBalance(address):(uint256)",
+      [ethereum.Value.fromAddress(user)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   hasActiveDebt(borrower: Address): boolean {
     let result = super.call("hasActiveDebt", "hasActiveDebt(address):(bool)", [
       ethereum.Value.fromAddress(borrower),
@@ -2028,6 +2077,40 @@ export class VinculationMemberToWalletCall__Outputs {
   _call: VinculationMemberToWalletCall;
 
   constructor(call: VinculationMemberToWalletCall) {
+    this._call = call;
+  }
+}
+
+export class WithdrawCall extends ethereum.Call {
+  get inputs(): WithdrawCall__Inputs {
+    return new WithdrawCall__Inputs(this);
+  }
+
+  get outputs(): WithdrawCall__Outputs {
+    return new WithdrawCall__Outputs(this);
+  }
+}
+
+export class WithdrawCall__Inputs {
+  _call: WithdrawCall;
+
+  constructor(call: WithdrawCall) {
+    this._call = call;
+  }
+
+  get amount(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get memberId(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class WithdrawCall__Outputs {
+  _call: WithdrawCall;
+
+  constructor(call: WithdrawCall) {
     this._call = call;
   }
 }

@@ -3,7 +3,7 @@ npx hardhat clean
 npx hardhat compile
 npx hardhat node --hostname 127.0.0.1
 npx hardhat run scripts/deploy.js --network localhost 
-0x5FbDB2315678afecb367f032d93F642f64180aa3
+
 
 npx hardhat run scripts/interact.js --network localhost 
 
@@ -59,11 +59,11 @@ sistema de monitoramento de pagamento
 
 sistema de eleição de mdoerador/es
 
-exposição dados do usuario 
+exposição dados do usuario last activit in walletStatus
 
 menos de 10% não contabiliza
 
-alterar o formato de timestamp para ter o milisegundos
+page reload quando vinculado no amarelo
 
 --------------------------------------------------------------
 

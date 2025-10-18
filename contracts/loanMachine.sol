@@ -66,6 +66,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error WalletAlreadyVinculated();
     error ParcelAlreadyPaid();
     error MinimumPercentageCover();
+    error InsufficientWithdrawableBalance(); // New error for withdrawal
 
     // Structs
     struct LoanRequisition {    
@@ -138,6 +139,53 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         usdtToken = _usdtToken;
         reputationSystem = ReputationSystem(_reputationSystem);
         debtStorage.initialize();
+    }
+    
+    /**
+     * @dev Withdraw function - allows users to withdraw only from donations not in cover
+     */
+    function withdraw(uint256 amount, uint32 memberId) 
+        external 
+        validMember(memberId, msg.sender)
+        validAmount(amount)
+        nonReentrant 
+    {
+        // Auto-trigger monthly update if needed
+        debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
+
+        uint256 withdrawableBalance = getWithdrawableBalance(msg.sender);
+        
+        if (amount > withdrawableBalance) {
+            revert InsufficientWithdrawableBalance();
+        }
+
+        // Update state
+        donations[msg.sender] -= amount;
+        totalDonations -= amount;
+        availableBalance -= amount;
+
+        // Transfer USDT to user
+        bool success = IERC20(usdtToken).transfer(msg.sender, amount);
+        if (!success) revert TokenTransferFailed();
+
+        emit Withdrawn(msg.sender, amount, donations[msg.sender]);
+        emit TotalDonationsUpdated(totalDonations);
+        emit AvailableBalanceUpdated(availableBalance);
+    }
+
+    /**
+     * @dev Get the withdrawable balance for a user (donations not in cover)
+     */
+    function getWithdrawableBalance(address user) public view returns (uint256) {
+        // Withdrawable balance is the minimum between available donations and donations not locked in coverage
+        uint256 availableDonations = donations[user];
+        uint256 lockedInCoverage = donationsInCoverage[user];
+        
+        // If user has more donations than what's locked in coverage, they can withdraw the difference
+        if (availableDonations > lockedInCoverage) {
+            return availableDonations - lockedInCoverage;
+        }
+        return 0;
     }
     
     /**

@@ -233,3 +233,12 @@ type MonthlyUpdateTriggeredEvent @entity(immutable: true) {
   blockTimestamp: String!
   transactionHash: Bytes!
 }
+
+type WithdrawnEvent @entity(immutable: true) {
+  id: ID!
+  donor: Bytes!
+  amount: BigInt!
+  donations: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}

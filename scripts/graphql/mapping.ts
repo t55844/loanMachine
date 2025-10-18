@@ -15,7 +15,8 @@ import {
   LoanContractGenerated,
   ParcelPaid,
   LenderRepaid,
-  LoanCompleted
+  LoanCompleted,
+  Withdrawn
 } from "./generated/LoanMachine/LoanMachine"
 import {
   MemberToWalletVinculation,
@@ -62,6 +63,7 @@ import {
   DebtorAddedEvent,
   DebtorRemovedEvent,
   MonthlyUpdateTriggeredEvent,
+  WithdrawnEvent
 } from "./generated/schema"
 
 function formatTimestamp(ts: BigInt): string {
@@ -70,15 +72,18 @@ function formatTimestamp(ts: BigInt): string {
   let dayStr = dt.getUTCDate().toString()
   let monthStr = (dt.getUTCMonth() + 1).toString()
   let yearStr = dt.getUTCFullYear().toString()
+  let hourStr = dt.getUTCHours().toString()
+  let minuteStr = dt.getUTCMinutes().toString()
+  let secondStr = dt.getUTCSeconds().toString()
 
-  if (dayStr.length == 1) {
-    dayStr = "0" + dayStr
-  }
-  if (monthStr.length == 1) {
-    monthStr = "0" + monthStr
-  }
+  if (dayStr.length == 1) {dayStr = "0" + dayStr}
+  if (monthStr.length == 1) {monthStr = "0" + monthStr}
+  if (hourStr.length == 1) {hourStr = "0" + hourStr}
+  if (minuteStr.length == 1) {minuteStr = "0" + minuteStr}
+  if (secondStr.length == 1) {secondStr = "0" + secondStr}
+ 
 
-  return dayStr + "/" + monthStr + "/" + yearStr + ' ' + ms
+  return dayStr + "/" + monthStr + "/" + yearStr + " " + hourStr + ":" + minuteStr + ":" + secondStr
 }
 
 export function handleDonated(event: Donated): void {
@@ -353,6 +358,17 @@ export function handleDebtorRemoved(event: DebtorRemoved): void {
 export function handleMonthlyUpdateTriggered(event: MonthlyUpdateTriggered): void {
   let entity = new MonthlyUpdateTriggeredEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
   entity.timestamp = formatTimestamp(event.params.timestamp)
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+
+export function handleWithdrawn(event: Withdrawn): void {
+  let entity = new WithdrawnEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.donor = event.params.donor
+  entity.amount = event.params.amount
+  entity.donations = event.params.donations
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()

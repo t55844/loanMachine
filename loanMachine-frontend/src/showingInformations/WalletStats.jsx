@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchUserData } from "../graphql-frontend-query";
 import { useWeb3 } from "../Web3Context";
-import Donate from "../loan-interaction/Donate";
+import DonationWithdrawTabs from "../showingInformations/DonationWithdrawTabs";
 import { ethers } from "ethers";
 
 async function fetchUserStats(userAddress) {
@@ -13,9 +13,9 @@ async function fetchUserStats(userAddress) {
   const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
   
   const lastActivity = userData.lastActivity !== "0" 
-    ? new Date(parseInt(userData.lastActivity) * 1000).toLocaleString()
+    ? userData.lastActivity
     : "Never";
-  
+  console.log(userData)
   const canBorrowNow = parseFloat(currentDebt) === 0;
   
   return {
@@ -150,8 +150,8 @@ export default function UserStatus() {
         {loading ? "Refreshing..." : "Refresh Data"}
       </button>
 
-      {/* Donate Component */}
-      <Donate />
+      {/* Replace Donate with Tabbed Interface */}
+      <DonationWithdrawTabs />
     </div>
   );
 }
