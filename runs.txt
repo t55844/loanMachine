@@ -51,30 +51,19 @@ AuthorizedCallerUpdated emiter is needed
 
 sistema para que na hora de criar o smartcontract, só permitir se tiver no minimo tres pessoase as tres fizerem uma doação
 
-melhorar o sistema de ganho de reputação quando cobrir um emprestimo (ele aumenta conforme eu peço, então se for cobrir 30
--em uma vez aumenta 3, o mesmo 30 mas em tres vezes aumnenta 9, a cobertura foi a mesma), tambem teve problemadas das pessoas que
--cobriram um emprestimo, não para o Graphql
-
 sistema de monitoramento de pagamento
-
-sistema de eleição de mdoerador/es
 
 exposição dados do usuario last activit in walletStatus
 
-menos de 10% não contabiliza
+quando a eleição se encerra a data esta algumas horas no futuro
 
-page reload quando vinculado no amarelo
+os erros estão em hash
+
+colocar um condicionante que só permite iniciar uma eleição com dois candidatos passados
 
 --------------------------------------------------------------
 
 componente para mostrar error de blockchain --feito falta estressar 
-
-adicionar o elemento de indentificação numero de membro da comunidade no codigo-- refinar apenas
-
-sisitema de reputação baseado na seguinte logica: o usuario que pear emprestimo e pagar em dia ganha ponto, se não perde ponto, o usuario
--que cobrir emprestimos dos outros ganha ponto-- refinar apenas
-
-erro no pagamento --> saldo insuficiente -- corrigido
 
 eth_getBlockByNumber (43)
 eth_chainId

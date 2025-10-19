@@ -254,17 +254,17 @@ export async function fetchUserDonations(userAddress) {
 export async function fetchUserData(userAddress) {
   const query = `
     query GetUserData($userAddress: Bytes!) {
-      donatedEvents(where: { donor: $userAddress }) {
+      donatedEvents(where: { donor: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
         id
         amount
         blockTimestamp
       }
-      borrowedEvents(where: { borrower: $userAddress }) {
+      borrowedEvents(where: { borrower: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
         id
         amount
         blockTimestamp
       }
-      repaidEvents(where: { borrower: $userAddress }) {
+      repaidEvents(where: { borrower: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
         id
         amount
         blockTimestamp
@@ -445,6 +445,37 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
     };
   } catch (error) {
     console.error("Error fetching complete member data:", error);
+    throw error;
+  }
+}
+
+
+export async function fetchLastElection() {
+  const query = `
+    query LastElection {
+      electionClosedEvents(orderDirection: desc, orderBy: blockTimestamp, first: 1) {
+        electionId
+        winnerId
+        winningVotes
+        blockTimestamp
+      }
+    }
+  `;
+
+  try {
+    const data = await client.request(query);
+    const lastElection = data.electionClosedEvents?.[0];
+    
+    if (!lastElection) return null;
+
+    return {
+      electionId: lastElection.electionId,
+      winnerId: lastElection.winnerId,
+      winningVotes: lastElection.winningVotes,
+      blockTimestamp: lastElection.blockTimestamp
+    };
+  } catch (error) {
+    console.error("Error fetching last election:", error);
     throw error;
   }
 }

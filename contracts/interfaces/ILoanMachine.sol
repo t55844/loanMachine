@@ -29,6 +29,7 @@ interface ILoanMachine {
         uint32 parcelsPending;
         uint256 parcelsValues;
         uint256[] paymentDates;
+        uint256[] parcelsAmounts;
     }
 
 

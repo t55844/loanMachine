@@ -242,3 +242,11 @@ type WithdrawnEvent @entity(immutable: true) {
   blockTimestamp: String!
   transactionHash: Bytes!
 }
+
+type NewModeratorEvent @entity(immutable: true) {
+  id: ID!
+  memberId: Int!
+  electionId: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}

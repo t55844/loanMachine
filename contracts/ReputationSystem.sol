@@ -144,11 +144,14 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         return memberReputation[memberId];
     }
 
-    function openElection(uint32 candidateId) external override hasActiveElection {
+    function openElection(uint32 candidateId,uint32 oponent) external override hasActiveElection {
+        if(memberToWallet[candidateId] == address(0) || memberToWallet[oponent] == address(0) ) revert InvalidCandidate();
+
         ElectionStatus memory newElection;
         newElection.id = electionCounter++;
-        newElection.candidates = new uint32[](1);
+        newElection.candidates = new uint32[](2);
         newElection.candidates[0] = candidateId;
+        newElection.candidates[1] = oponent;
         newElection.startTime = block.timestamp;
         newElection.endTime = block.timestamp + 30 days;
         newElection.active = true;
@@ -359,6 +362,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
             election.winningVotes = firstPlaceVotes;
             isModerator[firstPlaceId] = true;
             
+            emit NewModerator(election.winnerId,electionId);
             emit UnbeatableMajorityReached(electionId, firstPlaceId, firstPlaceVotes);
             emit ElectionClosed(electionId, firstPlaceId, firstPlaceVotes);
         }

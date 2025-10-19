@@ -1,12 +1,13 @@
-// Web3Context.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
-// Import your contract ABI (you'll need to adjust this path)
+// Import your contract ABIs
 import LoanMachineABI from '../../artifacts/contracts/LoanMachine.sol/LoanMachine.json';
+import ReputationSystemABI from '../../artifacts/contracts/ReputationSystem.sol/ReputationSystem.json';
 import { fetchWalletMember } from './graphql-frontend-query';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+const REPUTATION_CONTRACT_ADDRESS = import.meta.env.VITE_REPUTATION_CONTRACT_ADDRESS;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
 const VITE_SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
@@ -31,76 +32,78 @@ const Web3Context = createContext();
 export function Web3Provider({ children }) {
   const [account, setAccount] = useState(null);
   const [contract, setContract] = useState(null);
+  const [reputationContract, setReputationContract] = useState(null);
   const [usdtContract, setUsdtContract] = useState(null);
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chainId, setChainId] = useState(null);
   const [member, setMember] = useState(null);
+
   // ✅ ADICIONE ESTA FUNÇÃO: Function to fetch member data
   const fetchMemberData = async (walletAddress) => {
-  try {
-    
-    let memberData;
-    let hasVinculation = true;
-    
     try {
-      // Tente buscar do subgraph
-      memberData = await fetchWalletMember(walletAddress);
       
-      // Verifique se o member foi encontrado
-      if (!memberData || (!memberData.id && !memberData.memberId)) {
-        console.warn('⚠️ Wallet not vinculated to any member');
+      let memberData;
+      let hasVinculation = true;
+      
+      try {
+        // Tente buscar do subgraph
+        memberData = await fetchWalletMember(walletAddress);
+        
+        // Verifique se o member foi encontrado
+        if (!memberData || (!memberData.id && !memberData.memberId)) {
+          console.warn('⚠️ Wallet not vinculated to any member');
+          hasVinculation = false;
+          memberData = null;
+        }
+        
+      } catch (subgraphError) {
+        console.warn('❌ Subgraph query failed:', subgraphError);
         hasVinculation = false;
         memberData = null;
       }
       
-    } catch (subgraphError) {
-      console.warn('❌ Subgraph query failed:', subgraphError);
-      hasVinculation = false;
-      memberData = null;
-    }
-    
-    // Se não tem vinculação, setar member como null mas com flag de erro
-    if (!hasVinculation || !memberData) {
-      const noMemberData = {
+      // Se não tem vinculação, setar member como null mas com flag de erro
+      if (!hasVinculation || !memberData) {
+        const noMemberData = {
+          id: null,
+          memberId: null,
+          walletAddress: walletAddress,
+          hasVinculation: false,
+          error: 'Wallet not vinculated to any member'
+        };
+        setMember(noMemberData);
+        return noMemberData;
+      }
+      
+      // Se tem vinculação, processar os dados
+      const finalMemberData = {
+        id: memberData.memberId || memberData.id,
+        memberId: memberData.memberId || memberData.id,
+        walletAddress: memberData.wallet?.id || walletAddress,
+        name: memberData.name || `Member ${memberData.memberId || memberData.id}`,
+        hasVinculation: true,
+        ...memberData
+      };
+      
+      setMember(finalMemberData);
+      return finalMemberData;
+      
+    } catch (err) {
+      console.error('❌ Error in fetchMemberData:', err);
+      
+      const errorMemberData = {
         id: null,
         memberId: null,
         walletAddress: walletAddress,
         hasVinculation: false,
-        error: 'Wallet not vinculated to any member'
+        error: 'Failed to check member vinculation'
       };
-      setMember(noMemberData);
-      return noMemberData;
+      setMember(errorMemberData);
+      return errorMemberData;
     }
-    
-    // Se tem vinculação, processar os dados
-    const finalMemberData = {
-      id: memberData.memberId || memberData.id,
-      memberId: memberData.memberId || memberData.id,
-      walletAddress: memberData.wallet?.id || walletAddress,
-      name: memberData.name || `Member ${memberData.memberId || memberData.id}`,
-      hasVinculation: true,
-      ...memberData
-    };
-    
-    setMember(finalMemberData);
-    return finalMemberData;
-    
-  } catch (err) {
-    console.error('❌ Error in fetchMemberData:', err);
-    
-    const errorMemberData = {
-      id: null,
-      memberId: null,
-      walletAddress: walletAddress,
-      hasVinculation: false,
-      error: 'Failed to check member vinculation'
-    };
-    setMember(errorMemberData);
-    return errorMemberData;
-  }
-};
+  };
 
   useEffect(() => {
     connectToLocalNode();
@@ -125,13 +128,24 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[3];
+      const defaultAccount = accounts[2];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);
       
       // Create LoanMachine contract instance
       const loanContract = new ethers.Contract(CONTRACT_ADDRESS, LoanMachineABI.abi, signer);
+      
+      // ✅ ADD REPUTATION SYSTEM CONTRACT
+      if (!REPUTATION_CONTRACT_ADDRESS) {
+        throw new Error('Reputation contract address not configured. Check VITE_REPUTATION_CONTRACT_ADDRESS env variable');
+      }
+      
+      const reputationSystemContract = new ethers.Contract(
+        REPUTATION_CONTRACT_ADDRESS, 
+        ReputationSystemABI.abi, 
+        signer
+      );
       
       // Use MockUSDT address
       const usdtAddress = MOCK_USDT_ADDRESS;
@@ -153,6 +167,7 @@ export function Web3Provider({ children }) {
       
       setProvider(localProvider);
       setContract(loanContract);
+      setReputationContract(reputationSystemContract); // ✅ SET REPUTATION CONTRACT
       setUsdtContract(usdtTokenContract);
       setAccount(defaultAccount);
       setError('');
@@ -176,12 +191,18 @@ export function Web3Provider({ children }) {
         const newAccount = accounts[accountIndex];
         const newSigner = provider.getSigner(newAccount);
         
-        // Update both contracts with new signer
+        // Update all contracts with new signer
         const newContract = new ethers.Contract(CONTRACT_ADDRESS, LoanMachineABI.abi, newSigner);
+        const newReputationContract = new ethers.Contract(
+          REPUTATION_CONTRACT_ADDRESS, 
+          ReputationSystemABI.abi, 
+          newSigner
+        );
         const newUsdtContract = new ethers.Contract(usdtContract.address, USDT_ABI, newSigner);
         
         setAccount(newAccount);
         setContract(newContract);
+        setReputationContract(newReputationContract); // ✅ UPDATE REPUTATION CONTRACT
         setUsdtContract(newUsdtContract);
         
         // Fetch member data for the new account
@@ -244,9 +265,45 @@ export function Web3Provider({ children }) {
     return null;
   };
 
+  // ✅ ADD HELPER TO GET MEMBER ID FROM REPUTATION CONTRACT
+  const getMemberIdFromReputation = async (walletAddress = null) => {
+    if (!reputationContract) throw new Error('Reputation contract not initialized');
+    const address = walletAddress || account;
+    try {
+      const memberId = await reputationContract.getMemberId(address);
+      return memberId;
+    } catch (err) {
+      console.error('Error getting member ID from reputation contract:', err);
+      return 0;
+    }
+  };
+
+  // ✅ ADD HELPER TO GET REPUTATION SCORE
+  const getReputation = async (memberId = null) => {
+    if (!reputationContract) throw new Error('Reputation contract not initialized');
+    
+    let targetMemberId = memberId;
+    if (!targetMemberId && member?.memberId) {
+      targetMemberId = member.memberId;
+    }
+    
+    if (!targetMemberId) {
+      throw new Error('No member ID provided');
+    }
+    
+    try {
+      const reputation = await reputationContract.getReputation(targetMemberId);
+      return reputation;
+    } catch (err) {
+      console.error('Error getting reputation:', err);
+      return 0;
+    }
+  };
+
   const value = {
     account,
     contract,
+    reputationContract, // ✅ EXPORT REPUTATION CONTRACT
     usdtContract,
     provider,
     loading,
@@ -260,7 +317,10 @@ export function Web3Provider({ children }) {
     getUSDTBalance,
     approveUSDT,
     getUSDTInfo,
-    needsUSDTApproval
+    needsUSDTApproval,
+    // ✅ REPUTATION HELPER FUNCTIONS
+    getMemberIdFromReputation,
+    getReputation
   };
 
   return (

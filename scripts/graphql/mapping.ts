@@ -26,7 +26,8 @@ import {
   CandidateAdded,
   VoteCast,
   ElectionClosed,
-  UnbeatableMajorityReached
+  UnbeatableMajorityReached,
+  NewModerator
 } from "./generated/ReputationSystem/ReputationSystem"
 import {
   BorrowerStatusUpdated,
@@ -63,7 +64,8 @@ import {
   DebtorAddedEvent,
   DebtorRemovedEvent,
   MonthlyUpdateTriggeredEvent,
-  WithdrawnEvent
+  WithdrawnEvent,
+  NewModeratorEvent  
 } from "./generated/schema"
 
 function formatTimestamp(ts: BigInt): string {
@@ -369,6 +371,15 @@ export function handleWithdrawn(event: Withdrawn): void {
   entity.donor = event.params.donor
   entity.amount = event.params.amount
   entity.donations = event.params.donations
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+export function handleNewModerator(event: NewModerator): void {
+  let entity = new NewModeratorEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.memberId = event.params.memberId.toI32()
+  entity.electionId = event.params.electionId.toI32()
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()

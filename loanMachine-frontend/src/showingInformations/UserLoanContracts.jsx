@@ -462,14 +462,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
             ))}
           </div>
         )}
-
-        <button 
-          onClick={loadUserActiveLoans}
-          className="wallet-button refresh-button"
-          style={{ marginTop: '16px', width: '100%' }}
-        >
-          Refresh Contracts
-        </button>
       </div>
 
       {/* Gas Cost Modal for repayment */}

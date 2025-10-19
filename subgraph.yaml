@@ -93,6 +93,7 @@ dataSources:
         - VoteCastEvent
         - ElectionClosedEvent
         - UnbeatableMajorityReachedEvent
+        - NewModeratorEvent  
       abis:
         - name: ReputationSystem
           file: ./scripts/graphql/abis/ReputationSystem.json
@@ -113,6 +114,8 @@ dataSources:
           handler: handleElectionClosed
         - event: UnbeatableMajorityReached(indexed uint32,indexed uint32,int32)
           handler: handleUnbeatableMajorityReached
+        - event: NewModerator(indexed uint32,uint32)
+          handler: handleNewModerator
   - kind: ethereum/contract
     name: DebtTracker
     network: localhost

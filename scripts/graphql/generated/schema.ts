@@ -2971,3 +2971,99 @@ export class WithdrawnEvent extends Entity {
     this.set("transactionHash", Value.fromBytes(value));
   }
 }
+
+export class NewModeratorEvent extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save NewModeratorEvent entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type NewModeratorEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("NewModeratorEvent", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): NewModeratorEvent | null {
+    return changetype<NewModeratorEvent | null>(
+      store.get_in_block("NewModeratorEvent", id),
+    );
+  }
+
+  static load(id: string): NewModeratorEvent | null {
+    return changetype<NewModeratorEvent | null>(
+      store.get("NewModeratorEvent", id),
+    );
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get memberId(): i32 {
+    let value = this.get("memberId");
+    if (!value || value.kind == ValueKind.NULL) {
+      return 0;
+    } else {
+      return value.toI32();
+    }
+  }
+
+  set memberId(value: i32) {
+    this.set("memberId", Value.fromI32(value));
+  }
+
+  get electionId(): i32 {
+    let value = this.get("electionId");
+    if (!value || value.kind == ValueKind.NULL) {
+      return 0;
+    } else {
+      return value.toI32();
+    }
+  }
+
+  set electionId(value: i32) {
+    this.set("electionId", Value.fromI32(value));
+  }
+
+  get blockTimestamp(): string {
+    let value = this.get("blockTimestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set blockTimestamp(value: string) {
+    this.set("blockTimestamp", Value.fromString(value));
+  }
+
+  get transactionHash(): Bytes {
+    let value = this.get("transactionHash");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set transactionHash(value: Bytes) {
+    this.set("transactionHash", Value.fromBytes(value));
+  }
+}

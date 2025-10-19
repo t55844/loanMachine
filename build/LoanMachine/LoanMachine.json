@@ -726,6 +726,11 @@
             "internalType": "uint256[]",
             "name": "paymentDates",
             "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "parcelsAmounts",
+            "type": "uint256[]"
           }
         ],
         "internalType": "struct ILoanMachine.LoanContract[]",
@@ -1027,6 +1032,11 @@
           {
             "internalType": "uint256[]",
             "name": "paymentDates",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "parcelsAmounts",
             "type": "uint256[]"
           }
         ],

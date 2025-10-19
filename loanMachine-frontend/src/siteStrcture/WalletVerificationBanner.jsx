@@ -13,7 +13,6 @@ export default function WalletVerificationBanner() {
     if (account) {
       checkWalletVerification();
     } else {
-      // Reset when no account connected
       setIsVerified(null);
     }
   }, [account]);
@@ -26,7 +25,31 @@ export default function WalletVerificationBanner() {
 
     try {
       const memberData = await fetchWalletMember(account);
-      setIsVerified(!!memberData); // true if member exists, false if null
+      setIsVerified(!!memberData);
+    } catch (e) {
+      console.error("Error checking wallet verification:", e);
+      setError("Failed to verify wallet");
+      setIsVerified(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRetry() {
+    if (!account) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const memberData = await fetchWalletMember(account);
+      const verified = !!memberData;
+      setIsVerified(verified);
+      
+      // Only reload if the retry was successful
+      if (verified) {
+        window.location.reload();
+      }
     } catch (e) {
       console.error("Error checking wallet verification:", e);
       setError("Failed to verify wallet");
@@ -56,7 +79,7 @@ export default function WalletVerificationBanner() {
           {error && <span className="error-small">Verification failed: {error}</span>}
         </div>
         <button 
-          onClick={checkWalletVerification} 
+          onClick={handleRetry} 
           className="retry-button"
           disabled={loading}
         >

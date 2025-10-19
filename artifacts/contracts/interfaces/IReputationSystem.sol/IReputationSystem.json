@@ -139,6 +139,25 @@
         },
         {
           "indexed": false,
+          "internalType": "uint32",
+          "name": "electionId",
+          "type": "uint32"
+        }
+      ],
+      "name": "NewModerator",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "memberId",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
           "internalType": "int32",
           "name": "points",
           "type": "int32"
@@ -501,6 +520,11 @@
         {
           "internalType": "uint32",
           "name": "candidateId",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "oponent",
           "type": "uint32"
         }
       ],

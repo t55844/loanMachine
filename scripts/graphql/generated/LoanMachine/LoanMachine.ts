@@ -504,6 +504,10 @@ export class LoanMachine__getActiveLoansResultActiveLoansStruct extends ethereum
   get paymentDates(): Array<BigInt> {
     return this[6].toBigIntArray();
   }
+
+  get parcelsAmounts(): Array<BigInt> {
+    return this[7].toBigIntArray();
+  }
 }
 
 export class LoanMachine__getActiveLoansResult {
@@ -561,6 +565,10 @@ export class LoanMachine__getLoanContractResultValue0Struct extends ethereum.Tup
 
   get paymentDates(): Array<BigInt> {
     return this[6].toBigIntArray();
+  }
+
+  get parcelsAmounts(): Array<BigInt> {
+    return this[7].toBigIntArray();
   }
 }
 
@@ -897,7 +905,7 @@ export class LoanMachine extends ethereum.SmartContract {
   getActiveLoans(borrower: Address): LoanMachine__getActiveLoansResult {
     let result = super.call(
       "getActiveLoans",
-      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[])[],uint256[])",
+      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[])[],uint256[])",
       [ethereum.Value.fromAddress(borrower)],
     );
 
@@ -912,7 +920,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getActiveLoansResult> {
     let result = super.tryCall(
       "getActiveLoans",
-      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[])[],uint256[])",
+      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[])[],uint256[])",
       [ethereum.Value.fromAddress(borrower)],
     );
     if (result.reverted) {
@@ -1261,7 +1269,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): LoanMachine__getLoanContractResultValue0Struct {
     let result = super.call(
       "getLoanContract",
-      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[]))",
+      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[]))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
 
@@ -1275,7 +1283,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getLoanContractResultValue0Struct> {
     let result = super.tryCall(
       "getLoanContract",
-      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[]))",
+      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[]))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
     if (result.reverted) {

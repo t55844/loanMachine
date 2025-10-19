@@ -140,6 +140,28 @@ export class MemberToWalletVinculation__Params {
   }
 }
 
+export class NewModerator extends ethereum.Event {
+  get params(): NewModerator__Params {
+    return new NewModerator__Params(this);
+  }
+}
+
+export class NewModerator__Params {
+  _event: NewModerator;
+
+  constructor(event: NewModerator) {
+    this._event = event;
+  }
+
+  get memberId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get electionId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
 export class OwnershipTransferred extends ethereum.Event {
   get params(): OwnershipTransferred__Params {
     return new OwnershipTransferred__Params(this);
@@ -1192,6 +1214,10 @@ export class OpenElectionCall__Inputs {
 
   get candidateId(): BigInt {
     return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get oponent(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
   }
 }
 

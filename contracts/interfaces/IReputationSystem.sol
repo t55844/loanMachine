@@ -24,7 +24,7 @@ interface IReputationSystem {
     event VoteCast(uint32 indexed electionId, uint32 indexed candidateId, uint32 indexed memberId, int32 voteWeight);
     event ElectionClosed(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
     event UnbeatableMajorityReached(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
-
+    event NewModerator(uint32 indexed memberId,uint32 electionId);
 
     // Constants
     function REPUTATION_GAIN_BY_REPAYNG_DEBT() external view returns (int32);
@@ -41,7 +41,7 @@ interface IReputationSystem {
     function getReputation(uint32 memberId) external view returns (int32);
     
     // Election functions
-    function openElection(uint32 candidateId) external;
+    function openElection(uint32 candidateId, uint32 oponent) external;
     function addCandidate(uint32 electionId, uint32 candidateId) external;
     function voteForModerator(uint32 electionId, uint32 candidateId, uint32 memberId) external;
     function closeElection(uint32 electionId) external;

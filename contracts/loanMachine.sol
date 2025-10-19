@@ -373,25 +373,53 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     }
 
     function _generateLoanContract(uint256 requisitionId) internal {
-        LoanContract storage loan = loanContracts[requisitionId];
-        loan.walletAddress = loanRequisitions[requisitionId].borrower;
-        loan.requisitionId = requisitionId;
-        loan.status = ContractStatus.Active;
-        loan.parcelsCount = loanRequisitions[requisitionId].parcelsCount;
-        loan.parcelsPending = loanRequisitions[requisitionId].parcelsCount;
-        loan.parcelsValues = loanRequisitions[requisitionId].amount / loanRequisitions[requisitionId].parcelsCount;
-        
-        _generatePaymentDates(loan, loanRequisitions[requisitionId].parcelsCount);
-        
-        emit LoanContractGenerated(
-            loan.walletAddress, 
-            requisitionId, 
-            loan.status, 
-            loan.parcelsPending, 
-            loan.parcelsValues,
-            loan.paymentDates
-        );
+    LoanContract storage loan = loanContracts[requisitionId];
+    LoanRequisition storage req = loanRequisitions[requisitionId];
+
+    loan.walletAddress = req.borrower;
+    loan.requisitionId = requisitionId;
+    loan.status = ContractStatus.Active;
+    loan.parcelsCount = req.parcelsCount;
+    loan.parcelsPending = req.parcelsCount;
+
+    uint256 totalAmount = req.amount;
+    uint32 count = req.parcelsCount;
+
+    // Calculate base parcel and remainder
+    uint256 base = totalAmount / count;
+    uint256 remainder = totalAmount % count;
+
+    // Generate parcel values with perfect distribution
+    uint256[] memory parcels = new uint256[](count);
+    for (uint256 i = 0; i < count; i++) {
+        if (i < remainder) {
+            parcels[i] = base + 1;
+        } else {
+            parcels[i] = base;
+        }
     }
+
+    // Optional: store only one base value for simplicity
+    // but we’ll emit the full array for clarity
+    loan.parcelsValues = base;
+
+    _generatePaymentDates(loan, count);
+
+    emit LoanContractGenerated(
+        loan.walletAddress,
+        requisitionId,
+        loan.status,
+        loan.parcelsPending,
+        loan.parcelsValues, // still compatible with your event
+        loan.paymentDates
+    );
+
+    // If you need to store all parcel values (recommended for repayments tracking)
+    for (uint256 i = 0; i < count; i++) {
+        loan.parcelsAmounts.push(parcels[i]);
+    }
+}
+
 
     function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) internal {
         uint256 startDate = block.timestamp;

@@ -342,13 +342,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
           ))}
         </div>
       )}
-
-      <button onClick={() => {
-        loadPendingRequisitions();
-        loadUserDonationBalances();
-      }} className="wallet-button refresh-button">
-        Refresh List & Balances
-      </button>
     </div>
   );
 }

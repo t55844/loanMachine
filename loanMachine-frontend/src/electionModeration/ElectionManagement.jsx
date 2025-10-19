@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import CreateElection from './createElection';
+import CreateElection from './CreateElection';
 import VoteAndCandidate from './VoteAndCandidate';
 
-const ElectionManagement = ({ contract, currentAccount, memberId }) => {
+const ElectionManagement = ({ contract, currentAccount, member }) => {
   const [activeTab, setActiveTab] = useState('vote');
+
+  // Show message if contract is not available
+  if (!contract) {
+    return (
+      <div className="card">
+        <h2>Election Management</h2>
+        <div className="error-message">
+          Reputation contract not available. Please check your configuration.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="interaction-tabs">
@@ -27,14 +39,14 @@ const ElectionManagement = ({ contract, currentAccount, memberId }) => {
           <CreateElection 
             contract={contract}
             currentAccount={currentAccount}
-            memberId={memberId}
+            member={member}
             onElectionCreated={() => setActiveTab('vote')}
           />
         ) : (
           <VoteAndCandidate 
             contract={contract}
             currentAccount={currentAccount}
-            memberId={memberId}
+            member={member}
           />
         )}
       </div>
