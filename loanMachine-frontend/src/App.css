@@ -1415,3 +1415,16 @@ button:disabled {
     padding: 12px;
   }
 }
+
+.moderatorBlock {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+  margin-top: 20px;
+  width: 100%; /* Ensure they don't overflow card */
+  box-sizing: border-box; /* Include padding in width calculation */
+}

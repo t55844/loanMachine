@@ -158,8 +158,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\ReputationSystem.sol": {
-      "lastModificationDate": 1760845929070,
-      "contentHash": "b2c6c7364821958681b314cb91f8c393",
+      "lastModificationDate": 1760849564493,
+      "contentHash": "03a1636533d6996ae5ca5b0626f9bc05",
       "sourceName": "contracts/ReputationSystem.sol",
       "solcConfig": {
         "version": "0.8.19",

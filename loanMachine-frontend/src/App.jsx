@@ -59,11 +59,7 @@ export default function App() {
         />
 
 <ModeratorPanel
-    reputationSystem={reputationContract}
-    loanMachine={contract}
-    userAddress={currentAccount}
-    memberId={member}
-    provider={provider} // for enhanced version
+  
   />
       </div>
 

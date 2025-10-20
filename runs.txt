@@ -49,17 +49,15 @@ proximos possos:
 
 AuthorizedCallerUpdated emiter is needed
 
-sistema para que na hora de criar o smartcontract, só permitir se tiver no minimo tres pessoase as tres fizerem uma doação
-
 sistema de monitoramento de pagamento
 
 exposição dados do usuario last activit in walletStatus
 
-quando a eleição se encerra a data esta algumas horas no futuro
+quando a eleição se encerra a data esta algumas horas no futuro- porque é o universal por padrão
 
 os erros estão em hash
 
-colocar um condicionante que só permite iniciar uma eleição com dois candidatos passados
+limitatdor the emrpestimos para não farmarem reputaação
 
 --------------------------------------------------------------
 
