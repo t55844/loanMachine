@@ -208,6 +208,7 @@ export function handleLoanContractGenerated(event: LoanContractGenerated): void 
     paymentDatesArr.push(formatTimestamp(event.params.paymentDates[i]));
   }
   entity.paymentDates = paymentDatesArr;
+  entity.creationTime = formatTimestamp(event.block.timestamp)
 
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash

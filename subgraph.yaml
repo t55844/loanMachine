@@ -62,7 +62,7 @@ dataSources:
           handler: handleLoanCovered
         - event: LoanFunded(indexed uint256)
           handler: handleLoanFunded
-        - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32,uint256,uint256[])
+        - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32,uint256,uint256[],uint256)
           handler: handleLoanContractGenerated
         - event: ParcelPaid(indexed uint256,uint256)
           handler: handleParcelPaid

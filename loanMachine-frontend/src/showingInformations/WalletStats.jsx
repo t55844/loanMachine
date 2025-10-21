@@ -12,9 +12,6 @@ async function fetchUserStats(userAddress) {
   const userBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
   const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
   
-  const lastActivity = userData.lastActivity !== "0" 
-    ? userData.lastActivity
-    : "Never";
   console.log(userData)
   const canBorrowNow = parseFloat(currentDebt) === 0;
   
@@ -22,7 +19,6 @@ async function fetchUserStats(userAddress) {
     donations: userDonations,
     borrowings: userBorrowed,
     currentDebt,
-    lastActivity,
     canBorrowNow,
     donationCount: userData.donations.length,
     borrowCount: userData.borrows.length,
@@ -130,10 +126,6 @@ export default function UserStatus() {
             <span className={userData.canBorrowNow ? "can-borrow-yes" : "can-borrow-no"}>
               {userData.canBorrowNow ? "Yes" : "No"}
             </span>
-          </div>
-          <div className="stat-item">
-            <strong>Last Activity:</strong> 
-            <span>{userData.lastActivity}</span>
           </div>
           <div className="stat-item">
             <strong>User Donations Made:</strong> 

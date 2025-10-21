@@ -13,7 +13,6 @@ interface ILoanMachine {
         uint32 minimumCoverage;
         uint32 currentCoverage;
         BorrowStatus status;
-        uint256 durationDays;
         uint256 creationTime;
         address[] coveringLenders;
         uint32 parcelsCount;
@@ -30,6 +29,7 @@ interface ILoanMachine {
         uint256 parcelsValues;
         uint256[] paymentDates;
         uint256[] parcelsAmounts;
+        uint256 creationTime;
     }
 
 
@@ -47,7 +47,7 @@ interface ILoanMachine {
     event LoanRequisitionCreated(uint256 indexed requisitionId, address indexed borrower, uint256 amount, uint32 parcelsCount);
     event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount);
     event LoanFunded(uint256 indexed requisitionId);
-    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues, uint256[] paymentDates);
+    event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues, uint256[] paymentDates, uint256 creationTime);
     event ParcelPaid(uint256 indexed requisitionId, uint256 parcelsRemaining);
     event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
     event LoanCompleted(uint256 indexed requisitionId);
@@ -62,7 +62,7 @@ interface ILoanMachine {
     // Core functions
     function vinculationMemberToWallet(uint32 memberId, address wallet) external;
     function donate(uint256 amount, uint32 memberId) external;
-    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint256 _durationDays, uint32 _parcelsCount, uint32 memberId) external returns (uint256);
+    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint32 _parcelsCount, uint32 memberId) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage, uint32 memberId) external;
     function repay(uint256 requisitionId, uint256 amount, uint32 memberId) external;
     

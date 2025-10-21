@@ -1280,6 +1280,19 @@ export class LoanContractGeneratedEvent extends Entity {
     this.set("paymentDates", Value.fromStringArray(value));
   }
 
+  get creationTime(): string {
+    let value = this.get("creationTime");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set creationTime(value: string) {
+    this.set("creationTime", Value.fromString(value));
+  }
+
   get blockTimestamp(): string {
     let value = this.get("blockTimestamp");
     if (!value || value.kind == ValueKind.NULL) {

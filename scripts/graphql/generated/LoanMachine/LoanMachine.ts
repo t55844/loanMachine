@@ -236,6 +236,10 @@ export class LoanContractGenerated__Params {
   get paymentDates(): Array<BigInt> {
     return this._event.parameters[5].value.toBigIntArray();
   }
+
+  get creationTime(): BigInt {
+    return this._event.parameters[6].value.toBigInt();
+  }
 }
 
 export class LoanCovered extends ethereum.Event {
@@ -508,6 +512,10 @@ export class LoanMachine__getActiveLoansResultActiveLoansStruct extends ethereum
   get parcelsAmounts(): Array<BigInt> {
     return this[7].toBigIntArray();
   }
+
+  get creationTime(): BigInt {
+    return this[8].toBigInt();
+  }
 }
 
 export class LoanMachine__getActiveLoansResult {
@@ -569,6 +577,10 @@ export class LoanMachine__getLoanContractResultValue0Struct extends ethereum.Tup
 
   get parcelsAmounts(): Array<BigInt> {
     return this[7].toBigIntArray();
+  }
+
+  get creationTime(): BigInt {
+    return this[8].toBigInt();
   }
 }
 
@@ -674,20 +686,16 @@ export class LoanMachine__getRequisitionInfoResultValue0Struct extends ethereum.
     return this[5].toI32();
   }
 
-  get durationDays(): BigInt {
+  get creationTime(): BigInt {
     return this[6].toBigInt();
   }
 
-  get creationTime(): BigInt {
-    return this[7].toBigInt();
-  }
-
   get coveringLenders(): Array<Address> {
-    return this[8].toAddressArray();
+    return this[7].toAddressArray();
   }
 
   get parcelsCount(): BigInt {
-    return this[9].toBigInt();
+    return this[8].toBigInt();
   }
 }
 
@@ -698,6 +706,7 @@ export class LoanMachine__loanContractsResult {
   value3: BigInt;
   value4: BigInt;
   value5: BigInt;
+  value6: BigInt;
 
   constructor(
     value0: Address,
@@ -706,6 +715,7 @@ export class LoanMachine__loanContractsResult {
     value3: BigInt,
     value4: BigInt,
     value5: BigInt,
+    value6: BigInt,
   ) {
     this.value0 = value0;
     this.value1 = value1;
@@ -713,6 +723,7 @@ export class LoanMachine__loanContractsResult {
     this.value3 = value3;
     this.value4 = value4;
     this.value5 = value5;
+    this.value6 = value6;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
@@ -726,6 +737,7 @@ export class LoanMachine__loanContractsResult {
     map.set("value3", ethereum.Value.fromUnsignedBigInt(this.value3));
     map.set("value4", ethereum.Value.fromUnsignedBigInt(this.value4));
     map.set("value5", ethereum.Value.fromUnsignedBigInt(this.value5));
+    map.set("value6", ethereum.Value.fromUnsignedBigInt(this.value6));
     return map;
   }
 
@@ -751,6 +763,10 @@ export class LoanMachine__loanContractsResult {
 
   getParcelsValues(): BigInt {
     return this.value5;
+  }
+
+  getCreationTime(): BigInt {
+    return this.value6;
   }
 }
 
@@ -905,7 +921,7 @@ export class LoanMachine extends ethereum.SmartContract {
   getActiveLoans(borrower: Address): LoanMachine__getActiveLoansResult {
     let result = super.call(
       "getActiveLoans",
-      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[])[],uint256[])",
+      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[],uint256)[],uint256[])",
       [ethereum.Value.fromAddress(borrower)],
     );
 
@@ -920,7 +936,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getActiveLoansResult> {
     let result = super.tryCall(
       "getActiveLoans",
-      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[])[],uint256[])",
+      "getActiveLoans(address):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[],uint256)[],uint256[])",
       [ethereum.Value.fromAddress(borrower)],
     );
     if (result.reverted) {
@@ -1269,7 +1285,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): LoanMachine__getLoanContractResultValue0Struct {
     let result = super.call(
       "getLoanContract",
-      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[]))",
+      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[],uint256))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
 
@@ -1283,7 +1299,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getLoanContractResultValue0Struct> {
     let result = super.tryCall(
       "getLoanContract",
-      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[]))",
+      "getLoanContract(uint256):((address,uint256,uint8,uint32,uint32,uint256,uint256[],uint256[],uint256))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
     if (result.reverted) {
@@ -1443,7 +1459,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): LoanMachine__getRequisitionInfoResultValue0Struct {
     let result = super.call(
       "getRequisitionInfo",
-      "getRequisitionInfo(uint256):((uint256,address,uint256,uint32,uint32,uint8,uint256,uint256,address[],uint32))",
+      "getRequisitionInfo(uint256):((uint256,address,uint256,uint32,uint32,uint8,uint256,address[],uint32))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
 
@@ -1457,7 +1473,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getRequisitionInfoResultValue0Struct> {
     let result = super.tryCall(
       "getRequisitionInfo",
-      "getRequisitionInfo(uint256):((uint256,address,uint256,uint32,uint32,uint8,uint256,uint256,address[],uint32))",
+      "getRequisitionInfo(uint256):((uint256,address,uint256,uint32,uint32,uint8,uint256,address[],uint32))",
       [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
     if (result.reverted) {
@@ -1629,7 +1645,7 @@ export class LoanMachine extends ethereum.SmartContract {
   loanContracts(param0: BigInt): LoanMachine__loanContractsResult {
     let result = super.call(
       "loanContracts",
-      "loanContracts(uint256):(address,uint256,uint8,uint32,uint32,uint256)",
+      "loanContracts(uint256):(address,uint256,uint8,uint32,uint32,uint256,uint256)",
       [ethereum.Value.fromUnsignedBigInt(param0)],
     );
 
@@ -1640,6 +1656,7 @@ export class LoanMachine extends ethereum.SmartContract {
       result[3].toBigInt(),
       result[4].toBigInt(),
       result[5].toBigInt(),
+      result[6].toBigInt(),
     );
   }
 
@@ -1648,7 +1665,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__loanContractsResult> {
     let result = super.tryCall(
       "loanContracts",
-      "loanContracts(uint256):(address,uint256,uint8,uint32,uint32,uint256)",
+      "loanContracts(uint256):(address,uint256,uint8,uint32,uint32,uint256,uint256)",
       [ethereum.Value.fromUnsignedBigInt(param0)],
     );
     if (result.reverted) {
@@ -1663,6 +1680,7 @@ export class LoanMachine extends ethereum.SmartContract {
         value[3].toBigInt(),
         value[4].toBigInt(),
         value[5].toBigInt(),
+        value[6].toBigInt(),
       ),
     );
   }

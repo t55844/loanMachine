@@ -38,12 +38,13 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     mapping(address => uint256[]) public borrowerRequisitions;
     mapping(address => uint256) private donationsInCoverage;
     mapping (uint32 => uint32) private loanRequisitionNumber;
+    mapping (address => uint256) private lastContractPerWallet;
 
     // Loan Contracts
     mapping(uint256 => LoanContract) public loanContracts;
 
     // Constants
-    uint32 private constant BORROW_DURATION = 7 days;
+    uint32 private constant BORROW_DURATION = 30 days;
     uint32 private constant MIN_DONATION_FOR_BORROW = 1e6; // 1 USDT (6 decimals)
     uint32 private constant MAX_DONATION = 5e6; // 5 USDT (6 decimals)
 
@@ -140,6 +141,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         reputationSystem = ReputationSystem(_reputationSystem);
         debtStorage.initialize();
     }
+    
     
     /**
      * @dev Withdraw function - allows users to withdraw only from donations not in cover
@@ -259,10 +261,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         // Auto-trigger monthly update if needed
         debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
 
-        // Check donation limit
-        if (amount > MAX_DONATION) {
-            revert ExcessiveDonation();
-        }
 
         // Transfer USDT from user to contract
         bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
@@ -289,7 +287,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     function createLoanRequisition(
         uint256 amount,
         uint32 minimumCoverage,
-        uint256 durationDays,
         uint32 parcelscount,
         uint32 memberId
     ) 
@@ -303,6 +300,14 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     {
         if (amount > availableBalance) revert InsufficientFunds();
         
+        uint256 lastContractId = lastContractPerWallet[msg.sender];
+
+        if (lastContractId != 0) {
+            uint256 lastCreationTimeOfLastContract = loanContracts[lastContractId].creationTime;
+            if (lastCreationTimeOfLastContract + BORROW_DURATION > block.timestamp) {
+                revert BorrowNotExpired();
+            }
+        }
         uint256 requisitionId = requisitionCounter++;
         
         LoanRequisition storage newReq = loanRequisitions[requisitionId];
@@ -311,7 +316,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         newReq.minimumCoverage = minimumCoverage;
         newReq.currentCoverage = 0;
         newReq.status = BorrowStatus.Pending;
-        newReq.durationDays = durationDays;
         newReq.creationTime = block.timestamp;
         newReq.parcelsCount = parcelscount;
         newReq.requisitionId = requisitionId;
@@ -381,6 +385,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     loan.status = ContractStatus.Active;
     loan.parcelsCount = req.parcelsCount;
     loan.parcelsPending = req.parcelsCount;
+    loan.creationTime = block.timestamp;
 
     uint256 totalAmount = req.amount;
     uint32 count = req.parcelsCount;
@@ -405,13 +410,18 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     _generatePaymentDates(loan, count);
 
+    address lastContractAddress = loan.walletAddress;
+    lastContractPerWallet[lastContractAddress] = requisitionId;
+
+
     emit LoanContractGenerated(
         loan.walletAddress,
         requisitionId,
         loan.status,
         loan.parcelsPending,
-        loan.parcelsValues, // still compatible with your event
-        loan.paymentDates
+        loan.parcelsValues, 
+        loan.paymentDates,
+        loan.creationTime
     );
 
     // If you need to store all parcel values (recommended for repayments tracking)
@@ -684,7 +694,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             minimumCoverage: req.minimumCoverage,
             currentCoverage: req.currentCoverage,
             status: req.status,
-            durationDays: req.durationDays,
             creationTime: req.creationTime,
             coveringLenders: req.coveringLenders,
             parcelsCount: req.parcelsCount

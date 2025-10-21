@@ -51,11 +51,11 @@ AuthorizedCallerUpdated emiter is needed
 
 sistema de monitoramento de pagamento
 
-exposição dados do usuario last activit in walletStatus
-
 quando a eleição se encerra a data esta algumas horas no futuro- porque é o universal por padrão
 
 os erros estão em hash
+
+exposição dados do usuario last activit in walletStatus
 
 limitatdor the emrpestimos para não farmarem reputaação
 

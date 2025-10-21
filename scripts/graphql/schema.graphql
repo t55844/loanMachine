@@ -101,6 +101,7 @@ type LoanContractGeneratedEvent @entity(immutable: true) {
   parcelsPending: Int!
   parcelsValues: BigInt!
   paymentDates: [String!]!
+  creationTime: String!
   blockTimestamp: String!
   transactionHash: Bytes!
 }

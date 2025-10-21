@@ -200,6 +200,12 @@
           "internalType": "uint256[]",
           "name": "paymentDates",
           "type": "uint256[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "creationTime",
+          "type": "uint256"
         }
       ],
       "name": "LoanContractGenerated",
@@ -492,11 +498,6 @@
           "type": "uint32"
         },
         {
-          "internalType": "uint256",
-          "name": "_durationDays",
-          "type": "uint256"
-        },
-        {
           "internalType": "uint32",
           "name": "_parcelsCount",
           "type": "uint32"
@@ -587,6 +588,11 @@
               "internalType": "uint256[]",
               "name": "parcelsAmounts",
               "type": "uint256[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "creationTime",
+              "type": "uint256"
             }
           ],
           "internalType": "struct ILoanMachine.LoanContract[]",
@@ -849,6 +855,11 @@
               "internalType": "uint256[]",
               "name": "parcelsAmounts",
               "type": "uint256[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "creationTime",
+              "type": "uint256"
             }
           ],
           "internalType": "struct ILoanMachine.LoanContract",
@@ -1020,11 +1031,6 @@
               "internalType": "enum ILoanMachine.BorrowStatus",
               "name": "status",
               "type": "uint8"
-            },
-            {
-              "internalType": "uint256",
-              "name": "durationDays",
-              "type": "uint256"
             },
             {
               "internalType": "uint256",

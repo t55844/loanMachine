@@ -12,7 +12,6 @@ export default function LoanRequisitionForm({
   const [amount, setAmount] = useState("");
   const [minimumCoverage, setMinimumCoverage] = useState("80");
   const [parcelsQuantity, setParcelsQuantity] = useState("1");
-  const [durationDays, setDurationDays] = useState("30");
   const [loading, setLoading] = useState(false);
   
   const { showToast, showSuccess, showError, handleContractError } = useToast();
@@ -41,7 +40,6 @@ export default function LoanRequisitionForm({
       const tx = await contract.createLoanRequisition(
         amountWei,
         parseInt(minimumCoverage),
-        parseInt(durationDays),
         parseInt(parcelsQuantity),
         memberId // Add memberId as parameter
       );
@@ -51,7 +49,6 @@ export default function LoanRequisitionForm({
       // Reset form
       setAmount("");
       setMinimumCoverage("80");
-      setDurationDays("30");
       
       showSuccess("Loan requisition created successfully!");
       
@@ -157,23 +154,6 @@ export default function LoanRequisitionForm({
               <option value="10">10</option>
               <option value="11">11</option>
               <option value="12">12</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '16px', textAlign: 'left' }}>
-            <label htmlFor="durationDays" style={{display: 'block', marginBottom: '8px'}}>Loan Duration (Days)</label>
-            <select
-              id="durationDays"
-              value={durationDays}
-              onChange={(e) => setDurationDays(e.target.value)}
-              className="donate-select"
-              style={{width: '100%'}}
-              required
-            >
-              <option value="15">15 days</option>
-              <option value="30">30 days</option>
-              <option value="60">60 days</option>
-              <option value="90">90 days</option>
             </select>
           </div>
           </div>
