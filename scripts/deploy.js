@@ -49,7 +49,7 @@ async function main() {
 
   // --- Mint USDT to all wallets ---
   console.log("🎁 Distributing USDT to wallets...");
-  const amount = ethers.parseUnits("20", 6); // 20 USDT with 6 decimals
+  const amount = ethers.parseUnits("2000", 6); // 20 USDT with 6 decimals
   const users = [owner, user1, user2, user3, user4];
 
   for (const user of users) {

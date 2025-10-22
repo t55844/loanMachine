@@ -37,7 +37,6 @@ export default function LoanRequisitionMonitor({ contract, account }) {
             minimumCoverage: safeNumber(info.minimumCoverage),
             currentCoverage: safeNumber(info.currentCoverage),
             status: safeNumber(info.status),
-            durationDays: safeNumber(info.durationDays),
             creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
             coveringLendersCount: safeNumber(info.coveringLendersCount)
           };
@@ -134,9 +133,6 @@ export default function LoanRequisitionMonitor({ contract, account }) {
                 </div>
                 <div>
                   <strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%
-                </div>
-                <div>
-                  <strong>Duration:</strong> {req.durationDays} days
                 </div>
                 <div>
                   <strong>Lenders:</strong> {req.coveringLendersCount}

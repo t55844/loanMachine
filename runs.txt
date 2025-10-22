@@ -55,9 +55,11 @@ quando a eleição se encerra a data esta algumas horas no futuro- porque é o u
 
 os erros estão em hash
 
-exposição dados do usuario last activit in walletStatus
-
 limitatdor the emrpestimos para não farmarem reputaação
+
+testar sistemas relacionados a data
+
+problema quando chega no limite de requisição de um mas quand libera para um libera para todos
 
 --------------------------------------------------------------
 

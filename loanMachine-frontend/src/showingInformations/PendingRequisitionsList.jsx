@@ -71,7 +71,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 minimumCoverage: safeNumber(info.minimumCoverage),
                 currentCoverage: safeNumber(info.currentCoverage),
                 status: safeNumber(info.status),
-                durationDays: safeNumber(info.durationDays),
                 creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
               };
             } catch (contractErr) {
@@ -82,7 +81,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 minimumCoverage: graphReq.minimumCoverage || 0,
                 currentCoverage: graphReq.currentCoveragePercentage || 0,
                 status: getStatusNumber(graphReq.status),
-                durationDays: graphReq.durationDays || 0,
                 creationTime: new Date(parseInt(graphReq.creationTime) * 1000).toLocaleString(),
               };
             }
@@ -109,7 +107,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               minimumCoverage: contractData.minimumCoverage,
               currentCoverage: contractData.currentCoverage,
               status: contractData.status,
-              durationDays: contractData.durationDays,
               creationTime: contractData.creationTime,
               coveringLendersCount: coveringLendersCount
             };
@@ -299,7 +296,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 <div><strong>Amount:</strong> {formatUSDT(req.amount)} USDT</div>
                 <div><strong>Borrower:</strong> {formatAddress(req.borrower)}</div>
                 <div><strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%</div>
-                <div><strong>Duration:</strong> {req.durationDays} days</div>
                 <div><strong>Lenders:</strong> {req.coveringLendersCount}</div>
                 <div><strong>Created:</strong> {req.creationTime}</div>
               </div>

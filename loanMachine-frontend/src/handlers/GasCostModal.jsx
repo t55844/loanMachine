@@ -23,41 +23,50 @@ function GasCostModal({
     }
   }, [isOpen, transactionData]);
 
-  async function estimateGasCost() {
-    try {
-      setLoading(true);
-      setGasError("");
-      setGasCost(null);
+  // GasCostModal.jsx - Update the estimateGasCost function
+async function estimateGasCost() {
+  try {
+    setLoading(true);
+    setGasError("");
+    setGasCost(null);
 
-      const { method, params = [], value = "0" } = transactionData;
-      
-      if (!contract[method]) {
-        throw new Error(`Method ${method} not found on contract`);
-      }
-
-      console.log(`Estimating gas for ${method} with params:`, params);
-      console.log("Transaction context:", transactionContext);
-
-      // Try to estimate gas
-      const gasEstimate = await contract.estimateGas[method](...params, {
-        value: ethers.BigNumber.from(value)
-      });
-
-      const gasPrice = await provider.getGasPrice();
-      const gasCostWei = gasEstimate.mul(gasPrice);
-      const gasCostEth = ethers.utils.formatEther(gasCostWei);
-
-      setGasCost(gasCostEth);
-    } catch (err) {
-      console.error("Detailed gas estimation error:", err);
-      
-      let userFriendlyError = extractErrorMessage(err);
-      
-      setGasError(userFriendlyError);
-    } finally {
-      setLoading(false);
+    const { method, params = [], value = "0" } = transactionData;
+    
+    if (!contract[method]) {
+      throw new Error(`Method ${method} not found on contract`);
     }
+
+    console.log(`Estimating gas for ${method} with params:`, params);
+    console.log("Transaction context:", transactionContext);
+
+    // Try to estimate gas
+    const gasEstimate = await contract.estimateGas[method](...params, {
+      value: ethers.BigNumber.from(value)
+    });
+
+    const gasPrice = await provider.getGasPrice();
+    const gasCostWei = gasEstimate.mul(gasPrice);
+    const gasCostEth = ethers.utils.formatEther(gasCostWei);
+
+    setGasCost(gasCostEth);
+  } catch (err) {
+    console.error("Gas estimation error:", err);
+    
+    // Use extractErrorMessage but don't emit toast here
+    let userFriendlyError = extractErrorMessage(err);
+    
+    // If it's a gas estimation error with underlying contract error, 
+    // show the contract error, not the gas estimation wrapper
+    if (err.code === 'UNPREDICTABLE_GAS_LIMIT') {
+      // The extractErrorMessage should have already extracted the underlying error
+      console.log('Showing contract error instead of gas estimation error');
+    }
+    
+    setGasError(userFriendlyError);
+  } finally {
+    setLoading(false);
   }
+}
 
   const handleRetry = () => {
     estimateGasCost();

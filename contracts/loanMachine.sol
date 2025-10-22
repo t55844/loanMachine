@@ -49,25 +49,25 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     uint32 private constant MAX_DONATION = 5e6; // 5 USDT (6 decimals)
 
     // Custom errors
-    error InvalidAmount();
-    error InsufficientFunds();
-    error MinimumDonationRequired();
-    error BorrowNotExpired();
-    error InvalidCoveragePercentage();
-    error OverCoverage();
-    error LoanNotAvailable();
-    error MaxLoanRequisitionPendingReached();
-    error InsufficientDonationBalance();
-    error NoActiveBorrowing();
-    error RepaymentExceedsBorrowed();
-    error InvalidParcelsCount();
-    error ExcessiveDonation();
-    error TokenTransferFailed();
-    error MemberIdOrWalletInvalid();
-    error WalletAlreadyVinculated();
-    error ParcelAlreadyPaid();
-    error MinimumPercentageCover();
-    error InsufficientWithdrawableBalance(); // New error for withdrawal
+    error LoanMachine_InvalidAmount();
+    error LoanMachine_InsufficientFunds();
+    error LoanMachine_MinimumDonationRequired();
+    error LoanMachine_BorrowNotExpired();
+    error LoanMachine_InvalidCoveragePercentage();
+    error LoanMachine_OverCoverage();
+    error LoanMachine_LoanNotAvailable();
+    error LoanMachine_MaxLoanRequisitionPendingReached();
+    error LoanMachine_InsufficientDonationBalance();
+    error LoanMachine_NoActiveBorrowing();
+    error LoanMachine_RepaymentExceedsBorrowed();
+    error LoanMachine_InvalidParcelsCount();
+    error LoanMachine_ExcessiveDonation();
+    error LoanMachine_TokenTransferFailed();
+    error LoanMachine_MemberIdOrWalletInvalid();
+    error LoanMachine_WalletAlreadyVinculated();
+    error LoanMachine_ParcelAlreadyPaid();
+    error LoanMachine_MinimumPercentageCover();
+    error LoanMachine_InsufficientWithdrawableBalance(); // New error for withdrawal
 
     // Structs
     struct LoanRequisition {    
@@ -85,54 +85,54 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     }
 
     modifier minimumPercentCoveragePermited(uint256 minimumCoverage) {
-        if (minimumCoverage <= 70 || minimumCoverage > 100) revert InvalidCoveragePercentage();
+        if (minimumCoverage <= 70 || minimumCoverage > 100) revert LoanMachine_InvalidCoveragePercentage();
         _;
     }
 
     modifier validAmount(uint256 _amount) {
-        if (_amount == 0) revert InvalidAmount();
+        if (_amount == 0) revert LoanMachine_InvalidAmount();
         _;
     }
 
     modifier canBorrow(uint256 _amount) {
-        if (_amount > availableBalance) revert InsufficientFunds();
+        if (_amount > availableBalance) revert LoanMachine_InsufficientFunds();
         if (donations[msg.sender] < MIN_DONATION_FOR_BORROW && borrowings[msg.sender] != 0) {
-            revert MinimumDonationRequired();
+            revert LoanMachine_MinimumDonationRequired();
         }
         if (lastBorrowTime[msg.sender] + BORROW_DURATION >= block.timestamp && borrowings[msg.sender] != 0) {
-            revert BorrowNotExpired();
+            revert LoanMachine_BorrowNotExpired();
         }
         _;
     }
 
     modifier validCoverage(uint32 coveragePercentage) {
-        if (coveragePercentage == 0 || coveragePercentage > 100) revert InvalidCoveragePercentage();
-        if(coveragePercentage <= 9) revert MinimumPercentageCover();
+        if (coveragePercentage == 0 || coveragePercentage > 100) revert LoanMachine_InvalidCoveragePercentage();
+        if(coveragePercentage <= 9) revert LoanMachine_MinimumPercentageCover();
         _;
     }
 
     modifier maxParcelsCount(uint32 parcelscount) {
-        if (parcelscount < 1 || parcelscount > 12) revert InvalidParcelsCount();
+        if (parcelscount < 1 || parcelscount > 12) revert LoanMachine_InvalidParcelsCount();
         _;
     }
 
     modifier validMember(uint32 memberId, address wallet) {
         if(memberId == 0 || !reputationSystem.isWalletVinculated(wallet)) 
-            revert MemberIdOrWalletInvalid();
+            revert LoanMachine_MemberIdOrWalletInvalid();
         _;
     }
 
     modifier borrowingActive(uint256 requisitionId) {
         LoanContract storage loan = loanContracts[requisitionId];
-        if (borrowings[msg.sender] == 0) revert NoActiveBorrowing();
-        if (loan.walletAddress != msg.sender) revert NoActiveBorrowing();
-        if (loan.status != ContractStatus.Active) revert NoActiveBorrowing();
-        if (loan.parcelsPending == 0) revert NoActiveBorrowing();
+        if (borrowings[msg.sender] == 0) revert LoanMachine_NoActiveBorrowing();
+        if (loan.walletAddress != msg.sender) revert LoanMachine_NoActiveBorrowing();
+        if (loan.status != ContractStatus.Active) revert LoanMachine_NoActiveBorrowing();
+        if (loan.parcelsPending == 0) revert LoanMachine_NoActiveBorrowing();
         _;
     }
 
     modifier checkLoanRequisitionOpened(uint32 memberId){
-        if(loanRequisitionNumber[memberId] >= 3) revert MaxLoanRequisitionPendingReached();
+        if(loanRequisitionNumber[memberId] >= 3) revert LoanMachine_MaxLoanRequisitionPendingReached();
         _;
     }
 
@@ -158,7 +158,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         uint256 withdrawableBalance = getWithdrawableBalance(msg.sender);
         
         if (amount > withdrawableBalance) {
-            revert InsufficientWithdrawableBalance();
+            revert LoanMachine_InsufficientWithdrawableBalance();
         }
 
         // Update state
@@ -168,7 +168,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
         // Transfer USDT to user
         bool success = IERC20(usdtToken).transfer(msg.sender, amount);
-        if (!success) revert TokenTransferFailed();
+        if (!success) revert LoanMachine_TokenTransferFailed();
 
         emit Withdrawn(msg.sender, amount, donations[msg.sender]);
         emit TotalDonationsUpdated(totalDonations);
@@ -202,7 +202,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         // Auto-trigger monthly update if needed
         debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
 
-        if (amount == 0) revert InvalidAmount();
+        if (amount == 0) revert LoanMachine_InvalidAmount();
 
         LoanContract storage loan = loanContracts[requisitionId];
         address borrower = msg.sender;
@@ -217,11 +217,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
             reputationSystem.reputationChange(memberId, reputationSystem.REPUTATION_GAIN_BY_REPAYNG_DEBT(), true);
         }
 
-        if (amount != loan.parcelsValues) revert InvalidAmount();
+        if (amount != loan.parcelsValues) revert LoanMachine_InvalidAmount();
         
         // Transfer USDT from borrower to contract
         bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TokenTransferFailed();
+        if (!success) revert LoanMachine_TokenTransferFailed();
 
         // Update global borrowing state
         borrowings[borrower] -= amount;
@@ -264,7 +264,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
         // Transfer USDT from user to contract
         bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TokenTransferFailed();
+        if (!success) revert LoanMachine_TokenTransferFailed();
 
         bool isNewDonor = donations[msg.sender] == 0;
         
@@ -298,14 +298,14 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         maxParcelsCount(parcelscount) 
         returns (uint256) 
     {
-        if (amount > availableBalance) revert InsufficientFunds();
+        if (amount > availableBalance) revert LoanMachine_InsufficientFunds();
         
         uint256 lastContractId = lastContractPerWallet[msg.sender];
 
         if (lastContractId != 0) {
             uint256 lastCreationTimeOfLastContract = loanContracts[lastContractId].creationTime;
             if (lastCreationTimeOfLastContract + BORROW_DURATION > block.timestamp) {
-                revert BorrowNotExpired();
+                revert LoanMachine_BorrowNotExpired();
             }
         }
         uint256 requisitionId = requisitionCounter++;
@@ -336,18 +336,18 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         
         if (req.status != BorrowStatus.Pending && req.status != BorrowStatus.PartiallyCovered) {
-            revert LoanNotAvailable();
+            revert LoanMachine_LoanNotAvailable();
         }
         
         if (uint256(req.currentCoverage) + uint256(coveragePercentage) > 100) {
-            revert OverCoverage();
+            revert LoanMachine_OverCoverage();
         }
 
         uint256 PRECISION = 1e18;
         uint256 coverageAmount = ((req.amount * coveragePercentage * PRECISION) + (100 * PRECISION - 1)) / (100 * PRECISION);
         
         if (donations[msg.sender] < coverageAmount) {
-            revert InsufficientDonationBalance();
+            revert LoanMachine_InsufficientDonationBalance();
         }
         
         donations[msg.sender] -= coverageAmount;
@@ -465,7 +465,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
         // Transfer USDT to borrower
         bool success = IERC20(usdtToken).transfer(borrower, req.amount);
-        if (!success) revert TokenTransferFailed();
+        if (!success) revert LoanMachine_TokenTransferFailed();
 
         emit Borrowed(borrower, req.amount, borrowings[borrower]);
         emit TotalBorrowedUpdated(totalBorrowed);

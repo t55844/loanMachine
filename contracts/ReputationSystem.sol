@@ -34,52 +34,52 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     ElectionStatus[] public elections; 
 
     // Custom errors
-    error MemberIdOrWalletInvalid();
-    error WalletAlreadyVinculated();
-    error UnauthorizedCaller();
-    error ActiveElectionExists();
-    error ElectionNotActive();
-    error MemberAlreadyVoted();
-    error InvalidCandidate();
-    error NoCandidates();
-    error ElectionExpired();
-    error WalletAlreadyLinkedToAnotherMember();
+    error ReputationSystem_MemberIdOrWalletInvalid();
+    error ReputationSystem_WalletAlreadyVinculated();
+    error ReputationSystem_UnauthorizedCaller();
+    error ReputationSystem_ActiveElectionExists();
+    error ReputationSystem_ElectionNotActive();
+    error ReputationSystem_MemberAlreadyVoted();
+    error ReputationSystem_InvalidCandidate();
+    error ReputationSystem_NoCandidates();
+    error ReputationSystem_ElectionExpired();
+    error ReputationSystem_WalletAlreadyLinkedToAnotherMember();
     
     modifier onlyAuthorized() {
-        if (!authorizedCallers[msg.sender]) revert UnauthorizedCaller();
+        if (!authorizedCallers[msg.sender]) revert ReputationSystem_UnauthorizedCaller();
         _;
     }
 
     modifier registerMemberData(uint32 memberId, address wallet) {
-        if (memberId == 0 || wallet == address(0)) revert MemberIdOrWalletInvalid();
-        // Removed: if (memberToWallet[memberId] > address(0)) revert WalletAlreadyVinculated(); // Now allows multiple
+        if (memberId == 0 || wallet == address(0)) revert ReputationSystem_MemberIdOrWalletInvalid();
+        // Removed: if (memberToWallet[memberId] > address(0)) revert ReputationSystem_WalletAlreadyVinculated(); // Now allows multiple
         if (walletToMemberId[wallet] != 0 && walletToMemberId[wallet] != memberId) {
-            revert WalletAlreadyLinkedToAnotherMember();
+            revert ReputationSystem_WalletAlreadyLinkedToAnotherMember();
         }
         _;
     }
 
     modifier validMember(uint32 memberId, address wallet) {
-        if (memberId == 0 || memberToWallet[memberId] == address(0)) revert MemberIdOrWalletInvalid();
-        if (memberId == 0 || walletToMemberId[wallet] == 0) revert MemberIdOrWalletInvalid();
+        if (memberId == 0 || memberToWallet[memberId] == address(0)) revert ReputationSystem_MemberIdOrWalletInvalid();
+        if (memberId == 0 || walletToMemberId[wallet] == 0) revert ReputationSystem_MemberIdOrWalletInvalid();
         _;
     }
 
     modifier hasActiveElection() {
         if (elections.length > 0 && elections[elections.length - 1].active) {
-            revert ActiveElectionExists();
+            revert ReputationSystem_ActiveElectionExists();
         }
         _;
     }
 
     modifier electionExists(uint32 electionId) {
-        if (electionId >= elections.length) revert ElectionNotActive();
+        if (electionId >= elections.length) revert ReputationSystem_ElectionNotActive();
         _;
     }
 
     modifier electionActive(uint32 electionId) {
         ElectionStatus storage election = elections[electionId];
-        if (block.timestamp > election.endTime || !election.active) revert ElectionNotActive();
+        if (block.timestamp > election.endTime || !election.active) revert ReputationSystem_ElectionNotActive();
         _;
     }
 
@@ -97,7 +97,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         // Check for duplicate wallet on this member
         for (uint i = 0; i < walletsOfMember[memberId].length; i++) {
             if (walletsOfMember[memberId][i] == wallet) {
-                revert WalletAlreadyVinculated();
+                revert ReputationSystem_WalletAlreadyVinculated();
             }
         }
 
@@ -145,7 +145,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     }
 
     function openElection(uint32 candidateId,uint32 oponent) external override hasActiveElection {
-        if(memberToWallet[candidateId] == address(0) || memberToWallet[oponent] == address(0) ) revert InvalidCandidate();
+        if(memberToWallet[candidateId] == address(0) || memberToWallet[oponent] == address(0) ) revert ReputationSystem_InvalidCandidate();
 
         ElectionStatus memory newElection;
         newElection.id = electionCounter++;
@@ -184,7 +184,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     {
         ElectionStatus storage election = elections[electionId];
         
-        if (hasVotedInElection[electionId][memberId]) revert MemberAlreadyVoted();
+        if (hasVotedInElection[electionId][memberId]) revert ReputationSystem_MemberAlreadyVoted();
         
         bool validCandidate = false;
         for (uint i = 0; i < election.candidates.length; i++) {
@@ -193,7 +193,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
                 break;
             }
         }
-        if (!validCandidate) revert InvalidCandidate();
+        if (!validCandidate) revert ReputationSystem_InvalidCandidate();
         
         int32 voteWeight = memberReputation[memberId];
         if (voteWeight < 0) voteWeight = 0;
@@ -214,8 +214,8 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         onlyOwner
     {
         ElectionStatus storage election = elections[electionId];
-        if (!election.active) revert ElectionNotActive();
-        if (election.candidates.length == 0) revert NoCandidates();
+        if (!election.active) revert ReputationSystem_ElectionNotActive();
+        if (election.candidates.length == 0) revert ReputationSystem_NoCandidates();
         
         election.active = false;
         
