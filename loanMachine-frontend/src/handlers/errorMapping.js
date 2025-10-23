@@ -2,38 +2,38 @@
 
 // Map Solidity error selectors to human-readable messages
 export const SELECTOR_MESSAGES = {
-  // LoanMachine errors - UNIQUE SELECTORS
-  '0x2f4f6d6d': 'LoanMachine_InvalidAmount: The amount provided is invalid',
-  '0x6d0a6a9c': 'LoanMachine_InsufficientFunds: Insufficient funds for this transaction',
-  '0x5aad290f': 'LoanMachine_MinimumDonationRequired: Donation amount is below the minimum requirement',
-  '0x8dae2a4f': 'LoanMachine_BorrowNotExpired: Previous loan must be repaid or expired before borrowing again',
-  '0x5b64a1c1': 'LoanMachine_InvalidCoveragePercentage: Invalid coverage percentage provided',
-  '0x0feab579': 'LoanMachine_OverCoverage: Coverage percentage exceeds maximum allowed',
-  '0x021176a5': 'LoanMachine_LoanNotAvailable: No loans available at the moment',
-  '0x3a7b1e31': 'LoanMachine_MaxLoanRequisitionPendingReached: Maximum 3 pending loan requisitions reached',
-  '0x2af956d8': 'LoanMachine_InsufficientDonationBalance: Insufficient donation balance for this action',
-  '0x7d88b533': 'LoanMachine_NoActiveBorrowing: No active borrowing found for this wallet',
-  '0x4f02c420': 'LoanMachine_RepaymentExceedsBorrowed: Repayment amount exceeds borrowed amount',
-  '0x8c4e591c': 'LoanMachine_InvalidParcelsCount: Invalid number of parcels specified',
-  '0x1e89d545': 'LoanMachine_ExcessiveDonation: Donation amount exceeds maximum limit',
-  '0x90b8ec18': 'LoanMachine_TokenTransferFailed: Token transfer failed - check allowance and balance',
-  '0x7e5c8a6c': 'LoanMachine_MemberIdOrWalletInvalid: Invalid member ID or wallet not vinculated. Please check your member registration.',
-  '0xf00f6e8a': 'LoanMachine_WalletAlreadyVinculated: Wallet is already linked to a member',
-  '0x5e0d443f': 'LoanMachine_ParcelAlreadyPaid: This parcel has already been paid',
-  '0x7a5e0e7a': 'LoanMachine_MinimumPercentageCover: Minimum percentage cover not reached',
-  '0x6bc26a7b': 'LoanMachine_InsufficientWithdrawableBalance: Insufficient withdrawable balance',
+  // ReputationSystem errors
+  '0x0ad153d1': 'ReputationSystem_ActiveElectionExists: An active election already exists',
+  '0xe94b5834': 'ReputationSystem_ElectionExpired: The election has expired',
+  '0xac840993': 'ReputationSystem_ElectionNotActive: The election is not active',
+  '0x1677c8ba': 'ReputationSystem_InvalidCandidate: Invalid candidate for election',
+  '0xd8524fa3': 'ReputationSystem_MemberAlreadyVoted: Member has already voted in this election',
+  '0x0d266952': 'ReputationSystem_MemberIdOrWalletInvalid: Invalid member ID or wallet not vinculated',
+  '0xfe88dfc5': 'ReputationSystem_NoCandidates: No candidates in the election',
+  '0xa1b8c408': 'ReputationSystem_UnauthorizedCaller: Caller is not authorized to perform this action',
+  '0x2dab5e1c': 'ReputationSystem_WalletAlreadyLinkedToAnotherMember: Wallet is already linked to another member',
+  '0xb9d4ab66': 'ReputationSystem_WalletAlreadyVinculated: Wallet is already linked to a member',
 
-  // ReputationSystem errors - UNIQUE SELECTORS
-  '0x4f2c5d9e': 'ReputationSystem_ActiveElectionExists: An active election already exists',
-  '0x6f01a986': 'ReputationSystem_ElectionExpired: The election has expired',
-  '0x9c1fc0a8': 'ReputationSystem_ElectionNotActive: The election is not active',
-  '0x7a5e0e7b': 'ReputationSystem_InvalidCandidate: Invalid candidate for election',
-  '0x42d61c83': 'ReputationSystem_MemberAlreadyVoted: Member has already voted in this election',
-  '0x2f4f6d6e': 'ReputationSystem_NoCandidates: No candidates in the election',
-  '0x82d2b725': 'ReputationSystem_UnauthorizedCaller: Caller is not authorized to perform this action',
-  '0x3a7b1e32': 'ReputationSystem_WalletAlreadyLinkedToAnotherMember: Wallet is already linked to another member',
-  '0x7e5c8a6d': 'ReputationSystem_MemberIdOrWalletInvalid: Invalid member ID or wallet not vinculated',
-  '0xf00f6e8b': 'ReputationSystem_WalletAlreadyVinculated: Wallet is already linked to a member',
+  // LoanMachine errors
+  '0xead1ff82': 'LoanMachine_BorrowNotExpired: Previous loan must be repaid or expired before borrowing again',
+  '0xa5a0e740': 'LoanMachine_ExcessiveDonation: Donation amount exceeds maximum limit',
+  '0x56a620f8': 'LoanMachine_InsufficientDonationBalance: Insufficient donation balance for this action',
+  '0x13e73a29': 'LoanMachine_InsufficientFunds: Insufficient funds for this transaction',
+  '0x9dd88a4e': 'LoanMachine_InsufficientWithdrawableBalance: Insufficient withdrawable balance',
+  '0xde99459f': 'LoanMachine_InvalidAmount: The amount provided is invalid',
+  '0xaac62d72': 'LoanMachine_InvalidCoveragePercentage: Invalid coverage percentage provided',
+  '0x235f466a': 'LoanMachine_InvalidParcelsCount: Invalid number of parcels specified',
+  '0x186ebdb5': 'LoanMachine_LoanNotAvailable: No loans available at the moment',
+  '0x37bc0490': 'LoanMachine_MaxLoanRequisitionPendingReached: Maximum 3 pending loan requisitions reached',
+  '0x5b1a00fa': 'LoanMachine_MemberIdOrWalletInvalid: Invalid member ID or wallet not vinculated. Please check your member registration.',
+  '0x4b4e72f5': 'LoanMachine_MinimumDonationRequired: Donation amount is below the minimum requirement',
+  '0x6925556a': 'LoanMachine_MinimumPercentageCover: Minimum percentage cover not reached',
+  '0xcc2f71e0': 'LoanMachine_NoActiveBorrowing: No active borrowing found for this wallet',
+  '0xded62aaf': 'LoanMachine_OverCoverage: Coverage percentage exceeds maximum allowed',
+  '0x9881a565': 'LoanMachine_ParcelAlreadyPaid: This parcel has already been paid',
+  '0x465b18f9': 'LoanMachine_RepaymentExceedsBorrowed: Repayment amount exceeds borrowed amount',
+  '0xb85dc7a6': 'LoanMachine_TokenTransferFailed: Token transfer failed - check allowance and balance',
+  '0x165baeef': 'LoanMachine_WalletAlreadyVinculated: Wallet is already linked to a member',
 };
 
 // Map error names to messages (for cases where name is available)
@@ -42,7 +42,7 @@ export const ERROR_MESSAGES = {
   'LoanMachine_InvalidAmount': 'The amount provided is invalid',
   'LoanMachine_InsufficientFunds': 'Insufficient funds for this transaction',
   'LoanMachine_MinimumDonationRequired': 'Donation amount is below the minimum requirement',
-  'LoanMachine_BorrowNotExpired': 'Previous loan must be repaid or expired before borrowing again',
+  'LoanMachine_BorrowNotExpired': 'Previous loan must expired before borrowing again',
   'LoanMachine_InvalidCoveragePercentage': 'Invalid coverage percentage provided',
   'LoanMachine_OverCoverage': 'Coverage percentage exceeds maximum allowed',
   'LoanMachine_LoanNotAvailable': 'No loans available at the moment',
@@ -172,11 +172,9 @@ function extractErrorFromData(data) {
     // Extract selector from data
     let selector = null;
     
-    if (dataString.startsWith('0x') && dataString.length === 10) {
-      selector = dataString.toLowerCase();
-    } else if (dataString.startsWith('0x') && dataString.length > 10) {
+    if (dataString.startsWith('0x') && dataString.length >= 10) {
       selector = dataString.toLowerCase().slice(0, 10);
-    } else if (dataString.length === 8 && /^[0-9a-f]{8}$/i.test(dataString)) {
+    } else if (dataString.length >= 8 && /^[0-9a-f]{8}$/i.test(dataString)) {
       selector = '0x' + dataString.toLowerCase();
     }
     
