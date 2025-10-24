@@ -16,7 +16,12 @@ import {
   ParcelPaid,
   LenderRepaid,
   LoanCompleted,
-  Withdrawn
+  Withdrawn,
+  BorrowerOverdue,
+  BorrowerDebtSettled,
+  PeriodicCheckRun,
+  LoanRequisitionCancelled,
+  LoanUncovered
 } from "./generated/LoanMachine/LoanMachine"
 import {
   MemberToWalletVinculation,
@@ -29,12 +34,6 @@ import {
   UnbeatableMajorityReached,
   NewModerator
 } from "./generated/ReputationSystem/ReputationSystem"
-import {
-  BorrowerStatusUpdated,
-  DebtorAdded,
-  DebtorRemoved,
-  MonthlyUpdateTriggered
-} from "./generated/DebtTracker/DebtTracker"
 import {
   DonatedEvent,
   BorrowedEvent,
@@ -60,12 +59,13 @@ import {
   VoteCastEvent,
   ElectionClosedEvent,
   UnbeatableMajorityReachedEvent,
-  BorrowerStatusUpdatedEvent,
-  DebtorAddedEvent,
-  DebtorRemovedEvent,
-  MonthlyUpdateTriggeredEvent,
   WithdrawnEvent,
-  NewModeratorEvent  
+  NewModeratorEvent,
+  BorrowerOverdueEvent,
+  BorrowerDebtSettledEvent,
+  PeriodicCheckRunEvent,
+  LoanRequisitionCancelledEvent,
+  LoanUncoveredEvent
 } from "./generated/schema"
 
 function formatTimestamp(ts: BigInt): string {
@@ -267,7 +267,7 @@ export function handleReputationChanged(event: ReputationChanged): void {
   entity.points = event.params.points
   entity.increase = event.params.increase
   entity.newReputation = event.params.newReputation
-  entity.timestamp = formatTimestamp(event.params.timestamp)
+  entity.timestamp = formatTimestamp(event.block.timestamp)
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()
@@ -333,40 +333,6 @@ export function handleUnbeatableMajorityReached(event: UnbeatableMajorityReached
   entity.save()
 }
 
-export function handleBorrowerStatusUpdated(event: BorrowerStatusUpdated): void {
-  let entity = new BorrowerStatusUpdatedEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.borrower = event.params.borrower
-  entity.newStatus = event.params.newStatus
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleDebtorAdded(event: DebtorAdded): void {
-  let entity = new DebtorAddedEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.borrower = event.params.borrower
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleDebtorRemoved(event: DebtorRemoved): void {
-  let entity = new DebtorRemovedEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.borrower = event.params.borrower
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleMonthlyUpdateTriggered(event: MonthlyUpdateTriggered): void {
-  let entity = new MonthlyUpdateTriggeredEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.timestamp = formatTimestamp(event.params.timestamp)
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-
 export function handleWithdrawn(event: Withdrawn): void {
   let entity = new WithdrawnEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
   entity.donor = event.params.donor
@@ -381,6 +347,55 @@ export function handleNewModerator(event: NewModerator): void {
   let entity = new NewModeratorEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
   entity.memberId = event.params.memberId.toI32()
   entity.electionId = event.params.electionId.toI32()
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+// New event handlers for the contract changes
+export function handleBorrowerOverdue(event: BorrowerOverdue): void {
+  let entity = new BorrowerOverdueEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.requisitionId = event.params.requisitionId
+  entity.borrower = event.params.borrower
+  entity.dueDate = event.params.dueDate
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+export function handleBorrowerDebtSettled(event: BorrowerDebtSettled): void {
+  let entity = new BorrowerDebtSettledEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.requisitionId = event.params.requisitionId
+  entity.borrower = event.params.borrower
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+export function handlePeriodicCheckRun(event: PeriodicCheckRun): void {
+  let entity = new PeriodicCheckRunEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.itemsChecked = event.params.itemsChecked
+  entity.nextIndex = event.params.nextIndex
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+export function handleLoanRequisitionCancelled(event: LoanRequisitionCancelled): void {
+  let entity = new LoanRequisitionCancelledEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.requisitionId = event.params.requisitionId
+  entity.borrower = event.params.borrower
+  entity.totalUncoveredAmount = event.params.totalUncoveredAmount
+  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+  entity.transactionHash = event.transaction.hash
+  entity.save()
+}
+
+export function handleLoanUncovered(event: LoanUncovered): void {
+  let entity = new LoanUncoveredEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  entity.requisitionId = event.params.requisitionId
+  entity.lender = event.params.lender
+  entity.amountReturnedToLender = event.params.amountReturnedToLender
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()

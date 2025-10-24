@@ -1,52 +1,63 @@
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
+const fs = require("fs");
 
-async function testEvent() {
-  const [deployer, user1,user2,user3,user4] = await ethers.getSigners();
-  
-  // Load deployment addresses
+async function main() {
   const addresses = require("../deployment-addresses.json");
-  
-  // Connect to contracts
-  const loanMachine = await ethers.getContractAt("LoanMachine", addresses.loanMachine);
+  const [owner, user1, user2, user3, user4] = await ethers.getSigners();
+
+  console.log("🔍 Connecting to deployed contracts...");
+
+  // Load contract instance
   const reputationSystem = await ethers.getContractAt("ReputationSystem", addresses.reputationSystem);
 
-  console.log("Testing with user4:", user3.address);
+  console.log("✅ Connected to reputationSystem at:", addresses.reputationSystem);
+  console.log("📡 Fetching historical events...\n");
 
-  try {
-    // Check if user4 is registered
-    const memberId = await loanMachine.getMemberId(user3.address);
-    console.log("user4 member ID:", memberId.toString());
-    
-    // Get current reputation
-    const reputation = await loanMachine.getReputation(memberId);
-    console.log("Current reputation:", reputation.toString());
+  // Helper to fetch and print events
+  async function fetchEvent(eventName, parser) {
+    try {
+      // Use the correct event filter method
+      const filter = reputationSystem.filters[eventName]();
+      const events = await reputationSystem.queryFilter(filter, 0, "latest");
+      console.log(`📘 Found ${events.length} ${eventName} events:`);
 
-    // Listen for ReputationChanged event from ReputationSystem
-    reputationSystem.on("ReputationChanged", (memberId, points, increase, newReputation, timestamp) => {
-      console.log("✅ REPUTATION CHANGED EVENT:");
-      console.log("   Member ID:", memberId.toString());
-      console.log("   Points:", points.toString());
-      console.log("   Increase:", increase);
-      console.log("   New Reputation:", newReputation.toString());
-    });
+      const parsed = events.map((e) => parser(e));
+      parsed.forEach((p, i) => console.log(`${i + 1}.`, p));
 
-    // Call a function that might change reputation
-    console.log("Calling getReputation...");
-    const tx = await loanMachine.connect(user3).getReputation(memberId);
-    await tx.wait();
-    
-    console.log("Transaction completed");
-
-    // Wait a bit for event
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-  } catch (error) {
-    console.log("Error:", error.message);
+      return parsed;
+    } catch (error) {
+      console.log(`❌ Error fetching ${eventName}:`, error.message);
+      return [];
+    }
   }
 
-  // Cleanup and exit
-  reputationSystem.removeAllListeners();
-  process.exit(0);
+  // ========== FETCH EVENTS ==========
+
+  // Corrected event parsing for ReputationChanged
+  const ReputationChanged = await fetchEvent("ReputationChanged", (e) => ({
+    memberId: e.args.memberId.toString(),
+    points: e.args.points.toString(),
+    increase: e.args.increase,
+    newReputation: e.args.newReputation.toString(),
+    timestamp: e.args.timestamp.toString(),
+    blockNumber: e.blockNumber,
+    transactionHash: e.transactionHash
+  }));
+
+
+  // ========== SAVE TO FILE ==========
+  const allEvents = {
+    ReputationChanged
+  };
+
+  fs.writeFileSync("reputationSystem-events.json", JSON.stringify(allEvents, null, 2));
+  console.log("\n💾 Saved all events to reputationSystem-events.json");
+  console.log("✅ Done!");
 }
 
-testEvent();
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("💥 Script failed:", error);
+    process.exit(1);
+  });

@@ -92,28 +92,45 @@ export async function fetchContractStats() {
 /* -----------------------------------------------------------
    Fetch Last Transactions
 ----------------------------------------------------------- */
+const parseCustomDate = (dateString) => {
+  if (!dateString) return new Date(0); // Return epoch start for safety
+  
+  // Example: "23/10/2025 22:33:31"
+  const [datePart, timePart] = dateString.split(' ');
+  const [day, month, year] = datePart.split('/');
+  
+  // Create a standard ISO-like string format: YYYY-MM-DDTHH:mm:ss for reliable Date parsing.
+  const isoString = `${year}-${month}-${day}T${timePart}`;
+  return new Date(isoString);
+};
+
+
 export async function fetchLastTransactions({ limit = 5 } = {}) {
+  // Use a much larger limit for the initial query (e.g., 10 times the requested limit) 
+  // to ensure we capture the true 'limit' number of most recent transactions across all types.
+  const fetchLimit = limit * 10; 
+
   const query = `
-    query GetLastTransactions($limit: Int!) {
-      donatedEvents(first: $limit, orderBy: blockTimestamp, orderDirection: desc) {
+    query GetLastTransactions($fetchLimit: Int!) {
+      donatedEvents(first: $fetchLimit, orderBy: blockTimestamp, orderDirection: desc) {
         id
         donor
         amount
         blockTimestamp
       }
-      borrowedEvents(first: $limit, orderBy: blockTimestamp, orderDirection: desc) {
+      borrowedEvents(first: $fetchLimit, orderBy: blockTimestamp, orderDirection: desc) {
         id
         borrower
         amount
         blockTimestamp
       }
-      repaidEvents(first: $limit, orderBy: blockTimestamp, orderDirection: desc) {
+      repaidEvents(first: $fetchLimit, orderBy: blockTimestamp, orderDirection: desc) {
         id
         borrower
         amount
         blockTimestamp
       }
-      withdrawnEvents(first: $limit, orderBy: blockTimestamp, orderDirection: desc) {
+      withdrawnEvents(first: $fetchLimit, orderBy: blockTimestamp, orderDirection: desc) {
         id
         donor
         amount
@@ -123,16 +140,24 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
   `;
 
   try {
-    const data = await client.request(query, { limit });
+    // Pass the larger fetchLimit to the GraphQL client
+    const data = await client.request(query, { fetchLimit });
 
     const allTransactions = [
       ...(data?.donatedEvents || []).map((tx) => ({ ...tx, type: "donation", timestamp: tx.blockTimestamp })),
       ...(data?.borrowedEvents || []).map((tx) => ({ ...tx, type: "borrow", timestamp: tx.blockTimestamp, borrower: { id: tx.borrower } })),
       ...(data?.repaidEvents || []).map((tx) => ({ ...tx, type: "repayment", timestamp: tx.blockTimestamp, borrower: { id: tx.borrower } })),
       ...(data?.withdrawnEvents || []).map((tx) => ({ ...tx, type: "withdrawn", timestamp: tx.blockTimestamp, donor: { id: tx.donor } })),
-
     ]
-      .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+      // FIX: Use the custom parsing function to correctly sort the 'DD/MM/YYYY HH:mm:ss' strings chronologically.
+      .sort((a, b) => {
+        const dateA = parseCustomDate(a.timestamp);
+        const dateB = parseCustomDate(b.timestamp);
+        
+        // Sort descending (most recent first): dateB - dateA
+        return dateB.getTime() - dateA.getTime();
+      })
+      // Slice down to the originally requested limit (e.g., 5)
       .slice(0, limit);
 
     return allTransactions;

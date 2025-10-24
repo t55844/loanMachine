@@ -17,97 +17,127 @@
   },
   {
     "inputs": [],
-    "name": "BorrowNotExpired",
+    "name": "LoanMachine_BorrowNotExpired",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "ExcessiveDonation",
+    "name": "LoanMachine_CheckIntervalNotYetPassed",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InsufficientDonationBalance",
+    "name": "LoanMachine_ExcessiveDonation",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InsufficientFunds",
+    "name": "LoanMachine_InsufficientDonationBalance",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InsufficientWithdrawableBalance",
+    "name": "LoanMachine_InsufficientFunds",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidAmount",
+    "name": "LoanMachine_InsufficientWithdrawableBalance",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidCoveragePercentage",
+    "name": "LoanMachine_InvalidAmount",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidParcelsCount",
+    "name": "LoanMachine_InvalidCoveragePercentage",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "LoanNotAvailable",
+    "name": "LoanMachine_InvalidParcelsCount",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "MaxLoanRequisitionPendingReached",
+    "name": "LoanMachine_LoanNotAvailable",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "MemberIdOrWalletInvalid",
+    "name": "LoanMachine_MaxLoanRequisitionPendingReached",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "MinimumDonationRequired",
+    "name": "LoanMachine_MemberIdOrWalletInvalid",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "MinimumPercentageCover",
+    "name": "LoanMachine_MinimumDonationRequired",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "NoActiveBorrowing",
+    "name": "LoanMachine_MinimumPercentageCover",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "OverCoverage",
+    "name": "LoanMachine_NoActiveBorrowing",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "ParcelAlreadyPaid",
+    "name": "LoanMachine_NotLoanRequisitionCreator",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "RepaymentExceedsBorrowed",
+    "name": "LoanMachine_OnlyBorrowerCanCancelRequisition",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "TokenTransferFailed",
+    "name": "LoanMachine_OverCoverage",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "WalletAlreadyVinculated",
+    "name": "LoanMachine_ParcelAlreadyPaid",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_RepaymentExceedsBorrowed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_RequisitionAlreadyActive",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_RequisitionNotCancellable",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_RequisitionNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_TokenTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WalletAlreadyVinculated",
     "type": "error"
   },
   {
@@ -166,44 +196,43 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      }
+    ],
+    "name": "BorrowerDebtSettled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "borrower",
         "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "enum DebtTracker.DebtStatus",
-        "name": "newStatus",
-        "type": "uint8"
+        "internalType": "uint256",
+        "name": "dueDate",
+        "type": "uint256"
       }
     ],
-    "name": "BorrowerStatusUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      }
-    ],
-    "name": "DebtorAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      }
-    ],
-    "name": "DebtorRemoved",
+    "name": "BorrowerOverdue",
     "type": "event"
   },
   {
@@ -374,6 +403,31 @@
       {
         "indexed": false,
         "internalType": "uint256",
+        "name": "totalUncoveredAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "LoanRequisitionCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
       },
@@ -391,13 +445,25 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lender",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
-        "name": "timestamp",
+        "name": "amountReturnedToLender",
         "type": "uint256"
       }
     ],
-    "name": "MonthlyUpdateTriggered",
+    "name": "LoanUncovered",
     "type": "event"
   },
   {
@@ -443,6 +509,25 @@
       }
     ],
     "name": "ParcelPaid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "itemsChecked",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nextIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "PeriodicCheckRun",
     "type": "event"
   },
   {
@@ -522,16 +607,16 @@
     "type": "event"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "CHECK_INTERVAL",
+    "outputs": [
       {
-        "internalType": "address[]",
-        "name": "borrowers",
-        "type": "address[]"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "name": "batchUpdateDebtStatus",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -615,6 +700,30 @@
       },
       {
         "internalType": "uint32",
+        "name": "memberId",
+        "type": "uint32"
+      }
+    ],
+    "name": "cancelLoanRequisition",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalUncoveredAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
         "name": "coveragePercentage",
         "type": "uint32"
       },
@@ -642,11 +751,6 @@
         "type": "uint32"
       },
       {
-        "internalType": "uint256",
-        "name": "durationDays",
-        "type": "uint256"
-      },
-      {
         "internalType": "uint32",
         "name": "parcelscount",
         "type": "uint32"
@@ -666,6 +770,40 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "debtWatchlist",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nextDueDate",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isOverdue",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -810,57 +948,12 @@
         "type": "address"
       }
     ],
-    "name": "getBorrowerDebtStatus",
-    "outputs": [
-      {
-        "internalType": "enum DebtTracker.DebtStatus",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      }
-    ],
     "name": "getBorrowerRequisitions",
     "outputs": [
       {
         "internalType": "uint256[]",
         "name": "",
         "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getBorrowersWithDebt",
-    "outputs": [
-      {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getBorrowersWithoutDebt",
-    "outputs": [
-      {
-        "internalType": "address[]",
-        "name": "",
-        "type": "address[]"
       }
     ],
     "stateMutability": "view",
@@ -912,6 +1005,41 @@
         "internalType": "address[]",
         "name": "",
         "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getDebtWatchlist",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "requisitionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "borrower",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nextDueDate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isOverdue",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct LoanMachine.DebtWatchItem[]",
+        "name": "",
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
@@ -1311,31 +1439,12 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "requisitionId",
+        "type": "uint256"
       }
     ],
-    "name": "hasActiveDebt",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      }
-    ],
-    "name": "hasOverdueDebt",
+    "name": "isBorrowerOverdue",
     "outputs": [
       {
         "internalType": "bool",
@@ -1360,6 +1469,19 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastPeriodicCheckTimestamp",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1416,7 +1538,7 @@
   },
   {
     "inputs": [],
-    "name": "nextMonthlyUpdate",
+    "name": "nextCheckIndex",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1425,6 +1547,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "batchSize",
+        "type": "uint256"
+      }
+    ],
+    "name": "performPeriodicDebtCheck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1474,39 +1609,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "shouldTriggerUpdate",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "triggerMonthlyUpdate",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      }
-    ],
-    "name": "updateBorrowerDebtStatus",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

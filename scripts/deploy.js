@@ -5,14 +5,6 @@ async function main() {
 
   const [owner, user1, user2, user3, user4] = await ethers.getSigners();
 
-  // First, deploy the DebtTracker library
-  console.log("📚 Deploying DebtTracker library...");
-  const DebtTracker = await ethers.getContractFactory("DebtTracker");
-  const debtTracker = await DebtTracker.deploy();
-  await debtTracker.waitForDeployment();
-  const debtTrackerAddress = await debtTracker.getAddress();
-  console.log("DebtTracker library deployed to:", debtTrackerAddress);
-
   // --- Deploy MockUSDT ---
   console.log("💰 Deploying MockUSDT...");
   const MockUSDT = await ethers.getContractFactory("MockUSDT");
@@ -30,12 +22,7 @@ async function main() {
   console.log("ReputationSystem deployed to:", reputationSystemAddress);
 
   // --- Deploy LoanMachine with library linking ---
-  console.log("🤖 Deploying LoanMachine with library linking...");
-  const LoanMachine = await ethers.getContractFactory("LoanMachine", {
-    libraries: {
-      "DebtTracker": debtTrackerAddress
-    }
-  });
+  const LoanMachine = await ethers.getContractFactory("LoanMachine");
   
   const loanMachine = await LoanMachine.deploy(mockUSDTAddress, reputationSystemAddress);
   await loanMachine.waitForDeployment();
@@ -68,14 +55,12 @@ async function main() {
 
   console.log("\n✅ All contracts deployed and initialized successfully!");
   console.log("📋 Contract addresses:");
-  console.log(`   DebtTracker Library: ${debtTrackerAddress}`);
   console.log(`   MockUSDT: ${mockUSDTAddress}`);
   console.log(`   ReputationSystem: ${reputationSystemAddress}`);
   console.log(`   LoanMachine: ${loanMachineAddress}`);
 
   // Save deployment addresses to a file
   const addresses = {
-    debtTracker: debtTrackerAddress,
     mockUSDT: mockUSDTAddress,
     reputationSystem: reputationSystemAddress,
     loanMachine: loanMachineAddress,

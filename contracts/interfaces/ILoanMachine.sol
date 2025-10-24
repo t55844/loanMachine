@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../libraries/DebtTracker.sol";
-
 interface ILoanMachine {
-    enum BorrowStatus { Pending, PartiallyCovered, FullyCovered, Active, Repaid, Defaulted }
+    enum BorrowStatus { Pending, PartiallyCovered, FullyCovered, Active, Repaid, Defaulted, Cancelled }
     
     struct RequisitionInfo {
         uint256 requisitionId;
@@ -52,12 +50,11 @@ interface ILoanMachine {
     event LenderRepaid(uint256 indexed requisitionId, address indexed lender, uint256 amount);
     event LoanCompleted(uint256 indexed requisitionId);
 
-    // declare events from DebtTracker to include in ABI
-    event BorrowerStatusUpdated(address indexed borrower, DebtTracker.DebtStatus newStatus);
-    event DebtorAdded(address indexed borrower);
-    event DebtorRemoved(address indexed borrower);
-    event MonthlyUpdateTriggered(uint256 timestamp);
-
+    event BorrowerOverdue(uint256 indexed requisitionId, address indexed borrower, uint256 dueDate);
+    event BorrowerDebtSettled(uint256 indexed requisitionId, address indexed borrower);
+    event PeriodicCheckRun(uint256 itemsChecked, uint256 nextIndex);
+    event LoanRequisitionCancelled(uint256 indexed requisitionId,address indexed borrower,uint256 totalUncoveredAmount);
+    event LoanUncovered(uint256 indexed requisitionId,address indexed lender,uint256 amountReturnedToLender);
 
     // Core functions
     function vinculationMemberToWallet(uint32 memberId, address wallet) external;

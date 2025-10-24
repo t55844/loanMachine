@@ -72,61 +72,51 @@ export class Borrowed__Params {
   }
 }
 
-export class BorrowerStatusUpdated extends ethereum.Event {
-  get params(): BorrowerStatusUpdated__Params {
-    return new BorrowerStatusUpdated__Params(this);
+export class BorrowerDebtSettled extends ethereum.Event {
+  get params(): BorrowerDebtSettled__Params {
+    return new BorrowerDebtSettled__Params(this);
   }
 }
 
-export class BorrowerStatusUpdated__Params {
-  _event: BorrowerStatusUpdated;
+export class BorrowerDebtSettled__Params {
+  _event: BorrowerDebtSettled;
 
-  constructor(event: BorrowerStatusUpdated) {
+  constructor(event: BorrowerDebtSettled) {
     this._event = event;
   }
 
+  get requisitionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
   get borrower(): Address {
-    return this._event.parameters[0].value.toAddress();
-  }
-
-  get newStatus(): i32 {
-    return this._event.parameters[1].value.toI32();
+    return this._event.parameters[1].value.toAddress();
   }
 }
 
-export class DebtorAdded extends ethereum.Event {
-  get params(): DebtorAdded__Params {
-    return new DebtorAdded__Params(this);
+export class BorrowerOverdue extends ethereum.Event {
+  get params(): BorrowerOverdue__Params {
+    return new BorrowerOverdue__Params(this);
   }
 }
 
-export class DebtorAdded__Params {
-  _event: DebtorAdded;
+export class BorrowerOverdue__Params {
+  _event: BorrowerOverdue;
 
-  constructor(event: DebtorAdded) {
+  constructor(event: BorrowerOverdue) {
     this._event = event;
   }
 
-  get borrower(): Address {
-    return this._event.parameters[0].value.toAddress();
-  }
-}
-
-export class DebtorRemoved extends ethereum.Event {
-  get params(): DebtorRemoved__Params {
-    return new DebtorRemoved__Params(this);
-  }
-}
-
-export class DebtorRemoved__Params {
-  _event: DebtorRemoved;
-
-  constructor(event: DebtorRemoved) {
-    this._event = event;
+  get requisitionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
   }
 
   get borrower(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get dueDate(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
   }
 }
 
@@ -286,6 +276,32 @@ export class LoanFunded__Params {
   }
 }
 
+export class LoanRequisitionCancelled extends ethereum.Event {
+  get params(): LoanRequisitionCancelled__Params {
+    return new LoanRequisitionCancelled__Params(this);
+  }
+}
+
+export class LoanRequisitionCancelled__Params {
+  _event: LoanRequisitionCancelled;
+
+  constructor(event: LoanRequisitionCancelled) {
+    this._event = event;
+  }
+
+  get requisitionId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get borrower(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get totalUncoveredAmount(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
 export class LoanRequisitionCreated extends ethereum.Event {
   get params(): LoanRequisitionCreated__Params {
     return new LoanRequisitionCreated__Params(this);
@@ -316,21 +332,29 @@ export class LoanRequisitionCreated__Params {
   }
 }
 
-export class MonthlyUpdateTriggered extends ethereum.Event {
-  get params(): MonthlyUpdateTriggered__Params {
-    return new MonthlyUpdateTriggered__Params(this);
+export class LoanUncovered extends ethereum.Event {
+  get params(): LoanUncovered__Params {
+    return new LoanUncovered__Params(this);
   }
 }
 
-export class MonthlyUpdateTriggered__Params {
-  _event: MonthlyUpdateTriggered;
+export class LoanUncovered__Params {
+  _event: LoanUncovered;
 
-  constructor(event: MonthlyUpdateTriggered) {
+  constructor(event: LoanUncovered) {
     this._event = event;
   }
 
-  get timestamp(): BigInt {
+  get requisitionId(): BigInt {
     return this._event.parameters[0].value.toBigInt();
+  }
+
+  get lender(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get amountReturnedToLender(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
   }
 }
 
@@ -388,6 +412,28 @@ export class ParcelPaid__Params {
   }
 
   get parcelsRemaining(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
+export class PeriodicCheckRun extends ethereum.Event {
+  get params(): PeriodicCheckRun__Params {
+    return new PeriodicCheckRun__Params(this);
+  }
+}
+
+export class PeriodicCheckRun__Params {
+  _event: PeriodicCheckRun;
+
+  constructor(event: PeriodicCheckRun) {
+    this._event = event;
+  }
+
+  get itemsChecked(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get nextIndex(): BigInt {
     return this._event.parameters[1].value.toBigInt();
   }
 }
@@ -480,6 +526,50 @@ export class Withdrawn__Params {
   }
 }
 
+export class LoanMachine__debtWatchlistResult {
+  value0: BigInt;
+  value1: Address;
+  value2: BigInt;
+  value3: boolean;
+
+  constructor(
+    value0: BigInt,
+    value1: Address,
+    value2: BigInt,
+    value3: boolean,
+  ) {
+    this.value0 = value0;
+    this.value1 = value1;
+    this.value2 = value2;
+    this.value3 = value3;
+  }
+
+  toMap(): TypedMap<string, ethereum.Value> {
+    let map = new TypedMap<string, ethereum.Value>();
+    map.set("value0", ethereum.Value.fromUnsignedBigInt(this.value0));
+    map.set("value1", ethereum.Value.fromAddress(this.value1));
+    map.set("value2", ethereum.Value.fromUnsignedBigInt(this.value2));
+    map.set("value3", ethereum.Value.fromBoolean(this.value3));
+    return map;
+  }
+
+  getRequisitionId(): BigInt {
+    return this.value0;
+  }
+
+  getBorrower(): Address {
+    return this.value1;
+  }
+
+  getNextDueDate(): BigInt {
+    return this.value2;
+  }
+
+  getIsOverdue(): boolean {
+    return this.value3;
+  }
+}
+
 export class LoanMachine__getActiveLoansResultActiveLoansStruct extends ethereum.Tuple {
   get walletAddress(): Address {
     return this[0].toAddress();
@@ -543,6 +633,24 @@ export class LoanMachine__getActiveLoansResult {
 
   getRequisitionIds(): Array<BigInt> {
     return this.value1;
+  }
+}
+
+export class LoanMachine__getDebtWatchlistResultValue0Struct extends ethereum.Tuple {
+  get requisitionId(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get borrower(): Address {
+    return this[1].toAddress();
+  }
+
+  get nextDueDate(): BigInt {
+    return this[2].toBigInt();
+  }
+
+  get isOverdue(): boolean {
+    return this[3].toBoolean();
   }
 }
 
@@ -775,6 +883,25 @@ export class LoanMachine extends ethereum.SmartContract {
     return new LoanMachine("LoanMachine", address);
   }
 
+  CHECK_INTERVAL(): BigInt {
+    let result = super.call("CHECK_INTERVAL", "CHECK_INTERVAL():(uint256)", []);
+
+    return result[0].toBigInt();
+  }
+
+  try_CHECK_INTERVAL(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "CHECK_INTERVAL",
+      "CHECK_INTERVAL():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   borrowerRequisitions(param0: Address, param1: BigInt): BigInt {
     let result = super.call(
       "borrowerRequisitions",
@@ -871,20 +998,50 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
+  cancelLoanRequisition(requisitionId: BigInt, memberId: BigInt): BigInt {
+    let result = super.call(
+      "cancelLoanRequisition",
+      "cancelLoanRequisition(uint256,uint32):(uint256)",
+      [
+        ethereum.Value.fromUnsignedBigInt(requisitionId),
+        ethereum.Value.fromUnsignedBigInt(memberId),
+      ],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_cancelLoanRequisition(
+    requisitionId: BigInt,
+    memberId: BigInt,
+  ): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "cancelLoanRequisition",
+      "cancelLoanRequisition(uint256,uint32):(uint256)",
+      [
+        ethereum.Value.fromUnsignedBigInt(requisitionId),
+        ethereum.Value.fromUnsignedBigInt(memberId),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
   createLoanRequisition(
     amount: BigInt,
     minimumCoverage: BigInt,
-    durationDays: BigInt,
     parcelscount: BigInt,
     memberId: BigInt,
   ): BigInt {
     let result = super.call(
       "createLoanRequisition",
-      "createLoanRequisition(uint256,uint32,uint256,uint32,uint32):(uint256)",
+      "createLoanRequisition(uint256,uint32,uint32,uint32):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(amount),
         ethereum.Value.fromUnsignedBigInt(minimumCoverage),
-        ethereum.Value.fromUnsignedBigInt(durationDays),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
         ethereum.Value.fromUnsignedBigInt(memberId),
       ],
@@ -896,17 +1053,15 @@ export class LoanMachine extends ethereum.SmartContract {
   try_createLoanRequisition(
     amount: BigInt,
     minimumCoverage: BigInt,
-    durationDays: BigInt,
     parcelscount: BigInt,
     memberId: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "createLoanRequisition",
-      "createLoanRequisition(uint256,uint32,uint256,uint32,uint32):(uint256)",
+      "createLoanRequisition(uint256,uint32,uint32,uint32):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(amount),
         ethereum.Value.fromUnsignedBigInt(minimumCoverage),
-        ethereum.Value.fromUnsignedBigInt(durationDays),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
         ethereum.Value.fromUnsignedBigInt(memberId),
       ],
@@ -916,6 +1071,43 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  debtWatchlist(param0: BigInt): LoanMachine__debtWatchlistResult {
+    let result = super.call(
+      "debtWatchlist",
+      "debtWatchlist(uint256):(uint256,address,uint256,bool)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+
+    return new LoanMachine__debtWatchlistResult(
+      result[0].toBigInt(),
+      result[1].toAddress(),
+      result[2].toBigInt(),
+      result[3].toBoolean(),
+    );
+  }
+
+  try_debtWatchlist(
+    param0: BigInt,
+  ): ethereum.CallResult<LoanMachine__debtWatchlistResult> {
+    let result = super.tryCall(
+      "debtWatchlist",
+      "debtWatchlist(uint256):(uint256,address,uint256,bool)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      new LoanMachine__debtWatchlistResult(
+        value[0].toBigInt(),
+        value[1].toAddress(),
+        value[2].toBigInt(),
+        value[3].toBoolean(),
+      ),
+    );
   }
 
   getActiveLoans(borrower: Address): LoanMachine__getActiveLoansResult {
@@ -1018,29 +1210,6 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
-  getBorrowerDebtStatus(borrower: Address): i32 {
-    let result = super.call(
-      "getBorrowerDebtStatus",
-      "getBorrowerDebtStatus(address):(uint8)",
-      [ethereum.Value.fromAddress(borrower)],
-    );
-
-    return result[0].toI32();
-  }
-
-  try_getBorrowerDebtStatus(borrower: Address): ethereum.CallResult<i32> {
-    let result = super.tryCall(
-      "getBorrowerDebtStatus",
-      "getBorrowerDebtStatus(address):(uint8)",
-      [ethereum.Value.fromAddress(borrower)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toI32());
-  }
-
   getBorrowerRequisitions(borrower: Address): Array<BigInt> {
     let result = super.call(
       "getBorrowerRequisitions",
@@ -1064,52 +1233,6 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigIntArray());
-  }
-
-  getBorrowersWithDebt(): Array<Address> {
-    let result = super.call(
-      "getBorrowersWithDebt",
-      "getBorrowersWithDebt():(address[])",
-      [],
-    );
-
-    return result[0].toAddressArray();
-  }
-
-  try_getBorrowersWithDebt(): ethereum.CallResult<Array<Address>> {
-    let result = super.tryCall(
-      "getBorrowersWithDebt",
-      "getBorrowersWithDebt():(address[])",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddressArray());
-  }
-
-  getBorrowersWithoutDebt(): Array<Address> {
-    let result = super.call(
-      "getBorrowersWithoutDebt",
-      "getBorrowersWithoutDebt():(address[])",
-      [],
-    );
-
-    return result[0].toAddressArray();
-  }
-
-  try_getBorrowersWithoutDebt(): ethereum.CallResult<Array<Address>> {
-    let result = super.tryCall(
-      "getBorrowersWithoutDebt",
-      "getBorrowersWithoutDebt():(address[])",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddressArray());
   }
 
   getBorrowing(_user: Address): BigInt {
@@ -1179,6 +1302,33 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toAddressArray());
+  }
+
+  getDebtWatchlist(): Array<LoanMachine__getDebtWatchlistResultValue0Struct> {
+    let result = super.call(
+      "getDebtWatchlist",
+      "getDebtWatchlist():((uint256,address,uint256,bool)[])",
+      [],
+    );
+
+    return result[0].toTupleArray<LoanMachine__getDebtWatchlistResultValue0Struct>();
+  }
+
+  try_getDebtWatchlist(): ethereum.CallResult<
+    Array<LoanMachine__getDebtWatchlistResultValue0Struct>
+  > {
+    let result = super.tryCall(
+      "getDebtWatchlist",
+      "getDebtWatchlist():((uint256,address,uint256,bool)[])",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      value[0].toTupleArray<LoanMachine__getDebtWatchlistResultValue0Struct>(),
+    );
   }
 
   getDonation(_user: Address): BigInt {
@@ -1575,42 +1725,21 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
-  hasActiveDebt(borrower: Address): boolean {
-    let result = super.call("hasActiveDebt", "hasActiveDebt(address):(bool)", [
-      ethereum.Value.fromAddress(borrower),
-    ]);
-
-    return result[0].toBoolean();
-  }
-
-  try_hasActiveDebt(borrower: Address): ethereum.CallResult<boolean> {
-    let result = super.tryCall(
-      "hasActiveDebt",
-      "hasActiveDebt(address):(bool)",
-      [ethereum.Value.fromAddress(borrower)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBoolean());
-  }
-
-  hasOverdueDebt(borrower: Address): boolean {
+  isBorrowerOverdue(requisitionId: BigInt): boolean {
     let result = super.call(
-      "hasOverdueDebt",
-      "hasOverdueDebt(address):(bool)",
-      [ethereum.Value.fromAddress(borrower)],
+      "isBorrowerOverdue",
+      "isBorrowerOverdue(uint256):(bool)",
+      [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
 
     return result[0].toBoolean();
   }
 
-  try_hasOverdueDebt(borrower: Address): ethereum.CallResult<boolean> {
+  try_isBorrowerOverdue(requisitionId: BigInt): ethereum.CallResult<boolean> {
     let result = super.tryCall(
-      "hasOverdueDebt",
-      "hasOverdueDebt(address):(bool)",
-      [ethereum.Value.fromAddress(borrower)],
+      "isBorrowerOverdue",
+      "isBorrowerOverdue(uint256):(bool)",
+      [ethereum.Value.fromUnsignedBigInt(requisitionId)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -1640,6 +1769,29 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
+  lastPeriodicCheckTimestamp(): BigInt {
+    let result = super.call(
+      "lastPeriodicCheckTimestamp",
+      "lastPeriodicCheckTimestamp():(uint256)",
+      [],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_lastPeriodicCheckTimestamp(): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "lastPeriodicCheckTimestamp",
+      "lastPeriodicCheckTimestamp():(uint256)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   loanContracts(param0: BigInt): LoanMachine__loanContractsResult {
@@ -1685,20 +1837,16 @@ export class LoanMachine extends ethereum.SmartContract {
     );
   }
 
-  nextMonthlyUpdate(): BigInt {
-    let result = super.call(
-      "nextMonthlyUpdate",
-      "nextMonthlyUpdate():(uint256)",
-      [],
-    );
+  nextCheckIndex(): BigInt {
+    let result = super.call("nextCheckIndex", "nextCheckIndex():(uint256)", []);
 
     return result[0].toBigInt();
   }
 
-  try_nextMonthlyUpdate(): ethereum.CallResult<BigInt> {
+  try_nextCheckIndex(): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
-      "nextMonthlyUpdate",
-      "nextMonthlyUpdate():(uint256)",
+      "nextCheckIndex",
+      "nextCheckIndex():(uint256)",
       [],
     );
     if (result.reverted) {
@@ -1754,29 +1902,6 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
-  shouldTriggerUpdate(): boolean {
-    let result = super.call(
-      "shouldTriggerUpdate",
-      "shouldTriggerUpdate():(bool)",
-      [],
-    );
-
-    return result[0].toBoolean();
-  }
-
-  try_shouldTriggerUpdate(): ethereum.CallResult<boolean> {
-    let result = super.tryCall(
-      "shouldTriggerUpdate",
-      "shouldTriggerUpdate():(bool)",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBoolean());
-  }
-
   usdtToken(): Address {
     let result = super.call("usdtToken", "usdtToken():(address)", []);
 
@@ -1827,33 +1952,41 @@ export class ConstructorCall__Outputs {
   }
 }
 
-export class BatchUpdateDebtStatusCall extends ethereum.Call {
-  get inputs(): BatchUpdateDebtStatusCall__Inputs {
-    return new BatchUpdateDebtStatusCall__Inputs(this);
+export class CancelLoanRequisitionCall extends ethereum.Call {
+  get inputs(): CancelLoanRequisitionCall__Inputs {
+    return new CancelLoanRequisitionCall__Inputs(this);
   }
 
-  get outputs(): BatchUpdateDebtStatusCall__Outputs {
-    return new BatchUpdateDebtStatusCall__Outputs(this);
-  }
-}
-
-export class BatchUpdateDebtStatusCall__Inputs {
-  _call: BatchUpdateDebtStatusCall;
-
-  constructor(call: BatchUpdateDebtStatusCall) {
-    this._call = call;
-  }
-
-  get borrowers(): Array<Address> {
-    return this._call.inputValues[0].value.toAddressArray();
+  get outputs(): CancelLoanRequisitionCall__Outputs {
+    return new CancelLoanRequisitionCall__Outputs(this);
   }
 }
 
-export class BatchUpdateDebtStatusCall__Outputs {
-  _call: BatchUpdateDebtStatusCall;
+export class CancelLoanRequisitionCall__Inputs {
+  _call: CancelLoanRequisitionCall;
 
-  constructor(call: BatchUpdateDebtStatusCall) {
+  constructor(call: CancelLoanRequisitionCall) {
     this._call = call;
+  }
+
+  get requisitionId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get memberId(): BigInt {
+    return this._call.inputValues[1].value.toBigInt();
+  }
+}
+
+export class CancelLoanRequisitionCall__Outputs {
+  _call: CancelLoanRequisitionCall;
+
+  constructor(call: CancelLoanRequisitionCall) {
+    this._call = call;
+  }
+
+  get totalUncoveredAmount(): BigInt {
+    return this._call.outputValues[0].value.toBigInt();
   }
 }
 
@@ -1920,16 +2053,12 @@ export class CreateLoanRequisitionCall__Inputs {
     return this._call.inputValues[1].value.toBigInt();
   }
 
-  get durationDays(): BigInt {
+  get parcelscount(): BigInt {
     return this._call.inputValues[2].value.toBigInt();
   }
 
-  get parcelscount(): BigInt {
-    return this._call.inputValues[3].value.toBigInt();
-  }
-
   get memberId(): BigInt {
-    return this._call.inputValues[4].value.toBigInt();
+    return this._call.inputValues[3].value.toBigInt();
   }
 }
 
@@ -1979,6 +2108,36 @@ export class DonateCall__Outputs {
   }
 }
 
+export class PerformPeriodicDebtCheckCall extends ethereum.Call {
+  get inputs(): PerformPeriodicDebtCheckCall__Inputs {
+    return new PerformPeriodicDebtCheckCall__Inputs(this);
+  }
+
+  get outputs(): PerformPeriodicDebtCheckCall__Outputs {
+    return new PerformPeriodicDebtCheckCall__Outputs(this);
+  }
+}
+
+export class PerformPeriodicDebtCheckCall__Inputs {
+  _call: PerformPeriodicDebtCheckCall;
+
+  constructor(call: PerformPeriodicDebtCheckCall) {
+    this._call = call;
+  }
+
+  get batchSize(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class PerformPeriodicDebtCheckCall__Outputs {
+  _call: PerformPeriodicDebtCheckCall;
+
+  constructor(call: PerformPeriodicDebtCheckCall) {
+    this._call = call;
+  }
+}
+
 export class RepayCall extends ethereum.Call {
   get inputs(): RepayCall__Inputs {
     return new RepayCall__Inputs(this);
@@ -2013,62 +2172,6 @@ export class RepayCall__Outputs {
   _call: RepayCall;
 
   constructor(call: RepayCall) {
-    this._call = call;
-  }
-}
-
-export class TriggerMonthlyUpdateCall extends ethereum.Call {
-  get inputs(): TriggerMonthlyUpdateCall__Inputs {
-    return new TriggerMonthlyUpdateCall__Inputs(this);
-  }
-
-  get outputs(): TriggerMonthlyUpdateCall__Outputs {
-    return new TriggerMonthlyUpdateCall__Outputs(this);
-  }
-}
-
-export class TriggerMonthlyUpdateCall__Inputs {
-  _call: TriggerMonthlyUpdateCall;
-
-  constructor(call: TriggerMonthlyUpdateCall) {
-    this._call = call;
-  }
-}
-
-export class TriggerMonthlyUpdateCall__Outputs {
-  _call: TriggerMonthlyUpdateCall;
-
-  constructor(call: TriggerMonthlyUpdateCall) {
-    this._call = call;
-  }
-}
-
-export class UpdateBorrowerDebtStatusCall extends ethereum.Call {
-  get inputs(): UpdateBorrowerDebtStatusCall__Inputs {
-    return new UpdateBorrowerDebtStatusCall__Inputs(this);
-  }
-
-  get outputs(): UpdateBorrowerDebtStatusCall__Outputs {
-    return new UpdateBorrowerDebtStatusCall__Outputs(this);
-  }
-}
-
-export class UpdateBorrowerDebtStatusCall__Inputs {
-  _call: UpdateBorrowerDebtStatusCall;
-
-  constructor(call: UpdateBorrowerDebtStatusCall) {
-    this._call = call;
-  }
-
-  get borrower(): Address {
-    return this._call.inputValues[0].value.toAddress();
-  }
-}
-
-export class UpdateBorrowerDebtStatusCall__Outputs {
-  _call: UpdateBorrowerDebtStatusCall;
-
-  constructor(call: UpdateBorrowerDebtStatusCall) {
     this._call = call;
   }
 }

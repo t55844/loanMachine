@@ -16,7 +16,6 @@ async function main() {
   }
 
   const CONTRACT_ADDRESS = deploymentAddresses.loanMachine;
-  const DEBT_TRACKER_ADDRESS = deploymentAddresses.debtTracker;
 
   const [owner, user9, user3] = await hre.ethers.getSigners();
   const testUser = user9;
@@ -25,14 +24,9 @@ async function main() {
   console.log(`🧪 Test User: ${testUser.address}`);
   console.log(`🧪 Member ID: ${memberId}`);
   console.log(`📋 LoanMachine: ${CONTRACT_ADDRESS}`);
-  console.log(`📋 DebtTracker: ${DEBT_TRACKER_ADDRESS}`);
 
   // Get contract instance WITH library linking
-  const LoanMachine = await hre.ethers.getContractFactory("LoanMachine", {
-    libraries: {
-      "DebtTracker": DEBT_TRACKER_ADDRESS
-    }
-  });
+  const LoanMachine = await hre.ethers.getContractFactory("LoanMachine");
   
   const contract = await LoanMachine.attach(CONTRACT_ADDRESS);
 

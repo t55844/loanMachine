@@ -5,20 +5,32 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ILoanMachine.sol";
 import "./ReputationSystem.sol";
-import "./libraries/DebtTracker.sol";
 
 contract LoanMachine is ILoanMachine, ReentrancyGuard {
-    using DebtTracker for DebtTracker.DebtStorage;
 
     // Reputation system integration
     ReputationSystem public reputationSystem;
     
-    // Debt tracker
-    DebtTracker.DebtStorage private debtStorage;
+    // Your struct idea, slightly refined
+    struct DebtWatchItem {
+        uint256 requisitionId; 
+        address borrower;      
+        uint256 nextDueDate;   
+        bool isOverdue;        
+    }
 
-    // Track all borrowers for monthly updates
-    address[] private allBorrowers;
-    mapping(address => bool) private isRegisteredBorrower;
+    // The array we will check periodically
+    DebtWatchItem[] public debtWatchlist;
+
+    // This mapping is the KEY to fast removal. It tracks:
+    // requisitionId -> index in the debtWatchlist array
+    mapping(uint256 => uint256) private watchlistIndex;
+
+    // --- NEW KEEPER VARIABLES ---
+    uint256 public nextCheckIndex;
+    uint256 public lastPeriodicCheckTimestamp;
+    // You want twice a month, so ~15 days
+    uint256 public constant CHECK_INTERVAL = 15 days;
 
     // State variables
     mapping(address => uint256) private donations;
@@ -67,8 +79,14 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error LoanMachine_WalletAlreadyVinculated();
     error LoanMachine_ParcelAlreadyPaid();
     error LoanMachine_MinimumPercentageCover();
-    error LoanMachine_InsufficientWithdrawableBalance(); // New error for withdrawal
-
+    error LoanMachine_InsufficientWithdrawableBalance();
+    error LoanMachine_CheckIntervalNotYetPassed();
+    error LoanMachine_NotLoanRequisitionCreator();
+    error LoanMachine_RequisitionAlreadyActive();
+    error LoanMachine_RequisitionNotFound();
+    error LoanMachine_OnlyBorrowerCanCancelRequisition();
+    error LoanMachine_RequisitionNotCancellable();
+    
     // Structs
     struct LoanRequisition {    
         uint256 requisitionId;
@@ -139,9 +157,139 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     constructor(address _usdtToken, address _reputationSystem) {
         usdtToken = _usdtToken;
         reputationSystem = ReputationSystem(_reputationSystem);
-        debtStorage.initialize();
     }
     
+    /**
+     * @dev Performs a periodic check for overdue loans on a small batch.
+     * Anyone can call this function, ideally a bot ("Keeper").
+     * This distributes the gas cost over many blocks.
+     * @param batchSize The number of items to check in this run.
+     */
+    function performPeriodicDebtCheck(uint256 batchSize) external nonReentrant {
+        uint256 watchlistLength = debtWatchlist.length;
+        if (watchlistLength == 0) { return; } // Nothing to check
+
+        // Check if the full interval has passed since the *last full run*
+        bool intervalPassed = block.timestamp > lastPeriodicCheckTimestamp + CHECK_INTERVAL;
+        
+        // If we are at the start and the interval hasn't passed, revert.
+        // This enforces your "twice a month" rule.
+        if (nextCheckIndex == 0 && !intervalPassed) {
+            revert LoanMachine_CheckIntervalNotYetPassed();
+        }
+
+        // Determine how many items to check, max is the batchSize
+        uint256 itemsChecked = 0;
+        for (uint256 i = 0; i < batchSize && nextCheckIndex < watchlistLength; i++) {
+            DebtWatchItem storage item = debtWatchlist[nextCheckIndex];
+
+            // --- THIS IS THE CORE LOGIC ---
+            // If it's not already marked as overdue AND the due date has passed
+            if (!item.isOverdue && block.timestamp > item.nextDueDate) {
+                item.isOverdue = true;
+                emit BorrowerOverdue(item.requisitionId, item.borrower, item.nextDueDate);
+            }
+            // ---
+
+            nextCheckIndex++;
+            itemsChecked++;
+        }
+
+        // If we've finished checking the whole array
+        if (nextCheckIndex >= watchlistLength) {
+            nextCheckIndex = 0; // Reset for the next cycle
+            lastPeriodicCheckTimestamp = block.timestamp; // Mark the end of this full run
+        }
+        
+        emit PeriodicCheckRun(itemsChecked, nextCheckIndex);
+    }
+
+    // --- NEW VIEW FUNCTIONS ---
+    function getDebtWatchlist() external view returns (DebtWatchItem[] memory) {
+        return debtWatchlist;
+    }
+
+    function isBorrowerOverdue(uint256 requisitionId) external view returns (bool) {
+        // Check if it's even in the watchlist
+        if (debtWatchlist.length == 0 || watchlistIndex[requisitionId] == 0 && debtWatchlist[0].requisitionId != requisitionId) {
+            return false;
+        }
+        return debtWatchlist[watchlistIndex[requisitionId]].isOverdue;
+    }
+
+    /**
+ * @dev Allows the borrower to cancel their own loan requisition and return covered funds to lenders.
+ * Can only be called if the requisition is Pending or PartiallyCovered.
+ * @param requisitionId The ID of the loan requisition to cancel.
+ * @param memberId The member ID of the borrower (used for reputation system calls).
+ * @return totalUncoveredAmount The total amount of funds that were returned to the lenders.
+ */
+function cancelLoanRequisition(uint256 requisitionId, uint32 memberId) 
+    external 
+    nonReentrant 
+    validMember(memberId, msg.sender)
+    returns (uint256 totalUncoveredAmount) 
+{
+    LoanRequisition storage req = loanRequisitions[requisitionId];
+    uint256 initialCoverage = req.currentCoverage; // Store initial value
+
+    // 1. Status Check & Authorization
+    if (req.borrower != msg.sender) {
+        // Assuming you have a custom error for this, or use a standard revert
+        revert LoanMachine_OnlyBorrowerCanCancelRequisition(); 
+    }
+    
+    // Cannot cancel if it's already active (funded/disbursed)
+    if (req.status == BorrowStatus.Active || req.status == BorrowStatus.Cancelled) {
+        revert LoanMachine_RequisitionNotCancellable();
+    }
+    
+    // 2. Fund Unwind (Return coverage to lenders)
+    totalUncoveredAmount = 0;
+    
+    // Iterate over all lenders who covered this loan
+    for (uint256 i = 0; i < req.coveringLenders.length; i++) {
+        address lender = req.coveringLenders[i];
+        uint256 coverageAmount = req.coverageAmounts[lender];
+        
+        if (coverageAmount > 0) {
+            // Move funds from 'donationsInCoverage' back to 'donations'
+            unchecked {
+                donationsInCoverage[lender] -= coverageAmount;
+                donations[lender] += coverageAmount;
+            }
+            totalUncoveredAmount += coverageAmount;
+
+            // Clear the coverage amount for this lender on this specific requisition
+            delete req.coverageAmounts[lender]; 
+            
+            // Note: We leave the lender in the `coveringLenders` array for historical reference
+            // as Solidity arrays are costly to shrink/shift, but we clear their contribution.
+            
+            emit LoanUncovered(requisitionId, lender, coverageAmount);
+        }
+    }
+
+    // 3. State Cleanup
+    
+    // Decrease the pending loan count for the member (used in checkLoanRequisitionOpened)
+    if (initialCoverage < 100) { // Only decrease if it wasn't fully covered
+        loanRequisitionNumber[memberId] -= 1;
+    }
+
+    // Mark the requisition as cancelled
+    req.status = BorrowStatus.Cancelled;
+    req.currentCoverage = 0; // Clear coverage percentage
+    // Note: The requisition still exists in the mapping (loanRequisitions) for historical lookup
+
+    // Optional: Remove the requisition ID from the borrowerRequisitions array
+    // This is optional due to high gas cost, but is generally good practice for cleanup.
+    // If you choose to implement this, you'd need an array swapping utility similar to _removeFromWatchlist
+
+    emit LoanRequisitionCancelled(requisitionId, msg.sender, totalUncoveredAmount);
+    
+    return totalUncoveredAmount;
+}
     
     /**
      * @dev Withdraw function - allows users to withdraw only from donations not in cover
@@ -152,8 +300,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         validAmount(amount)
         nonReentrant 
     {
-        // Auto-trigger monthly update if needed
-        debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
 
         uint256 withdrawableBalance = getWithdrawableBalance(msg.sender);
         
@@ -199,8 +345,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         external 
         nonReentrant 
     {
-        // Auto-trigger monthly update if needed
-        debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
+        
 
         if (amount == 0) revert LoanMachine_InvalidAmount();
 
@@ -210,11 +355,26 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         uint32 currentParcelIndex = loan.parcelsCount - loan.parcelsPending;
         uint256 currentParcelDueDate = loan.paymentDates[currentParcelIndex];
         
-        // Update reputation based on payment timing
+        uint256 itemIndex = watchlistIndex[requisitionId];
+        DebtWatchItem storage item = debtWatchlist[itemIndex];
+
+        // Update reputation AND debt status based on payment timing
         if (block.timestamp > currentParcelDueDate) {
             reputationSystem.reputationChange(memberId, reputationSystem.REPUTATION_LOSS_BY_DEBT_NOT_PAYD(), false);
+            
+            // They were overdue *before* this payment. Set the flag.
+            if (!item.isOverdue) {
+                item.isOverdue = true;
+                emit BorrowerOverdue(requisitionId, borrower, currentParcelDueDate); 
+            }
         } else {
             reputationSystem.reputationChange(memberId, reputationSystem.REPUTATION_GAIN_BY_REPAYNG_DEBT(), true);
+            
+            // They paid on time, so they are definitely not overdue
+            if (item.isOverdue) {
+                item.isOverdue = false;
+                emit BorrowerDebtSettled(requisitionId, borrower); 
+            }
         }
 
         if (amount != loan.parcelsValues) revert LoanMachine_InvalidAmount();
@@ -229,20 +389,46 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         availableBalance += amount;
 
         _distributeRepaymentToLenders(requisitionId, amount);
-
-        emit Repaid(borrower, amount, borrowings[borrower]);
-        emit ParcelPaid(requisitionId, loan.parcelsPending);
-        emit TotalBorrowedUpdated(totalBorrowed);
-        emit AvailableBalanceUpdated(availableBalance);
         
         loan.parcelsPending -= 1;
         if (loan.parcelsPending == 0) {
             loan.status = ContractStatus.Closed;
             emit LoanCompleted(requisitionId);
+            
+            // Loan is done. Remove it from the watchlist.
+            _removeFromWatchlist(requisitionId);
+
+        } else {
+            // Loan is still active. Update the watchlist item.
+            uint32 nextParcelIndex = loan.parcelsCount - loan.parcelsPending;
+            item.nextDueDate = loan.paymentDates[nextParcelIndex];
+            // They just paid, so reset their status for the next parcel
+            item.isOverdue = false; 
         }
         
-        // Update debt status after repayment
-        debtStorage.updateBorrowerDebtStatus(borrower, this.getActiveLoans);
+        emit Repaid(borrower, amount, borrowings[borrower]);
+        emit ParcelPaid(requisitionId, loan.parcelsPending);
+        emit TotalBorrowedUpdated(totalBorrowed);
+        emit AvailableBalanceUpdated(availableBalance);
+
+    }
+
+    function _removeFromWatchlist(uint256 requisitionId) internal {
+        uint256 indexToRemove = watchlistIndex[requisitionId];
+        uint256 lastIndex = debtWatchlist.length - 1;
+
+        // Don't do anything if it's already the last item
+        if (indexToRemove != lastIndex) {
+            // Move the last item into the spot we are removing
+            DebtWatchItem storage lastItem = debtWatchlist[lastIndex];
+            debtWatchlist[indexToRemove] = lastItem;
+            // Update the index mapping for the item we just moved
+            watchlistIndex[lastItem.requisitionId] = indexToRemove;
+        }
+
+        // Delete the (now duplicate) last item
+        debtWatchlist.pop();
+        delete watchlistIndex[requisitionId];
     }
 
     function vinculationMemberToWallet(uint32 memberId, address wallet) external {
@@ -258,9 +444,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         validAmount(amount) 
         nonReentrant 
     {
-        // Auto-trigger monthly update if needed
-        debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
-
 
         // Transfer USDT from user to contract
         bool success = IERC20(usdtToken).transferFrom(msg.sender, address(this), amount);
@@ -363,7 +546,8 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         if (req.currentCoverage >= req.minimumCoverage) {
             req.status = BorrowStatus.FullyCovered;
 
-            loanRequisitionNumber[memberId] = 0;
+            uint32 borrowerId = reputationSystem.walletToMemberId(req.borrower);
+            loanRequisitionNumber[borrowerId] = 0;
             _generateLoanContract(requisitionId);
             _fundLoan(requisitionId);
         } else {
@@ -447,12 +631,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     function _fundLoan(uint256 requisitionId) internal {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         address borrower = req.borrower;
-        
-        // Register borrower if not already registered
-        if (!isRegisteredBorrower[borrower]) {
-            allBorrowers.push(borrower);
-            isRegisteredBorrower[borrower] = true;
-        }
+
 
         borrowings[borrower] += req.amount;
         totalBorrowed += req.amount;
@@ -460,12 +639,21 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         lastBorrowTime[borrower] = block.timestamp;
         req.status = BorrowStatus.Active;
 
-        // Update debt status for the borrower
-        debtStorage.updateBorrowerDebtStatus(borrower, this.getActiveLoans);
-
+        
         // Transfer USDT to borrower
         bool success = IERC20(usdtToken).transfer(borrower, req.amount);
         if (!success) revert LoanMachine_TokenTransferFailed();
+       
+        LoanContract storage loan = loanContracts[requisitionId];
+        uint256 firstDueDate = loan.paymentDates[0];
+
+        watchlistIndex[requisitionId] = debtWatchlist.length;
+        debtWatchlist.push(DebtWatchItem({
+            requisitionId: requisitionId,
+            borrower: borrower,
+            nextDueDate: firstDueDate,
+            isOverdue: false
+        }));
 
         emit Borrowed(borrower, req.amount, borrowings[borrower]);
         emit TotalBorrowedUpdated(totalBorrowed);
@@ -492,50 +680,6 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
                 emit LenderRepaid(requisitionId, lender, lenderShare);
             }
         }
-    }
-
-    // Debt tracker functions
-    function triggerMonthlyUpdate() external nonReentrant {
-        bool triggered = debtStorage.checkAndTriggerMonthlyUpdate(allBorrowers, this.getActiveLoans);
-        require(triggered, "Monthly update not due yet");
-    }
-
-    function updateBorrowerDebtStatus(address borrower) external {
-        debtStorage.updateBorrowerDebtStatus(borrower, this.getActiveLoans);
-    }
-
-    function batchUpdateDebtStatus(address[] calldata borrowers) external {
-        for (uint i = 0; i < borrowers.length; i++) {
-            debtStorage.updateBorrowerDebtStatus(borrowers[i], this.getActiveLoans);
-        }
-    }
-
-    function getBorrowersWithDebt() external view returns (address[] memory) {
-        return debtStorage.getBorrowersWithDebt();
-    }
-
-    function getBorrowersWithoutDebt() external view returns (address[] memory) {
-        return debtStorage.getBorrowersWithoutDebt();
-    }
-
-    function getBorrowerDebtStatus(address borrower) external view returns (DebtTracker.DebtStatus) {
-        return debtStorage.getBorrowerStatus(borrower);
-    }
-
-    function hasOverdueDebt(address borrower) external view returns (bool) {
-        return debtStorage.hasOverdueDebt(borrower);
-    }
-
-    function hasActiveDebt(address borrower) external view returns (bool) {
-        return debtStorage.hasActiveDebt(borrower);
-    }
-
-    function nextMonthlyUpdate() external view returns (uint256) {
-        return debtStorage.nextMonthlyUpdate();
-    }
-
-    function shouldTriggerUpdate() external view returns (bool) {
-        return debtStorage.shouldTriggerUpdate();
     }
 
     // Helper function to get active loans for a borrower

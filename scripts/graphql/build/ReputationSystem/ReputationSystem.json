@@ -6,52 +6,52 @@
   },
   {
     "inputs": [],
-    "name": "ActiveElectionExists",
+    "name": "ReputationSystem_ActiveElectionExists",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "ElectionExpired",
+    "name": "ReputationSystem_ElectionExpired",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "ElectionNotActive",
+    "name": "ReputationSystem_ElectionNotActive",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidCandidate",
+    "name": "ReputationSystem_InvalidCandidate",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "MemberAlreadyVoted",
+    "name": "ReputationSystem_MemberAlreadyVoted",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "MemberIdOrWalletInvalid",
+    "name": "ReputationSystem_MemberIdOrWalletInvalid",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "NoCandidates",
+    "name": "ReputationSystem_NoCandidates",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "UnauthorizedCaller",
+    "name": "ReputationSystem_UnauthorizedCaller",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "WalletAlreadyLinkedToAnotherMember",
+    "name": "ReputationSystem_WalletAlreadyLinkedToAnotherMember",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "WalletAlreadyVinculated",
+    "name": "ReputationSystem_WalletAlreadyVinculated",
     "type": "error"
   },
   {

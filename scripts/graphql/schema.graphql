@@ -140,7 +140,6 @@ type MemberToWalletVinculationEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-
 type ReputationChangedEvent @entity(immutable: true) {
   id: ID!
   memberId: Int!
@@ -206,35 +205,6 @@ type UnbeatableMajorityReachedEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type BorrowerStatusUpdatedEvent @entity(immutable: true) {
-  id: ID!
-  borrower: Bytes!
-  newStatus: Int!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type DebtorAddedEvent @entity(immutable: true) {
-  id: ID!
-  borrower: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type DebtorRemovedEvent @entity(immutable: true) {
-  id: ID!
-  borrower: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type MonthlyUpdateTriggeredEvent @entity(immutable: true) {
-  id: ID!
-  timestamp: String!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
 type WithdrawnEvent @entity(immutable: true) {
   id: ID!
   donor: Bytes!
@@ -248,6 +218,50 @@ type NewModeratorEvent @entity(immutable: true) {
   id: ID!
   memberId: Int!
   electionId: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+# New events from the contract changes
+type BorrowerOverdueEvent @entity(immutable: true) {
+  id: ID!
+  requisitionId: BigInt!
+  borrower: Bytes!
+  dueDate: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type BorrowerDebtSettledEvent @entity(immutable: true) {
+  id: ID!
+  requisitionId: BigInt!
+  borrower: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type PeriodicCheckRunEvent @entity(immutable: true) {
+  id: ID!
+  itemsChecked: BigInt!
+  nextIndex: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type LoanRequisitionCancelledEvent @entity(immutable: true) {
+  id: ID!
+  requisitionId: BigInt!
+  borrower: Bytes!
+  totalUncoveredAmount: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type LoanUncoveredEvent @entity(immutable: true) {
+  id: ID!
+  requisitionId: BigInt!
+  lender: Bytes!
+  amountReturnedToLender: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
 }

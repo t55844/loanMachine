@@ -1,40 +1,28 @@
 const { ethers, network } = require("hardhat");
+const fs = require("fs");
 
 async function main() {
   const addresses = require("../deployment-addresses.json");
-  const [owner, user] = await ethers.getSigners();
+  const [owner, user1, user2, user3, user4] = await ethers.getSigners();
 
-  const loanMachine = await ethers.getContractAt("LoanMachine", addresses.loanMachine);
+  console.log("🔍 Connecting to deployed contracts...");
 
-  console.log("🚀 Creating loan requisition...");
+  // Load contract instance
+  const reputationSystem = await ethers.getContractAt("ReputationSystem", addresses.reputationSystem);
 
-  // (amount, minimumCoverage, parcelsCount, memberId)
-  const requisitionTx = await loanMachine
-    .connect(user)
-    .createLoanRequisition(1000, 30, 3, 1);
-  await requisitionTx.wait();
 
-  console.log("📄 Loan requisition created");
-
-  console.log("💸 Covering loan...");
-  const coverTx = await loanMachine.connect(owner).coverLoan(0, 100, 1);
-  await coverTx.wait();
-
-  console.log("⏩ Fast-forwarding 31 days...");
-  await network.provider.send("evm_increaseTime", [31 * 24 * 60 * 60]); // 31 days
+  // ============ STEP 3: Simulate Late Payment ============
+  console.log("⏩ Step 3: Advancing time by 61 days...");
+  await network.provider.send("evm_increaseTime", [61 * 24 * 60 * 60]); // +91 days
   await network.provider.send("evm_mine");
-  console.log("✅ Time advanced successfully");
+  console.log("✅ Time advanced successfully.");
 
-  console.log("💰 Repaying loan after due date...");
-  const repayTx = await loanMachine.connect(user).repayLoan(0, 1);
-  await repayTx.wait();
 
-  console.log("🎉 Loan repaid after due date (late payment simulated)");
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("💥 Script failed:", error);
     process.exit(1);
   });

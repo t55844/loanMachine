@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\codigos\\loan-machine\\contracts\\interfaces\\ILoanMachine.sol": {
-      "lastModificationDate": 1761017666403,
-      "contentHash": "73f5828ad795fe483145efc85cc785a3",
+      "lastModificationDate": 1761250684982,
+      "contentHash": "a013e226e7e8f86991f7409f1ef714a8",
       "sourceName": "contracts/interfaces/ILoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -29,52 +29,12 @@
           }
         }
       },
-      "imports": [
-        "../libraries/DebtTracker.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
         "^0.8.19"
       ],
       "artifacts": [
         "ILoanMachine"
-      ]
-    },
-    "C:\\codigos\\loan-machine\\contracts\\libraries\\DebtTracker.sol": {
-      "lastModificationDate": 1760147379524,
-      "contentHash": "b621e3cc6581b2169f7f3c325c7a4b0a",
-      "sourceName": "contracts/libraries/DebtTracker.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../interfaces/ILoanMachine.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "DebtTracker"
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\structs\\LoanStructs.sol": {
@@ -116,8 +76,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1761106269576,
-      "contentHash": "bce8507c4a45c41c7fc386d725ac1162",
+      "lastModificationDate": 1761263743373,
+      "contentHash": "386ca43dbb4d61fa552c0da79410175d",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -147,8 +107,7 @@
         "@openzeppelin/contracts/security/ReentrancyGuard.sol",
         "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "./interfaces/ILoanMachine.sol",
-        "./ReputationSystem.sol",
-        "./libraries/DebtTracker.sol"
+        "./ReputationSystem.sol"
       ],
       "versionPragmas": [
         "^0.8.19"
@@ -197,42 +156,6 @@
         "ReputationSystem"
       ]
     },
-    "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1758488714602,
-      "contentHash": "df36f7051335cd1e748b1b6463b7fdd3",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "IERC20"
-      ]
-    },
     "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
       "lastModificationDate": 1758488714694,
       "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
@@ -267,6 +190,42 @@
       ],
       "artifacts": [
         "ReentrancyGuard"
+      ]
+    },
+    "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+      "lastModificationDate": 1758488714602,
+      "contentHash": "df36f7051335cd1e748b1b6463b7fdd3",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC20"
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\interfaces\\IReputationSystem.sol": {
@@ -379,6 +338,44 @@
         "Context"
       ]
     },
+    "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
+      "lastModificationDate": 1758488714604,
+      "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC20Metadata"
+      ]
+    },
     "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
       "lastModificationDate": 1758488714422,
       "contentHash": "3ae5166c6827a9cf1a7a462d1632b464",
@@ -417,44 +414,6 @@
       ],
       "artifacts": [
         "ERC20"
-      ]
-    },
-    "C:\\codigos\\loan-machine\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
-      "lastModificationDate": 1758488714604,
-      "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC20.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "IERC20Metadata"
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\MockUSDT.sol": {
