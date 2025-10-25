@@ -76,8 +76,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1761263743373,
-      "contentHash": "386ca43dbb4d61fa552c0da79410175d",
+      "lastModificationDate": 1761362623544,
+      "contentHash": "a4eb2fd0f142f596b76ecbc665864f62",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -117,8 +117,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\ReputationSystem.sol": {
-      "lastModificationDate": 1761105921761,
-      "contentHash": "f6f57ca0c856349be5d26730ecc5d2b4",
+      "lastModificationDate": 1761362614970,
+      "contentHash": "87fa640528215dc24b3ed7097d0192ac",
       "sourceName": "contracts/ReputationSystem.sol",
       "solcConfig": {
         "version": "0.8.19",

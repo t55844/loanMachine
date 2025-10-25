@@ -46,11 +46,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
 
     // Loan requisition system
     mapping(uint256 => LoanRequisition) private loanRequisitions;
-    uint256 public requisitionCounter;
+    uint256 public requisitionCounter = 1;
     mapping(address => uint256[]) public borrowerRequisitions;
     mapping(address => uint256) private donationsInCoverage;
     mapping (uint32 => uint32) private loanRequisitionNumber;
-    mapping (address => uint256) private lastContractPerWallet;
+    mapping (address => uint256) private lastContractPerWalletId;
 
     // Loan Contracts
     mapping(uint256 => LoanContract) public loanContracts;
@@ -483,7 +483,7 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
     {
         if (amount > availableBalance) revert LoanMachine_InsufficientFunds();
         
-        uint256 lastContractId = lastContractPerWallet[msg.sender];
+        uint256 lastContractId = lastContractPerWalletId[msg.sender];
 
         if (lastContractId != 0) {
             uint256 lastCreationTimeOfLastContract = loanContracts[lastContractId].creationTime;
@@ -595,7 +595,7 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
     _generatePaymentDates(loan, count);
 
     address lastContractAddress = loan.walletAddress;
-    lastContractPerWallet[lastContractAddress] = requisitionId;
+    lastContractPerWalletId[lastContractAddress] = requisitionId;
 
 
     emit LoanContractGenerated(

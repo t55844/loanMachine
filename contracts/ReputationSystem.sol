@@ -30,7 +30,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     mapping(uint32 => int32) public moderatorVotesReceived;
     mapping(uint32 => mapping(uint32 => bool)) public hasVotedInElection; 
 
-    uint32 private electionCounter;
+    uint32 private electionCounter = 1;
     ElectionStatus[] public elections; 
 
     // Custom errors

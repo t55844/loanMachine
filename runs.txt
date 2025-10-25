@@ -61,10 +61,8 @@ testar sistemas relacionados a data
 
 melhorar o sistema de requisições dando opção de excluir requisições pendentes- -1 no limitador de requisições abertas
 
-liberação de criação de requisições
 
-melhorar limitador de contratos abertos
-
+limitar quantitade de contraatoem mesma data
 --------------------------------------------------------------
 
 componente para mostrar error de blockchain --feito falta estressar 

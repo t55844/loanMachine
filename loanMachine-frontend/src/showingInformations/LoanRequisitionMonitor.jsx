@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 
-export default function LoanRequisitionMonitor({ contract, account }) {
+export default function LoanRequisitionMonitor({ contract, account, memberId }) {
   const [requisitions, setRequisitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cancellingId, setCancellingId] = useState(null);
+
 
   useEffect(() => {
     loadRequisitions();
@@ -43,13 +45,36 @@ export default function LoanRequisitionMonitor({ contract, account }) {
         })
       );
 
-      
       setRequisitions(requisitionDetails);
     } catch (err) {
       console.error("Error loading requisitions:", err);
       setError("Failed to load loan requisitions");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelRequisition = async (requisitionId) => {
+    if (!contract || !memberId) {
+      setError("Contract or member ID not available");
+      return;
+    }
+
+    setCancellingId(requisitionId);
+    setError("");
+
+    try {
+      const tx = await contract.cancelLoanRequisition(requisitionId, memberId);
+      await tx.wait();
+      
+      // Refresh the list after successful cancellation
+      await loadRequisitions();
+      
+    } catch (err) {
+      console.error("Error cancelling requisition:", err);
+      setError("Failed to cancel loan requisition");
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -60,6 +85,7 @@ export default function LoanRequisitionMonitor({ contract, account }) {
       case 2: return "Fully Covered";
       case 3: return "Active";
       case 4: return "Repaid";
+      case 5: return "Cancelled";
       default: return "Unknown";
     }
   };
@@ -71,8 +97,14 @@ export default function LoanRequisitionMonitor({ contract, account }) {
       case 2: return "var(--accent-green)";
       case 3: return "var(--accent-blue)";
       case 4: return "var(--accent-green)";
+      case 5: return "var(--accent-red)";
       default: return "var(--text-secondary)";
     }
+  };
+
+  const isCancellable = (status) => {
+    // Only allow cancellation for Pending (0) and PartiallyCovered (1) status
+    return status === 0 || status === 1;
   };
 
   // Format USDT amount for display
@@ -154,6 +186,27 @@ export default function LoanRequisitionMonitor({ contract, account }) {
                   transition: 'width 0.3s ease'
                 }}></div>
               </div>
+
+              {/* Cancel Button - Only show for cancellable status */}
+              {isCancellable(req.status) && (
+                <div style={{ textAlign: 'right' }}>
+                  <button 
+                    onClick={() => handleCancelRequisition(req.id)}
+                    disabled={cancellingId === req.id}
+                    style={{
+                      backgroundColor: 'var(--accent-red)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      cursor: cancellingId === req.id ? 'not-allowed' : 'pointer',
+                      opacity: cancellingId === req.id ? 0.6 : 1
+                    }}
+                  >
+                    {cancellingId === req.id ? 'Cancelling...' : 'Cancel Requisition'}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

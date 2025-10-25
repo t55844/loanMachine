@@ -102,6 +102,7 @@ function LoanRequisitionBlock() {
         <LoanRequisitionMonitor 
           contract={contract}
           account={account}
+          memberId={member}
           key={refreshTrigger}
         />
       )}
