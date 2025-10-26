@@ -61,6 +61,7 @@ testar sistemas relacionados a data
 
 melhorar o sistema de requisições dando opção de excluir requisições pendentes- -1 no limitador de requisições abertas
 
+performPeriodicDebtCheck
 
 limitar quantitade de contraatoem mesma data
 --------------------------------------------------------------

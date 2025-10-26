@@ -86,7 +86,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error LoanMachine_RequisitionNotFound();
     error LoanMachine_OnlyBorrowerCanCancelRequisition();
     error LoanMachine_RequisitionNotCancellable();
-    
+    error LoanMachine_RequisitionAlreadyFullyCovered();
     // Structs
     struct LoanRequisition {    
         uint256 requisitionId;
@@ -233,6 +233,8 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
     LoanRequisition storage req = loanRequisitions[requisitionId];
     uint256 initialCoverage = req.currentCoverage; // Store initial value
 
+    if (initialCoverage == 100) revert LoanMachine_RequisitionAlreadyFullyCovered();
+
     // 1. Status Check & Authorization
     if (req.borrower != msg.sender) {
         // Assuming you have a custom error for this, or use a standard revert
@@ -272,10 +274,9 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
 
     // 3. State Cleanup
     
-    // Decrease the pending loan count for the member (used in checkLoanRequisitionOpened)
-    if (initialCoverage < 100) { // Only decrease if it wasn't fully covered
-        loanRequisitionNumber[memberId] -= 1;
-    }
+
+    loanRequisitionNumber[memberId] -= 1;
+
 
     // Mark the requisition as cancelled
     req.status = BorrowStatus.Cancelled;
@@ -286,7 +287,7 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
     // This is optional due to high gas cost, but is generally good practice for cleanup.
     // If you choose to implement this, you'd need an array swapping utility similar to _removeFromWatchlist
 
-    emit LoanRequisitionCancelled(requisitionId, msg.sender, totalUncoveredAmount);
+    emit LoanRequisitionCreatedCancelled(requisitionId, msg.sender, req.amount, req.parcelsCount, req.status);
     
     return totalUncoveredAmount;
 }
@@ -505,7 +506,7 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
         borrowerRequisitions[msg.sender].push(requisitionId);
         
         loanRequisitionNumber[memberId] += 1;
-        emit LoanRequisitionCreated(requisitionId, msg.sender, amount, parcelscount);
+        emit LoanRequisitionCreatedCancelled(requisitionId, msg.sender, amount, parcelscount, newReq.status);
         return requisitionId;
     }
 
@@ -524,6 +525,15 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
         
         if (uint256(req.currentCoverage) + uint256(coveragePercentage) > 100) {
             revert LoanMachine_OverCoverage();
+        }
+
+        uint256 lastContractId = lastContractPerWalletId[req.borrower];
+
+        if (lastContractId != 0) {
+            uint256 lastCreationTimeOfLastContract = loanContracts[lastContractId].creationTime;
+            if (lastCreationTimeOfLastContract + BORROW_DURATION > block.timestamp) {
+                revert LoanMachine_BorrowNotExpired();
+            }
         }
 
         uint256 PRECISION = 1e18;

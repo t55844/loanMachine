@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\codigos\\loan-machine\\contracts\\interfaces\\ILoanMachine.sol": {
-      "lastModificationDate": 1761250684982,
-      "contentHash": "a013e226e7e8f86991f7409f1ef714a8",
+      "lastModificationDate": 1761452203006,
+      "contentHash": "b8312e8994ce13f3e7a4f406f8fd8692",
       "sourceName": "contracts/interfaces/ILoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -76,8 +76,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1761362623544,
-      "contentHash": "a4eb2fd0f142f596b76ecbc665864f62",
+      "lastModificationDate": 1761452410611,
+      "contentHash": "9d261c665bfcb9a1b6a557b84dfaad81",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",

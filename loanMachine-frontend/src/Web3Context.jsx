@@ -128,7 +128,7 @@ export function Web3Provider({ children }) {
       }
 
       // Use the first account as default
-      const defaultAccount = accounts[2];
+      const defaultAccount = accounts[3];
       
       // Create a signer (for write operations)
       const signer = localProvider.getSigner(defaultAccount);
@@ -167,12 +167,11 @@ export function Web3Provider({ children }) {
       
       setProvider(localProvider);
       setContract(loanContract);
-      setReputationContract(reputationSystemContract); // ✅ SET REPUTATION CONTRACT
+      setReputationContract(reputationSystemContract);
       setUsdtContract(usdtTokenContract);
       setAccount(defaultAccount);
       setError('');
       
-      // ✅ AGORA fetchMemberData ESTÁ DEFINIDA
       // Fetch member data after setting account
       await fetchMemberData(defaultAccount);
       
