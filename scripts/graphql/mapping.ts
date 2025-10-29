@@ -9,7 +9,7 @@ import {
   NewDonor,
   NewBorrower,
   BorrowLimitReached,
-  LoanRequisitionCreated,
+  LoanRequisitionCreatedCancelled,
   LoanCovered,
   LoanFunded,
   LoanContractGenerated,
@@ -20,7 +20,6 @@ import {
   BorrowerOverdue,
   BorrowerDebtSettled,
   PeriodicCheckRun,
-  LoanRequisitionCancelled,
   LoanUncovered
 } from "./generated/LoanMachine/LoanMachine"
 import {
@@ -44,7 +43,7 @@ import {
   NewDonorEvent,
   NewBorrowerEvent,
   BorrowLimitReachedEvent,
-  LoanRequisitionCreatedEvent,
+  LoanRequisitionCreatedCancelledEvent,
   LoanCoveredEvent,
   LoanFundedEvent,
   LoanContractGeneratedEvent,
@@ -64,7 +63,6 @@ import {
   BorrowerOverdueEvent,
   BorrowerDebtSettledEvent,
   PeriodicCheckRunEvent,
-  LoanRequisitionCancelledEvent,
   LoanUncoveredEvent
 } from "./generated/schema"
 
@@ -166,14 +164,37 @@ export function handleBorrowLimitReached(event: BorrowLimitReached): void {
   entity.save()
 }
 
-export function handleLoanRequisitionCreated(event: LoanRequisitionCreated): void {
-  let entity = new LoanRequisitionCreatedEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.requisitionId = event.params.requisitionId
-  entity.borrower = event.params.borrower
-  entity.amount = event.params.amount
-  entity.parcelsCount = event.params.parcelsCount.toI32()
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
+// Updated handler for the combined event
+export function handleLoanRequisitionCreatedCancelled(event: LoanRequisitionCreatedCancelled): void {
+  // 1. Define the unique ID for the loan status (using requisitionId)
+  let statusId = event.params.requisitionId.toString() 
+  
+  // 2. Try to load an existing entity using the requisitionId as the ID.
+  //    ***NOTE: This requires changing your entity ID in the schema to just be requisitionId.***
+  let entity = LoanRequisitionCreatedCancelledEvent.load(statusId)
+
+  if (entity == null) {
+    // A. If not found (first event), create the entity using requisitionId as the ID.
+    entity = new LoanRequisitionCreatedCancelledEvent(statusId)
+    entity.requisitionId = event.params.requisitionId
+    entity.borrower = event.params.borrower
+    entity.amount = event.params.amount
+    entity.parcelsCount = event.params.parcelsCount.toI32()
+    // Set status
+    entity.status = event.params.status
+    // Set event-specific data
+    entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+    entity.transactionHash = event.transaction.hash
+  } else {
+    // B. If found (subsequent event), only update the status and transaction details.
+    entity.status = event.params.status // This is the change you asked for.
+    // Update block and transaction details to reflect the latest change
+    entity.blockTimestamp = formatTimestamp(event.block.timestamp)
+    entity.transactionHash = event.transaction.hash
+    // Note: borrower, amount, and parcelsCount remain unchanged
+  }
+
+  // Save the entity (either new or updated)
   entity.save()
 }
 
@@ -376,16 +397,6 @@ export function handlePeriodicCheckRun(event: PeriodicCheckRun): void {
   let entity = new PeriodicCheckRunEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
   entity.itemsChecked = event.params.itemsChecked
   entity.nextIndex = event.params.nextIndex
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleLoanRequisitionCancelled(event: LoanRequisitionCancelled): void {
-  let entity = new LoanRequisitionCancelledEvent(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.requisitionId = event.params.requisitionId
-  entity.borrower = event.params.borrower
-  entity.totalUncoveredAmount = event.params.totalUncoveredAmount
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()

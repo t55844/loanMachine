@@ -32,7 +32,7 @@ const ModeratorPanel = () => {
     'Withdrawn',
     'Borrowed',
     'Repaid',
-    'LoanRequisitionCreated',
+    'LoanRequisitionCreatedCancelled',
     'LoanCovered',
     'LoanFunded',
     'LenderRepaid',
@@ -85,7 +85,7 @@ const ModeratorPanel = () => {
         { name: 'Withdrawn', filter: contract.filters.Withdrawn() },
         { name: 'Borrowed', filter: contract.filters.Borrowed() },
         { name: 'Repaid', filter: contract.filters.Repaid() },
-        { name: 'LoanRequisitionCreated', filter: contract.filters.LoanRequisitionCreated() },
+        { name: 'LoanRequisitionCreatedCancelled', filter: contract.filters.LoanRequisitionCreatedCancelled() },
         { name: 'LoanCovered', filter: contract.filters.LoanCovered() },
         { name: 'LoanFunded', filter: contract.filters.LoanFunded() },
         { name: 'LenderRepaid', filter: contract.filters.LenderRepaid() },
@@ -154,7 +154,7 @@ const ModeratorPanel = () => {
           return { ...base, address: event.args.borrower, amount: event.args.amount.toString() };
         case 'Repaid':
           return { ...base, address: event.args.borrower, amount: event.args.amount.toString() };
-        case 'LoanRequisitionCreated':
+        case 'LoanRequisitionCreatedCancelled':
           return { ...base, address: event.args.borrower, amount: event.args.amount.toString() };
         case 'LoanCovered':
           return { ...base, address: event.args.lender, amount: event.args.coverageAmount.toString() };
@@ -177,60 +177,81 @@ const ModeratorPanel = () => {
 
   // Export functions
   const exportToFile = async (format = 'csv') => {
-    setExporting(true);
-    setMessage(`Exporting as ${format.toUpperCase()}...`);
+  setExporting(true);
+  setMessage(`Exporting as ${format.toUpperCase()}...`);
 
-    try {
-      let transactions = transactionHistory;
-      
-      if (transactions.length === 0) {
-        transactions = await getBlockchainEvents();
-      }
-
-      if (transactions.length === 0) {
-        setMessage('No transactions found to export');
-        return;
-      }
-
-      let content, mimeType, extension;
-      
-      if (format === 'json') {
-        content = JSON.stringify(transactions, null, 2);
-        mimeType = 'application/json';
-        extension = 'json';
-      } else {
-        // Simple CSV conversion
-        const headers = Object.keys(transactions[0]);
-        const csvRows = [
-          headers.join(','),
-          ...transactions.map(t => 
-            headers.map(header => `"${String(t[header] || '').replace(/"/g, '""')}"`).join(',')
-          )
-        ];
-        content = csvRows.join('\n');
-        mimeType = 'text/csv';
-        extension = 'csv';
-      }
-
-      const blob = new Blob([content], { type: mimeType });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `transactions_${Date.now()}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      setMessage(`Exported ${transactions.length} transactions`);
-      
-    } catch (error) {
-      console.error('Error exporting:', error);
-      setMessage('Error exporting data');
-    } finally {
-      setExporting(false);
+  try {
+    let transactions = transactionHistory;
+    
+    if (transactions.length === 0) {
+      transactions = await getBlockchainEvents();
     }
-  };
+
+    if (transactions.length === 0) {
+      setMessage('No transactions found to export');
+      return;
+    }
+
+    let content, mimeType, extension;
+    
+    if (format === 'json') {
+      content = JSON.stringify(transactions, null, 2);
+      mimeType = 'application/json';
+      extension = 'json';
+    } else if (format === 'tsv') {
+      // Tab-separated for better Excel compatibility
+      const headers = ['Type', 'Transaction Hash', 'Block Number', 'Timestamp', 'Address', 'Amount'];
+      const rows = transactions.map(transaction => [
+        transaction.type,
+        transaction.transactionHash,
+        transaction.blockNumber,
+        transaction.timestamp,
+        transaction.address || 'N/A',
+        transaction.amount || '0'
+      ]);
+      content = [headers, ...rows].map(row => row.join('\t')).join('\n');
+      mimeType = 'text/tab-separated-values';
+      extension = 'tsv';
+    } else {
+      // Improved CSV with BOM for Excel
+      const headers = ['Type', 'Transaction Hash', 'Block Number', 'Timestamp', 'Address', 'Amount'];
+      const csvRows = transactions.map(transaction => [
+        transaction.type,
+        `"${transaction.transactionHash}"`,
+        transaction.blockNumber,
+        `"${transaction.timestamp}"`,
+        transaction.address || 'N/A',
+        transaction.amount || '0'
+      ]);
+      
+      content = '\uFEFF' + [
+        headers.join(','),
+        ...csvRows.map(row => row.join(','))
+      ].join('\n');
+      
+      mimeType = 'text/csv;charset=utf-8;';
+      extension = 'csv';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transactions_${Date.now()}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setMessage(`Exported ${transactions.length} transactions`);
+    
+  } catch (error) {
+    console.error('Error exporting:', error);
+    setMessage('Error exporting data');
+  } finally {
+    setExporting(false);
+  }
+};
 
   // If not moderator, show access panel
   if (!isModerator) {

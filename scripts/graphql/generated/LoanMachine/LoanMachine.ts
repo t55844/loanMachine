@@ -276,42 +276,16 @@ export class LoanFunded__Params {
   }
 }
 
-export class LoanRequisitionCancelled extends ethereum.Event {
-  get params(): LoanRequisitionCancelled__Params {
-    return new LoanRequisitionCancelled__Params(this);
+export class LoanRequisitionCreatedCancelled extends ethereum.Event {
+  get params(): LoanRequisitionCreatedCancelled__Params {
+    return new LoanRequisitionCreatedCancelled__Params(this);
   }
 }
 
-export class LoanRequisitionCancelled__Params {
-  _event: LoanRequisitionCancelled;
+export class LoanRequisitionCreatedCancelled__Params {
+  _event: LoanRequisitionCreatedCancelled;
 
-  constructor(event: LoanRequisitionCancelled) {
-    this._event = event;
-  }
-
-  get requisitionId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get borrower(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get totalUncoveredAmount(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
-  }
-}
-
-export class LoanRequisitionCreated extends ethereum.Event {
-  get params(): LoanRequisitionCreated__Params {
-    return new LoanRequisitionCreated__Params(this);
-  }
-}
-
-export class LoanRequisitionCreated__Params {
-  _event: LoanRequisitionCreated;
-
-  constructor(event: LoanRequisitionCreated) {
+  constructor(event: LoanRequisitionCreatedCancelled) {
     this._event = event;
   }
 
@@ -329,6 +303,10 @@ export class LoanRequisitionCreated__Params {
 
   get parcelsCount(): BigInt {
     return this._event.parameters[3].value.toBigInt();
+  }
+
+  get status(): i32 {
+    return this._event.parameters[4].value.toI32();
   }
 }
 

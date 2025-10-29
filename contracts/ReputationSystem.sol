@@ -30,7 +30,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
     mapping(uint32 => int32) public moderatorVotesReceived;
     mapping(uint32 => mapping(uint32 => bool)) public hasVotedInElection; 
 
-    uint32 private electionCounter = 1;
+    uint32 private electionCounter;
     ElectionStatus[] public elections; 
 
     // Custom errors
@@ -76,6 +76,7 @@ contract ReputationSystem is IReputationSystem, ReentrancyGuard, Ownable {
         if (electionId >= elections.length) revert ReputationSystem_ElectionNotActive();
         _;
     }
+
 
     modifier electionActive(uint32 electionId) {
         ElectionStatus storage election = elections[electionId];

@@ -1,50 +1,27 @@
 import { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import { fetchBorrowerRequisitions } from "../graphql-frontend-query";
+import { useToast } from "../handlers/useToast";
 
 export default function LoanRequisitionMonitor({ contract, account, memberId }) {
   const [requisitions, setRequisitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
-
+  
+  const { showSuccess, showError, handleContractError } = useToast();
 
   useEffect(() => {
     loadRequisitions();
-  }, [contract, account]);
+  }, [account]);
 
   const loadRequisitions = async () => {
-    if (!contract || !account) return;
+    if (!account) return;
     
     setLoading(true);
     setError("");
     
     try {
-      // Get requisition IDs for the current user
-      const requisitionIds = await contract.getBorrowerRequisitions(account);
-      
-      // Get details for each requisition
-      const requisitionDetails = await Promise.all(
-        requisitionIds.map(async (id) => {
-          const info = await contract.getRequisitionInfo(id);
-
-          const safeNumber = (val) => {
-            if (val && typeof val.toNumber === "function") return val.toNumber(); // BigNumber case
-            if (typeof val === "bigint") return Number(val); // BigInt case
-            return Number(val); // String or number
-          };
-
-          return {
-            id: id.toString(),
-            amount: ethers.utils.formatUnits(info.amount, 6), // USDT (6 decimals)
-            minimumCoverage: safeNumber(info.minimumCoverage),
-            currentCoverage: safeNumber(info.currentCoverage),
-            status: safeNumber(info.status),
-            creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
-            coveringLendersCount: safeNumber(info.coveringLendersCount)
-          };
-        })
-      );
-
+      const requisitionDetails = await fetchBorrowerRequisitions(account);
       setRequisitions(requisitionDetails);
     } catch (err) {
       console.error("Error loading requisitions:", err);
@@ -56,28 +33,30 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
 
   const handleCancelRequisition = async (requisitionId) => {
     if (!contract || !memberId) {
-      setError("Contract or member ID not available");
+      showError("Contract or member ID not available");
       return;
     }
 
     setCancellingId(requisitionId);
-    setError("");
-
+    
     try {
       const tx = await contract.cancelLoanRequisition(requisitionId, memberId);
       await tx.wait();
       
-      // Refresh the list after successful cancellation
+      // Show success message
+      showSuccess(`Requisition #${requisitionId} cancelled successfully!`);
+      
+      // Refresh the list
       await loadRequisitions();
       
     } catch (err) {
-      console.error("Error cancelling requisition:", err);
-      setError("Failed to cancel loan requisition");
+      handleContractError(err, "cancelling loan requisition");
     } finally {
       setCancellingId(null);
     }
   };
 
+  // ... rest of your component functions remain the same ...
   const getStatusText = (status) => {
     switch (status) {
       case 0: return "Pending";
@@ -103,15 +82,14 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
   };
 
   const isCancellable = (status) => {
-    // Only allow cancellation for Pending (0) and PartiallyCovered (1) status
     return status === 0 || status === 1;
   };
 
-  // Format USDT amount for display
   const formatUSDT = (amount) => {
     return parseFloat(amount).toFixed(2);
   };
 
+  // JSX remains exactly the same
   return (
     <div style={{
       background: 'var(--bg-tertiary)',
@@ -187,7 +165,6 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
                 }}></div>
               </div>
 
-              {/* Cancel Button - Only show for cancellable status */}
               {isCancellable(req.status) && (
                 <div style={{ textAlign: 'right' }}>
                   <button 

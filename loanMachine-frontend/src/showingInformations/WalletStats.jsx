@@ -12,7 +12,6 @@ async function fetchUserStats(userAddress) {
   const userBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
   const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
   
-  console.log(userData)
   const canBorrowNow = parseFloat(currentDebt) === 0;
   
   return {

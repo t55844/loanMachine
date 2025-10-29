@@ -26,7 +26,7 @@ dataSources:
         - NewDonorEvent
         - NewBorrowerEvent
         - BorrowLimitReachedEvent
-        - LoanRequisitionCreatedEvent
+        - LoanRequisitionCreatedCancelledEvent
         - LoanCoveredEvent
         - LoanFundedEvent
         - LoanContractGeneratedEvent
@@ -37,7 +37,6 @@ dataSources:
         - BorrowerOverdueEvent
         - BorrowerDebtSettledEvent
         - PeriodicCheckRunEvent
-        - LoanRequisitionCancelledEvent
         - LoanUncoveredEvent
       abis:
         - name: LoanMachine
@@ -61,8 +60,9 @@ dataSources:
           handler: handleNewBorrower
         - event: BorrowLimitReached(indexed address)
           handler: handleBorrowLimitReached
-        - event: LoanRequisitionCreated(indexed uint256,indexed address,uint256,uint32)
-          handler: handleLoanRequisitionCreated
+        - event: LoanRequisitionCreatedCancelled(indexed uint256,indexed
+            address,uint256,uint32,uint8)
+          handler: handleLoanRequisitionCreatedCancelled
         - event: LoanCovered(indexed uint256,indexed address,uint256)
           handler: handleLoanCovered
         - event: LoanFunded(indexed uint256)
@@ -84,8 +84,6 @@ dataSources:
           handler: handleBorrowerDebtSettled
         - event: PeriodicCheckRun(uint256,uint256)
           handler: handlePeriodicCheckRun
-        - event: LoanRequisitionCancelled(indexed uint256,indexed address,uint256)
-          handler: handleLoanRequisitionCancelled
         - event: LoanUncovered(indexed uint256,indexed address,uint256)
           handler: handleLoanUncovered
   - kind: ethereum/contract

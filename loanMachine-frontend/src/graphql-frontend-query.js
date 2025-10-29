@@ -173,12 +173,19 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
 export async function fetchLoanRequisitions() {
   const query = `
     query GetPendingRequisitions {
-      loanRequisitionCreatedEvents(orderBy: blockTimestamp, orderDirection: desc) {
+      loanRequisitionCreatedCancelledEvents(
+        where: {
+          status_in: [0, 1, 2, 3]  # Pending, PartiallyCovered, FullyCovered, Active
+        }
+        orderBy: blockTimestamp
+        orderDirection: desc
+      ) {
         id
         requisitionId
         borrower
         amount
         parcelsCount
+        status
         blockTimestamp
       }
     }
@@ -186,17 +193,17 @@ export async function fetchLoanRequisitions() {
 
   try {
     const data = await client.request(query);
-    return (data.loanRequisitionCreatedEvents || []).map(event => ({
+    return (data.loanRequisitionCreatedCancelledEvents || []).map(event => ({
       id: event.id,
       requisitionId: event.requisitionId,
       borrower: event.borrower,
       amount: event.amount,
-      currentCoveragePercentage: 0, // Default, as no coverage tracking in events
-      minimumCoverage: 0, // Default
-      status: "Pending", // Assume pending
-      durationDays: 0, // Default
+      currentCoveragePercentage: 0,
+      minimumCoverage: 0,
+      status: getStatusText(event.status), // Helper function to convert status number to text
+      durationDays: 0,
       creationTime: event.blockTimestamp,
-      coveringLendersCount: 0, // Default
+      coveringLendersCount: 0,
       parcelsCount: event.parcelsCount
     }));
   } catch (error) {
@@ -205,20 +212,41 @@ export async function fetchLoanRequisitions() {
   }
 }
 
+// Helper function to convert status number to text
+function getStatusText(status) {
+  const statusMap = {
+    0: "Pending",
+    1: "PartiallyCovered", 
+    2: "FullyCovered",
+    3: "Active",
+    4: "Repaid",
+    5: "Defaulted",
+    6: "Cancelled"
+  };
+  return statusMap[status] || "Unknown";
+}
+
 /* -----------------------------------------------------------
    Fetch User Requisitions
 ----------------------------------------------------------- */
 export async function fetchUserRequisitions(userAddress) {
   const query = `
     query GetUserRequisitions($userAddress: Bytes!) {
-      loanRequisitionCreatedEvents(where: { borrower: $userAddress }, orderBy: blockTimestamp, orderDirection: desc) {
+      loanRequisitionCreatedCancelledEvents(
+        where: { 
+          borrower: $userAddress,
+          status_not_in: [6] // Exclude cancelled requisitions
+        }
+        orderBy: blockTimestamp
+        orderDirection: desc
+      ) {
         id
         requisitionId
         borrower
         amount
         parcelsCount
+        status
         blockTimestamp
-        # Note: funded and fundedAt would require cross-referencing with LoanFundedEvent
       }
     }
   `;
@@ -227,20 +255,20 @@ export async function fetchUserRequisitions(userAddress) {
     const data = await client.request(query, {
       userAddress: userAddress.toLowerCase(),
     });
-    return (data.loanRequisitionCreatedEvents || []).map(event => ({
+    return (data.loanRequisitionCreatedCancelledEvents || []).map(event => ({
       id: event.id,
       requisitionId: event.requisitionId,
       borrower: event.borrower,
       amount: event.amount,
-      currentCoveragePercentage: 0, // Default
-      minimumCoverage: 0, // Default
-      status: "Pending", // Assume
-      durationDays: 0, // Default
+      currentCoveragePercentage: 0,
+      minimumCoverage: 0,
+      status: getStatusText(event.status),
+      durationDays: 0,
       creationTime: event.blockTimestamp,
-      coveringLendersCount: 0, // Default
+      coveringLendersCount: 0,
       parcelsCount: event.parcelsCount,
-      funded: false, // Default
-      fundedAt: null // Default
+      funded: event.status >= 2, // FullyCovered or Active status
+      fundedAt: event.status >= 2 ? event.blockTimestamp : null
     }));
   } catch (error) {
     console.error("Error fetching user requisitions:", error);
@@ -403,7 +431,6 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
     }
   }
 
-  // Fetch all data in one query
   const completeQuery = `
     query GetCompleteMemberData($memberId: Int!, $wallet: Bytes!) {
       # Get all wallet vinculations for this member
@@ -435,9 +462,17 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
         id
       }
       
-      # Get loan requisitions
-      loanRequisitions: loanRequisitionCreatedEvents(where: { borrower: $wallet }) {
+      # Get loan requisitions -
+      loanRequisitions: loanRequisitionCreatedCancelledEvents(
+        where: { 
+          borrower: $wallet,
+          status_not_in: [6]
+        }
+      ) {
+        requisitionId
         amount
+        status
+        blockTimestamp
       }
       
       # Get donations
@@ -466,7 +501,9 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
       donationCount: data.donations?.length || 0,
       totalDonated: data.donations?.reduce((sum, donation) => sum + parseInt(donation.amount), 0) || 0,
       lastActivity: latestWalletEvent.blockTimestamp,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      // Include the actual requisitions for debugging
+      requisitions: data.loanRequisitions || []
     };
   } catch (error) {
     console.error("Error fetching complete member data:", error);
@@ -501,6 +538,43 @@ export async function fetchLastElection() {
     };
   } catch (error) {
     console.error("Error fetching last election:", error);
+    throw error;
+  }
+}
+
+export async function fetchBorrowerRequisitions(borrower) {
+  const query = `
+    query GetBorrowerRequisitions($wallet: String!) {
+      loanRequisitions: loanRequisitionCreatedCancelledEvents(
+        where: { 
+          borrower: $wallet,
+          status_not_in: [6]
+        }
+      ) {
+        requisitionId
+        amount
+        status
+        blockTimestamp
+      }
+    }
+  `;
+
+  try {
+    const data = await client.request(query, { wallet: borrower.toLowerCase() });
+    const requisitions = data.loanRequisitions || [];
+    
+    return requisitions.map(req => ({
+      id: req.requisitionId,
+      amount: (parseFloat(req.amount) / 1e6).toFixed(2),
+      status: Number(req.status),
+      creationTime: new Date(Number(req.blockTimestamp) * 1000).toLocaleString(),
+      // Set default values for fields not in the query
+      minimumCoverage: 0,
+      currentCoverage: 0,
+      coveringLendersCount: 0
+    }));
+  } catch (error) {
+    console.error("Error fetching borrower requisitions:", error);
     throw error;
   }
 }

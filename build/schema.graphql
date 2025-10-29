@@ -67,12 +67,14 @@ type BorrowLimitReachedEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type LoanRequisitionCreatedEvent @entity(immutable: true) {
+# Updated to match the new combined event
+type LoanRequisitionCreatedCancelledEvent @entity(immutable: false) {
   id: ID!
   requisitionId: BigInt!
   borrower: Bytes!
   amount: BigInt!
   parcelsCount: Int!
+  status: Int!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
@@ -244,15 +246,6 @@ type PeriodicCheckRunEvent @entity(immutable: true) {
   id: ID!
   itemsChecked: BigInt!
   nextIndex: BigInt!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type LoanRequisitionCancelledEvent @entity(immutable: true) {
-  id: ID!
-  requisitionId: BigInt!
-  borrower: Bytes!
-  totalUncoveredAmount: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
 }

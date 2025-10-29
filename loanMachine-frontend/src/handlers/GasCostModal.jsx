@@ -36,9 +36,6 @@ async function estimateGasCost() {
       throw new Error(`Method ${method} not found on contract`);
     }
 
-    console.log(`Estimating gas for ${method} with params:`, params);
-    console.log("Transaction context:", transactionContext);
-
     // Try to estimate gas
     const gasEstimate = await contract.estimateGas[method](...params, {
       value: ethers.BigNumber.from(value)
@@ -59,7 +56,6 @@ async function estimateGasCost() {
     // show the contract error, not the gas estimation wrapper
     if (err.code === 'UNPREDICTABLE_GAS_LIMIT') {
       // The extractErrorMessage should have already extracted the underlying error
-      console.log('Showing contract error instead of gas estimation error');
     }
     
     setGasError(userFriendlyError);
