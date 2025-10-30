@@ -19,15 +19,12 @@ docker compose down -v
 docker-compose up --build
 
 
- Copy-Item -Path "artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "scripts\graphql\abis\" -Force
- Copy-Item -Path "artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "loanMachine-frontend\src\abi" -Force
+ Copy-Item -Path "hardhat\artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\hardhat\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "hardhat\scripts\graphql\abis\" -Force
+ Copy-Item -Path "hardhat\artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\hardhat\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "loanMachine-frontend\src\abi" -Force
 
 toda vez que tiver alteração no Graphql Node sector, tem que ir nos arquivos:
  subgraph.yaml, schema.graphql, mapping.ts e fazer as alterações correspondentes e
   copiar o /artifacts/contracts/LoanMachine.sol/LoanMachine.json para os outros 
-
- Copy-Item -Path "artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "scripts\graphql\abis\" -Force
- Copy-Item -Path "artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "loanMachine-frontend\src\abi" -Force
 
 Remove-Item -Recurse -Force generated -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue

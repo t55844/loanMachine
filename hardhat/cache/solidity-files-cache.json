@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\codigos\\loan-machine\\contracts\\interfaces\\ILoanMachine.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\interfaces\\ILoanMachine.sol": {
       "lastModificationDate": 1761452203006,
       "contentHash": "b8312e8994ce13f3e7a4f406f8fd8692",
       "sourceName": "contracts/interfaces/ILoanMachine.sol",
@@ -37,7 +37,7 @@
         "ILoanMachine"
       ]
     },
-    "C:\\codigos\\loan-machine\\contracts\\structs\\LoanStructs.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\structs\\LoanStructs.sol": {
       "lastModificationDate": 1760071493694,
       "contentHash": "763320498e7ea4ad54aebc941faa489a",
       "sourceName": "contracts/structs/LoanStructs.sol",
@@ -75,7 +75,7 @@
         "LoanStructs"
       ]
     },
-    "C:\\codigos\\loan-machine\\contracts\\LoanMachine.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachine.sol": {
       "lastModificationDate": 1761452410611,
       "contentHash": "9d261c665bfcb9a1b6a557b84dfaad81",
       "sourceName": "contracts/LoanMachine.sol",
@@ -116,7 +116,7 @@
         "LoanMachine"
       ]
     },
-    "C:\\codigos\\loan-machine\\contracts\\ReputationSystem.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\ReputationSystem.sol": {
       "lastModificationDate": 1761708094811,
       "contentHash": "b4d230deb6165a0f6e064f8cd77da348",
       "sourceName": "contracts/ReputationSystem.sol",
@@ -228,7 +228,7 @@
         "IERC20"
       ]
     },
-    "C:\\codigos\\loan-machine\\contracts\\interfaces\\IReputationSystem.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\interfaces\\IReputationSystem.sol": {
       "lastModificationDate": 1760845821987,
       "contentHash": "e971ad2f9a66d98c445b45851fe3f450",
       "sourceName": "contracts/interfaces/IReputationSystem.sol",
@@ -416,7 +416,7 @@
         "ERC20"
       ]
     },
-    "C:\\codigos\\loan-machine\\contracts\\MockUSDT.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\MockUSDT.sol": {
       "lastModificationDate": 1759623435335,
       "contentHash": "50e7df17ba93176ee3229eb4e624273e",
       "sourceName": "contracts/MockUSDT.sol",
@@ -454,7 +454,7 @@
         "MockUSDT"
       ]
     },
-    "C:\\codigos\\loan-machine\\contracts\\libraries\\LoanCalculations.sol": {
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\libraries\\LoanCalculations.sol": {
       "lastModificationDate": 1758484490142,
       "contentHash": "045ed599e609cfcba74a9c3af7876241",
       "sourceName": "contracts/libraries/LoanCalculations.sol",

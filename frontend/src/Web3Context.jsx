@@ -2,8 +2,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
 // Import your contract ABIs
-import LoanMachineABI from '../../artifacts/contracts/LoanMachine.sol/LoanMachine.json';
-import ReputationSystemABI from '../../artifacts/contracts/ReputationSystem.sol/ReputationSystem.json';
+import LoanMachineABI from '../src/abi/LoanMachine.json';
+import ReputationSystemABI from '../src/abi/ReputationSystem.json';
 import { fetchWalletMember } from './graphql-frontend-query';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;

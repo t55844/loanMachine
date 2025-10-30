@@ -3,7 +3,11 @@ const { ethers } = require("hardhat");
 async function main() {
   console.log("🚀 Starting deployment with USDT distribution...");
 
-  const [owner, user1, user2, user3, user4] = await ethers.getSigners();
+  // Get ALL signers (all 20 wallets)
+  const signers = await ethers.getSigners();
+  const [owner] = signers;
+
+  console.log(`📱 Found ${signers.length} wallets to distribute USDT to`);
 
   // --- Deploy MockUSDT ---
   console.log("💰 Deploying MockUSDT...");
@@ -21,9 +25,8 @@ async function main() {
   const reputationSystemAddress = await reputationSystem.getAddress();
   console.log("ReputationSystem deployed to:", reputationSystemAddress);
 
-  // --- Deploy LoanMachine with library linking ---
+  // --- Deploy LoanMachine ---
   const LoanMachine = await ethers.getContractFactory("LoanMachine");
-  
   const loanMachine = await LoanMachine.deploy(mockUSDTAddress, reputationSystemAddress);
   await loanMachine.waitForDeployment();
   const loanMachineAddress = await loanMachine.getAddress();
@@ -34,24 +37,24 @@ async function main() {
   await reputationSystem.setAuthorizedCaller(loanMachineAddress, true);
   console.log("✅ LoanMachine authorized in ReputationSystem");
 
-  // --- Mint USDT to all wallets ---
-  console.log("🎁 Distributing USDT to wallets...");
-  const amount = ethers.parseUnits("2000", 6); // 20 USDT with 6 decimals
-  const users = [owner, user1, user2, user3, user4];
+  // --- Mint USDT to ALL 20 wallets ---
+  console.log("🎁 Distributing USDT to ALL wallets...");
+  const amount = ethers.parseUnits("2000", 6); // 2000 USDT with 6 decimals
 
-  for (const user of users) {
+  for (let i = 0; i < signers.length; i++) {
+    const user = signers[i];
     const tx = await mockUSDT.mint(user.address, amount);
     await tx.wait();
-    console.log(`✅ Minted ${ethers.formatUnits(amount, 6)} USDT to ${user.address}`);
+    console.log(`✅ [${i + 1}/${signers.length}] Minted ${ethers.formatUnits(amount, 6)} USDT to ${user.address}`);
   }
 
   // --- Show balances ---
-  console.log("\n💰 Final USDT Balances:");
-  for (const user of users) {
+  console.log("\n💰 Final USDT Balances for all wallets:");
+  for (let i = 0; i < signers.length; i++) {
+    const user = signers[i];
     const bal = await mockUSDT.balanceOf(user.address);
-    console.log(`   ${user.address}: ${ethers.formatUnits(bal, 6)} USDT`);
+    console.log(`   [${i}] ${user.address}: ${ethers.formatUnits(bal, 6)} USDT`);
   }
-
 
   console.log("\n✅ All contracts deployed and initialized successfully!");
   console.log("📋 Contract addresses:");
@@ -64,19 +67,19 @@ async function main() {
     mockUSDT: mockUSDTAddress,
     reputationSystem: reputationSystemAddress,
     loanMachine: loanMachineAddress,
-    users: {
-      owner: owner.address,
-      user1: user1.address,
-      user2: user2.address,
-      user3: user3.address,
-      user4: user4.address
-    }
+    users: {}
   };
+
+  // Save all wallet addresses
+  for (let i = 0; i < signers.length; i++) {
+    addresses.users[`wallet${i}`] = signers[i].address;
+  }
   
   const fs = require('fs');
   fs.writeFileSync('deployment-addresses.json', JSON.stringify(addresses, null, 2));
 
   console.log("\n🎉 Deployment and setup completed successfully!");
+  console.log(`💰 Distributed USDT to ${signers.length} wallets`);
 }
 
 main()

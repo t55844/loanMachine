@@ -16,7 +16,7 @@ async function main() {
   // --- Mint USDT to all wallets ---
   console.log("💰 Distributing USDT to wallets...");
   const amount = ethers.parseUnits("10000", 6); // 10,000 USDT with 6 decimals
-  const users = [owner, user1, user2, user3, user4];
+  const users = await ethers.getSigners();
 
   for (const user of users) {
     const tx = await mockUSDT.mint(user.address, amount);

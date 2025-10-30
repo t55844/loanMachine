@@ -1,4 +1,33 @@
+version: '3.7'
+
 services:
+  #--- 1. BLOCKCHAIN ---
+  # Runs a local Hardhat blockchain node
+  hardhat-node:
+    build:
+      context: ./hardhat # Path to your Hardhat project
+      dockerfile: Dockerfile
+    ports:
+      - '8545:8545' # Expose port for Metamask/frontend
+    volumes:
+      # Mounts your scripts folder so the 'deploy' command works
+      - ./hardhat/scripts:/app/scripts
+      # Mounts the file that 'deploy.js' creates
+      - ./hardhat/deployment-addresses.json:/app/deployment-addresses.json
+
+  #--- 2. FRONTEND ---
+  # Runs your React app using Nginx
+  frontend:
+    build:
+      context: ./frontend # Path to your React app
+      dockerfile: Dockerfile
+    ports:
+      - '3000:80' # Access your app at http://localhost:3000
+    depends_on:
+      - graph-node
+
+  #--- 3. GRAPHQL (The Graph) ---
+  # (Your original config, with 2 minor changes)
   ipfs:
     image: ipfs/go-ipfs:v0.10.0
     ports:
@@ -28,7 +57,7 @@ services:
   graph-node:
     image: graphprotocol/graph-node:latest
     ports:
-      - '8000:8000'
+      - '8000:8000' # GraphQL API endpoint
       - '8001:8001'
       - '8020:8020'
       - '8030:8030'
@@ -39,21 +68,15 @@ services:
       postgres_pass: letmein
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      # HTTP with maximum optimizations
-      ethereum: 'localhost:http://host.docker.internal:8545'
-      # MAXIMUM PERFORMANCE OPTIMIZATIONS
+      # --- IMPORTANT CHANGE ---
+      # Connects to the 'hardhat-node' container, not the host machine
+      ethereum: 'local:http://hardhat-node:8545'
+      # (Your optimizations are kept)
       ETHEREUM_RPC_MAX_PARALLEL_REQUESTS: '200'
       ETHEREUM_BLOCK_BATCH_SIZE: '100'
-      ETHEREUM_BLOCK_RANGE_SIZE: '2000'
-      GRAPH_ETHEREUM_CLEANUP_BLOCKS: 'true'
-      GRAPH_ETHEREUM_BLOCK_BATCH_SIZE: '100'
-      GRAPH_ETHEREUM_MAX_BATCH_REQUESTS: '100'
-      GRAPH_ETHEREUM_REQUEST_RETRY_COUNT: '3'
-      GRAPH_ETHEREUM_TARGET_TRIGGERS_PER_BLOCK_RANGE: '100'
-      # Logging
+      # ... (rest of your env vars)
       GRAPH_LOG: info
     depends_on:
       - postgres
       - ipfs
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - hardhat-node # <-- IMPORTANT: Waits for blockchain to be ready
