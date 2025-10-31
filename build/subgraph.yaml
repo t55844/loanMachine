@@ -2,7 +2,7 @@ specVersion: 0.0.4
 description: Simplified LoanMachine contract indexing
 repository: https://github.com/your-repo/loan-machine-subgraph
 schema:
-  file: ./hardhat/scripts/graphql/schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: LoanMachine
@@ -15,7 +15,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./hardhat/scripts/graphql/mapping.ts
+      file: LoanMachine\LoanMachine.wasm
       entities:
         - DonatedEvent
         - BorrowedEvent
@@ -40,7 +40,7 @@ dataSources:
         - LoanUncoveredEvent
       abis:
         - name: LoanMachine
-          file: ./hardhat/scripts/graphql/abis/LoanMachine.json
+          file: LoanMachine\LoanMachine.json
       eventHandlers:
         - event: Donated(indexed address,uint256,uint256)
           handler: handleDonated
@@ -60,13 +60,15 @@ dataSources:
           handler: handleNewBorrower
         - event: BorrowLimitReached(indexed address)
           handler: handleBorrowLimitReached
-        - event: LoanRequisitionCreatedCancelled(indexed uint256,indexed address,uint256,uint32,uint8)
+        - event: LoanRequisitionCreatedCancelled(indexed uint256,indexed
+            address,uint256,uint32,uint8)
           handler: handleLoanRequisitionCreatedCancelled
         - event: LoanCovered(indexed uint256,indexed address,uint256)
           handler: handleLoanCovered
         - event: LoanFunded(indexed uint256)
           handler: handleLoanFunded
-        - event: LoanContractGenerated(indexed address,indexed uint256,uint8,uint32,uint256,uint256[],uint256)
+        - event: LoanContractGenerated(indexed address,indexed
+            uint256,uint8,uint32,uint256,uint256[],uint256)
           handler: handleLoanContractGenerated
         - event: ParcelPaid(indexed uint256,uint256)
           handler: handleParcelPaid
@@ -95,7 +97,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./hardhat/scripts/graphql/mapping.ts
+      file: LoanMachine\LoanMachine.wasm
       entities:
         - MemberToWalletVinculationEvent
         - ReputationChangedEvent
@@ -105,10 +107,10 @@ dataSources:
         - VoteCastEvent
         - ElectionClosedEvent
         - UnbeatableMajorityReachedEvent
-        - NewModeratorEvent  
+        - NewModeratorEvent
       abis:
         - name: ReputationSystem
-          file: ./hardhat/scripts/graphql/abis/ReputationSystem.json
+          file: ReputationSystem\ReputationSystem.json
       eventHandlers:
         - event: MemberToWalletVinculation(indexed uint32,indexed address,address[],uint256)
           handler: handleMemberToWalletVinculation
