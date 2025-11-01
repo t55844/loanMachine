@@ -1013,15 +1013,17 @@ export class LoanMachine extends ethereum.SmartContract {
     minimumCoverage: BigInt,
     parcelscount: BigInt,
     memberId: BigInt,
+    daysIntervalOfPayment: BigInt,
   ): BigInt {
     let result = super.call(
       "createLoanRequisition",
-      "createLoanRequisition(uint256,uint32,uint32,uint32):(uint256)",
+      "createLoanRequisition(uint256,uint32,uint32,uint32,uint32):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(amount),
         ethereum.Value.fromUnsignedBigInt(minimumCoverage),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
         ethereum.Value.fromUnsignedBigInt(memberId),
+        ethereum.Value.fromUnsignedBigInt(daysIntervalOfPayment),
       ],
     );
 
@@ -1033,15 +1035,17 @@ export class LoanMachine extends ethereum.SmartContract {
     minimumCoverage: BigInt,
     parcelscount: BigInt,
     memberId: BigInt,
+    daysIntervalOfPayment: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "createLoanRequisition",
-      "createLoanRequisition(uint256,uint32,uint32,uint32):(uint256)",
+      "createLoanRequisition(uint256,uint32,uint32,uint32,uint32):(uint256)",
       [
         ethereum.Value.fromUnsignedBigInt(amount),
         ethereum.Value.fromUnsignedBigInt(minimumCoverage),
         ethereum.Value.fromUnsignedBigInt(parcelscount),
         ethereum.Value.fromUnsignedBigInt(memberId),
+        ethereum.Value.fromUnsignedBigInt(daysIntervalOfPayment),
       ],
     );
     if (result.reverted) {
@@ -2037,6 +2041,10 @@ export class CreateLoanRequisitionCall__Inputs {
 
   get memberId(): BigInt {
     return this._call.inputValues[3].value.toBigInt();
+  }
+
+  get daysIntervalOfPayment(): BigInt {
+    return this._call.inputValues[4].value.toBigInt();
   }
 }
 

@@ -542,6 +542,11 @@
           "internalType": "uint32",
           "name": "memberId",
           "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "daysIntervalOfPayment",
+          "type": "uint32"
         }
       ],
       "name": "createLoanRequisition",

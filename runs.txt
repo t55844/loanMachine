@@ -20,7 +20,7 @@ docker-compose up --build
 
 
  Copy-Item -Path "hardhat\artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\hardhat\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "hardhat\scripts\graphql\abis\" -Force
- Copy-Item -Path "hardhat\artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\hardhat\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "loanMachine-frontend\src\abi" -Force
+ Copy-Item -Path "hardhat\artifacts\contracts\ReputationSystem.sol\ReputationSystem.json","C:\codigos\loan-machine\hardhat\artifacts\contracts\LoanMachine.sol\LoanMachine.json" -Destination "frontend\src\abi" -Force
 
 toda vez que tiver alteração no Graphql Node sector, tem que ir nos arquivos:
  subgraph.yaml, schema.graphql, mapping.ts e fazer as alterações correspondentes e
@@ -44,29 +44,12 @@ http://127.0.0.1:3000/  http://localhost:5173/ caso o site não abra por não co
 
 proximos possos:
 
-AuthorizedCallerUpdated emiter is needed
-
-sistema de monitoramento de pagamento
-
-quando a eleição se encerra a data esta algumas horas no futuro- porque é o universal por padrão
-
-os erros estão em hash
-
-limitatdor the emrpestimos para não farmarem reputaação
-
-testar sistemas relacionados a data
-
-melhorar o sistema de requisições dando opção de excluir requisições pendentes- -1 no limitador de requisições abertas
+Faucet Integration
 
 performPeriodicDebtCheck
 
-limitar quantitade de contraatoem mesma data
+sistema de monitoramento de pagamento --
+
+permitir seleção de intervalos entre parcelas --
+
 --------------------------------------------------------------
-
-componente para mostrar error de blockchain --feito falta estressar 
-
-eth_getBlockByNumber (43)
-eth_chainId
-eth_accounts (2)                                                                                                                                                                                             
-eth_chainId (2)
-eth_getBlockByNumber (540)

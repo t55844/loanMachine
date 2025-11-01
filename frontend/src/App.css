@@ -1428,3 +1428,356 @@ button:disabled {
   width: 100%; /* Ensure they don't overflow card */
   box-sizing: border-box; /* Include padding in width calculation */
 }
+
+/* Wallet Connection Styles - Harmonized with OKX Theme */
+.wallet-connection-block {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wallet-connection-block h3 {
+  font-size: 24px;
+  color: var(--accent-blue);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.wallet-info {
+  text-align: left;
+}
+
+.wallet-details {
+  margin-bottom: 20px;
+}
+
+.user-address, .balance-info {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  word-break: break-all;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.user-address strong, .balance-info strong {
+  color: var(--accent-blue);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
+.faucet-section {
+  margin: 20px 0;
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.faucet-button {
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  margin: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.faucet-button:hover:not(:disabled) {
+  background: #2a52e0;
+  transform: translateY(-1px);
+}
+
+.faucet-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.faucet-button.loading {
+  background: var(--accent-green);
+}
+
+.account-selector {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-selector {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 12px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.toggle-selector:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent-blue);
+}
+
+.accounts-list {
+  margin-top: 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+}
+
+.account-option {
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: monospace;
+  font-size: 13px;
+  margin-bottom: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.account-option:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent-blue);
+}
+
+.account-option.active {
+  background: rgba(56, 97, 251, 0.1);
+  border-color: var(--accent-blue);
+}
+
+.account-option:last-child {
+  margin-bottom: 0;
+}
+
+.account-label {
+  flex: 1;
+}
+
+.current-badge {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.error-message {
+  background: rgba(242, 54, 69, 0.1);
+  color: var(--accent-red);
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+  border: 1px solid var(--accent-red);
+  text-align: left;
+}
+
+.success-message {
+  background: rgba(0, 192, 135, 0.1);
+  color: var(--accent-green);
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+  border: 1px solid var(--accent-green);
+  text-align: left;
+}
+
+.wallet-connection.loading {
+  background: var(--bg-secondary);
+  padding: 40px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.loading-spinner {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.wallet-connection.error {
+  background: var(--bg-secondary);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-red);
+  text-align: center;
+}
+
+.wallet-connection.error p {
+  color: var(--accent-red);
+  margin-bottom: 16px;
+}
+
+.retry-button {
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.retry-button:hover {
+  background: #2a52e0;
+}
+
+/* Side Menu Integration */
+.side-menu .wallet-connection-block {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 20px;
+  border-radius: 10px;
+  margin: 0;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.side-menu .wallet-connection-block h3 {
+  font-size: 18px;
+  color: var(--accent-blue);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.side-menu .user-address,
+.side-menu .balance-info {
+  background: var(--bg-primary);
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+.side-menu .faucet-section,
+.side-menu .account-selector {
+  padding: 12px;
+  background: var(--bg-primary);
+}
+
+.side-menu .faucet-button,
+.side-menu .toggle-selector {
+  font-size: 13px;
+  padding: 10px 16px;
+}
+
+.side-menu .accounts-list {
+  padding: 10px;
+}
+
+.side-menu .account-option {
+  padding: 10px;
+  font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .wallet-connection-block {
+    padding: 16px;
+  }
+  
+  .wallet-connection-block h3 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .user-address, .balance-info {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .faucet-section, .account-selector {
+    padding: 12px;
+  }
+  
+  .faucet-button, .toggle-selector {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .accounts-list {
+    padding: 10px;
+  }
+  
+  .account-option {
+    padding: 10px;
+    font-size: 12px;
+  }
+  
+  .side-menu .wallet-connection-block {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wallet-connection-block {
+    padding: 12px;
+  }
+  
+  .wallet-connection-block h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  
+  .faucet-button, .toggle-selector {
+    font-size: 12px;
+  }
+  
+  .side-menu .wallet-connection-block {
+    padding: 12px;
+  }
+}
+
+/* Scrollbar styling for accounts list */
+.accounts-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.accounts-list::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 3px;
+}
+
+.accounts-list::-webkit-scrollbar-thumb {
+  background: var(--accent-blue);
+  border-radius: 3px;
+}
+
+.accounts-list::-webkit-scrollbar-thumb:hover {
+  background: #2a52e0;
+}

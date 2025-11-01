@@ -12,6 +12,7 @@ export default function LoanRequisitionForm({
   const [amount, setAmount] = useState("");
   const [minimumCoverage, setMinimumCoverage] = useState("80");
   const [parcelsQuantity, setParcelsQuantity] = useState("1");
+  const [daysIntervalOfPayment, setDaysIntervalOfPayment] = useState("30"); // Default value
   const [loading, setLoading] = useState(false);
   
   const { showToast, showSuccess, showError, handleContractError } = useToast();
@@ -24,7 +25,6 @@ export default function LoanRequisitionForm({
       return;
     }
 
-    // Check if member data is available
     if (!member || !member.id) {
       showToast("Member data not available. Please check your wallet connection.");
       return;
@@ -33,15 +33,15 @@ export default function LoanRequisitionForm({
     setLoading(true);
 
     try {
-      // Convert to USDT (6 decimals)
       const amountWei = ethers.utils.parseUnits(amount, 6);
-      const memberId = member.id; // Get memberId from member context
+      const memberId = member.id;
       
       const tx = await contract.createLoanRequisition(
         amountWei,
         parseInt(minimumCoverage),
         parseInt(parcelsQuantity),
-        memberId // Add memberId as parameter
+        memberId,
+        parseInt(daysIntervalOfPayment) // Add the new parameter
       );
       
       await tx.wait();
@@ -49,6 +49,7 @@ export default function LoanRequisitionForm({
       // Reset form
       setAmount("");
       setMinimumCoverage("80");
+      setDaysIntervalOfPayment("30"); // Reset to default
       
       showSuccess("Loan requisition created successfully!");
       
@@ -63,7 +64,6 @@ export default function LoanRequisitionForm({
     }
   };
 
-  // Check if member data is available for button state
   const hasMemberData = member && member.id;
 
   return (
@@ -79,7 +79,6 @@ export default function LoanRequisitionForm({
       }}>
         <h2>Create Loan Requisition</h2>
         
-        {/* Show warning if no member data */}
         {!member && account && (
           <div style={{
             background: 'var(--warning-bg)',
@@ -111,58 +110,78 @@ export default function LoanRequisitionForm({
             />
           </div>
 
-          <div style={{ display:'flex', justifyContent: 'space-around' }}>
-          <div style={{ marginBottom: '16px', textAlign: 'left' }}>
-            <label htmlFor="minimumCoverage" style={{display: 'block', marginBottom: '8px'}}>Minimum Coverage (%)</label>
-            <select
-              id="minimumCoverage"
-              value={minimumCoverage}
-              onChange={(e) => setMinimumCoverage(e.target.value)}
-              className="donate-select"
-              style={{width: '100%'}}
-              required
-            >
-              <option value="71">71%</option>
-              <option value="75">75%</option>
-              <option value="80">80%</option>
-              <option value="85">85%</option>
-              <option value="90">90%</option>
-              <option value="95">95%</option>
-              <option value="100">100%</option>
-            </select>
-          </div>
-          
-          <div style={{ marginBottom: '16px', textAlign: 'left' }}>
-            <label htmlFor="parcelsQuantity" style={{display: 'block', marginBottom: '8px'}}>Parcels Count</label>
-            <select
-              id="parcelsQuantity"
-              value={parcelsQuantity}
-              onChange={(e) => setParcelsQuantity(e.target.value)}
-              className="donate-select"
-              style={{width: '100%'}}
-              required
-            >
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-              <option value="11">11</option>
-              <option value="12">12</option>
-            </select>
-          </div>
+          <div style={{ display:'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ minWidth: '120px', flex: '1', textAlign: 'left' }}>
+              <label htmlFor="minimumCoverage" style={{display: 'block', marginBottom: '8px'}}>Minimum Coverage (%)</label>
+              <select
+                id="minimumCoverage"
+                value={minimumCoverage}
+                onChange={(e) => setMinimumCoverage(e.target.value)}
+                className="donate-select"
+                style={{width: '100%'}}
+                required
+              >
+                <option value="71">71%</option>
+                <option value="75">75%</option>
+                <option value="80">80%</option>
+                <option value="85">85%</option>
+                <option value="90">90%</option>
+                <option value="95">95%</option>
+                <option value="100">100%</option>
+              </select>
+            </div>
+            
+            <div style={{ minWidth: '120px', flex: '1', textAlign: 'left' }}>
+              <label htmlFor="parcelsQuantity" style={{display: 'block', marginBottom: '8px'}}>Parcels Count</label>
+              <select
+                id="parcelsQuantity"
+                value={parcelsQuantity}
+                onChange={(e) => setParcelsQuantity(e.target.value)}
+                className="donate-select"
+                style={{width: '100%'}}
+                required
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+              </select>
+            </div>
+
+            <div style={{ minWidth: '120px', flex: '1', textAlign: 'left' }}>
+              <label htmlFor="daysIntervalOfPayment" style={{display: 'block', marginBottom: '8px'}}>Payment Interval (Days)</label>
+              <select
+                id="daysIntervalOfPayment"
+                value={daysIntervalOfPayment}
+                onChange={(e) => setDaysIntervalOfPayment(e.target.value)}
+                className="donate-select"
+                style={{width: '100%'}}
+                required
+              >
+                <option value="1">1 Day</option>
+                <option value="5">5 Days</option>
+                <option value="10">10 Days</option>
+                <option value="15">15 Days</option>
+                <option value="20">20 Days</option>
+                <option value="25">25 Days</option>
+                <option value="30">30 Days</option>
+              </select>
+            </div>
           </div>
           
           <button 
             type="submit" 
             className="borrow-button"
-            disabled={loading || !hasMemberData} // Disable if no member data
-            style={{width: '100%'}}
+            disabled={loading || !hasMemberData}
+            style={{width: '100%', marginTop: '16px'}}
           >
             {loading ? "Creating..." : !hasMemberData ? "Wallet Not Vinculated" : "Create Loan Requisition"}
           </button>

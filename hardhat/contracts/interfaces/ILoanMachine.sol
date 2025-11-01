@@ -58,7 +58,7 @@ interface ILoanMachine {
     // Core functions
     function vinculationMemberToWallet(uint32 memberId, address wallet) external;
     function donate(uint256 amount, uint32 memberId) external;
-    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint32 _parcelsCount, uint32 memberId) external returns (uint256);
+    function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint32 _parcelsCount, uint32 memberId, uint32 daysIntervalOfPayment) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage, uint32 memberId) external;
     function repay(uint256 requisitionId, uint256 amount, uint32 memberId) external;
     

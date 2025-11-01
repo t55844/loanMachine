@@ -87,6 +87,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     error LoanMachine_OnlyBorrowerCanCancelRequisition();
     error LoanMachine_RequisitionNotCancellable();
     error LoanMachine_RequisitionAlreadyFullyCovered();
+    error LoanMachine_IntervalOfPaymentAboveLimit();
     // Structs
     struct LoanRequisition {    
         uint256 requisitionId;
@@ -95,11 +96,11 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         uint32 minimumCoverage;
         uint32 currentCoverage;
         BorrowStatus status;
-        uint256 durationDays;
         uint256 creationTime;
         address[] coveringLenders;
         mapping(address => uint256) coverageAmounts;
         uint32 parcelsCount;
+        uint32 daysIntervalOfPayment;
     }
 
     modifier minimumPercentCoveragePermited(uint256 minimumCoverage) {
@@ -129,8 +130,9 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
         _;
     }
 
-    modifier maxParcelsCount(uint32 parcelscount) {
+    modifier maxParcelsCountAndInterval(uint32 parcelscount, uint32 daysIntervalOfPayment) {
         if (parcelscount < 1 || parcelscount > 12) revert LoanMachine_InvalidParcelsCount();
+        if (daysIntervalOfPayment > 30) revert LoanMachine_IntervalOfPaymentAboveLimit();
         _;
     }
 
@@ -472,14 +474,15 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
         uint256 amount,
         uint32 minimumCoverage,
         uint32 parcelscount,
-        uint32 memberId
+        uint32 memberId,
+        uint32 daysIntervalOfPayment
     ) 
         external 
         checkLoanRequisitionOpened(memberId)
         validMember(memberId, msg.sender) 
         validAmount(amount) 
         minimumPercentCoveragePermited(minimumCoverage) 
-        maxParcelsCount(parcelscount) 
+        maxParcelsCountAndInterval(parcelscount, daysIntervalOfPayment) 
         returns (uint256) 
     {
         if (amount > availableBalance) revert LoanMachine_InsufficientFunds();
@@ -503,6 +506,8 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
         newReq.creationTime = block.timestamp;
         newReq.parcelsCount = parcelscount;
         newReq.requisitionId = requisitionId;
+        newReq.daysIntervalOfPayment = daysIntervalOfPayment;
+
         borrowerRequisitions[msg.sender].push(requisitionId);
         
         loanRequisitionNumber[memberId] += 1;
@@ -602,7 +607,7 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
     // but we’ll emit the full array for clarity
     loan.parcelsValues = base;
 
-    _generatePaymentDates(loan, count);
+    _generatePaymentDates(loan, count,req.daysIntervalOfPayment);
 
     address lastContractAddress = loan.walletAddress;
     lastContractPerWalletId[lastContractAddress] = requisitionId;
@@ -625,9 +630,9 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
 }
 
 
-    function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount) internal {
+    function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount, uint32 daysIntervalOfPayment) internal {
         uint256 startDate = block.timestamp;
-        uint256 oneMonthInSeconds = 30 days;
+        uint256 oneMonthInSeconds = daysIntervalOfPayment;
         
         for (uint32 i = 0; i < parcelsCount; i++) {
             uint256 paymentDate = startDate + (oneMonthInSeconds * (i + 1));

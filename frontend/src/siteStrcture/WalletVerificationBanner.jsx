@@ -25,6 +25,7 @@ export default function WalletVerificationBanner() {
 
     try {
       const memberData = await fetchWalletMember(account);
+      console.log(memberData)
       setIsVerified(!!memberData);
     } catch (e) {
       console.error("Error checking wallet verification:", e);
