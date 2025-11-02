@@ -6,26 +6,11 @@ import { fetchCompleteMemberData } from "../graphql-frontend-query";
 function VinculateMember() {
   const [memberId, setMemberId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [memberData, setMemberData] = useState(null);
-  
+
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
-  const { account, contract } = useWeb3();
+  const { account, contract, member, refreshMemberData } = useWeb3();
 
-  useEffect(() => {
-    if (account) checkExistingVinculation();
-    else setMemberData(null);
-  }, [account]);
-
-  async function checkExistingVinculation() {
-    if (!account) return;
-    try {
-      const data = await fetchCompleteMemberData(account);
-      setMemberData(data);
-    } catch (error) {
-      console.error("Error checking vinculation:", error);
-      setMemberData(null);
-    }
-  }
+  const memberData = member?.hasVinculation ? member : null;
 
   async function handleVinculate() {
     if (!account || !contract || !memberId) return alert("Please connect wallet and enter a Member ID");
@@ -47,7 +32,8 @@ function VinculateMember() {
       await tx.wait();
       alert(`Member ID ${memberId} vinculated to your wallet!`);
       setMemberId("");
-      await checkExistingVinculation();
+      await refreshMemberData();
+
     } catch (err) {
       alert("Error vinculating member to wallet");
       throw err;

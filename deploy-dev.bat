@@ -1,5 +1,11 @@
 @echo off
 
+echo --- 0. Resetting GraphQL data... ---
+rmdir /s /q .\data\postgres 2>nul
+rmdir /s /q .\data\ipfs 2>nul
+mkdir .\data\postgres 2>nul
+mkdir .\data\ipfs 2>nul
+
 echo --- 1. Building and starting all DEV containers... ---
 rem Use -f to specify your new dev-compose file
 docker-compose -f docker-compose.dev.yml up -d --build

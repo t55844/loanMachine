@@ -76,8 +76,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1761959351851,
-      "contentHash": "c3fc201a3a6d679ccd9be2fe7a89ee90",
+      "lastModificationDate": 1762055758506,
+      "contentHash": "f06a5f8e9baeb9c53b0414c9dfa2cb0e",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",

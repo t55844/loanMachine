@@ -632,7 +632,7 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
 
     function _generatePaymentDates(LoanContract storage loan, uint32 parcelsCount, uint32 daysIntervalOfPayment) internal {
         uint256 startDate = block.timestamp;
-        uint256 oneMonthInSeconds = daysIntervalOfPayment;
+        uint256 oneMonthInSeconds = uint256(daysIntervalOfPayment) * 1 days;
         
         for (uint32 i = 0; i < parcelsCount; i++) {
             uint256 paymentDate = startDate + (oneMonthInSeconds * (i + 1));

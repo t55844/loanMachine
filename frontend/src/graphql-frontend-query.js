@@ -367,31 +367,37 @@ export async function fetchUserData(userAddress) {
    Fetch Wallet Member
 ----------------------------------------------------------- */
 export async function fetchWalletMember(walletAddress) {
-  const query = `
-    query GetWalletMember($wallet: Bytes!) {
-      memberToWalletVinculationEvents(where: { wallet: $wallet }, first: 1, orderBy: blockTimestamp, orderDirection: desc) {
-        memberId
-      }
-    }
-  `;
+  const query = `query GetWalletMember($wallet: Bytes!)
+  {memberToWalletVinculationEvents(
+    where: { wallet: $wallet }, first: 1, orderBy: blockTimestamp, orderDirection: desc){memberId}}`;
 
-  try {
-    const data = await client.request(query, {
-      wallet: walletAddress.toLowerCase(),
-    });
+  try {
+    const data = await client.request(query, {
+      wallet: walletAddress.toLowerCase(),
+    });
 
-    const event = data.memberToWalletVinculationEvents?.[0];
-    if (!event) return null;
+    const event = data.memberToWalletVinculationEvents?.[0];
 
-    return {
-      memberId: event.memberId,
-      wallets: [walletAddress.toLowerCase()],
-      currentReputation: 0 // Default, as no reputation tracking in events
-    };
-  } catch (error) {
-    console.error("Error fetching wallet member:", error);
-    throw error;
-  }
+    if (!event) {
+      // 🛑 PATH 1: NO EVENT FOUND
+      return { 
+        hasVinculation: false, // Explicitly false
+        memberId: null, 
+        wallets: [],
+      };
+    }
+
+    // ✅ PATH 2: EVENT FOUND (SUCCESS)
+    return {
+      memberId: event.memberId,
+      wallets: [walletAddress.toLowerCase()],
+      currentReputation: 0,
+      hasVinculation: true, // 🚨 THIS IS THE MISSING KEY
+    };
+  } catch (error) {
+    console.error("Error fetching wallet member:", error);
+    throw error; // Allow Web3Context to catch this as a network error
+  }
 }
 
 

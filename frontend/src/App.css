@@ -945,7 +945,7 @@ button:disabled {
   font-size: 11px !important;
 }
 
-.retry-button {
+.retry-button-banner {
   background: #856404;
   color: white;
   border: none;
@@ -957,11 +957,11 @@ button:disabled {
   transition: background 0.2s;
 }
 
-.retry-button:hover:not(:disabled) {
+.retry-button-banner:hover:not(:disabled) {
   background: #6c5203;
 }
 
-.retry-button:disabled {
+.retry-button-banner:disabled {
   background: #ccc;
   cursor: not-allowed;
 }

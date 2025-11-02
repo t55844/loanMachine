@@ -1,92 +1,72 @@
-import { useState, useEffect } from "react";
-import { fetchWalletMember } from "../graphql-frontend-query";
-import { useWeb3 } from "../Web3Context";
+import { useState } from "react";
+// Removed fetchWalletMember as it's handled by refreshMemberData
+import { useWeb3 } from "../Web3Context"; 
 
 export default function WalletVerificationBanner() {
-  const [isVerified, setIsVerified] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  
-  const { account } = useWeb3();
+    // Local state for the *Retry Button* only
+    const [retryLoading, setRetryLoading] = useState(false); 
+    const [error, setError] = useState("");
+    
+    // Get the global loading state and member data from context
+    const { 
+        account, 
+        member, 
+        refreshMemberData,
+        loading: web3Loading // Rename global loading state
+    } = useWeb3();
 
-  useEffect(() => {
-    if (account) {
-      checkWalletVerification();
-    } else {
-      setIsVerified(null);
+    const isVerified = member?.hasVinculation;
+
+    async function handleRetry() {
+        if (!account) return;
+
+        setRetryLoading(true); // Only set local loading for the button
+        setError("");
+
+        try {
+            await refreshMemberData(); // This updates the global 'member' state
+            // The component will automatically re-render and hide the banner
+            // because 'isVerified' will become true.
+            
+        } catch (e) {
+            console.error("Error checking wallet verification:", e);
+            setError("Failed to verify wallet");
+        } finally {
+            setRetryLoading(false);
+        }
     }
-  }, [account]);
 
-  async function checkWalletVerification() {
-    if (!account) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const memberData = await fetchWalletMember(account);
-      console.log(memberData)
-      setIsVerified(!!memberData);
-    } catch (e) {
-      console.error("Error checking wallet verification:", e);
-      setError("Failed to verify wallet");
-      setIsVerified(false);
-    } finally {
-      setLoading(false);
+    // 1. Initial Suppression (Fixes the state clearing flash on reload)
+    // Hide the banner if:
+    // a) No account is connected OR
+    // b) The Web3 provider is in the middle of connecting (global loading)
+    if (!account || web3Loading) {
+        return null;
     }
-  }
 
-  async function handleRetry() {
-    if (!account) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const memberData = await fetchWalletMember(account);
-      const verified = !!memberData;
-      setIsVerified(verified);
-      
-      // Only reload if the retry was successful
-      if (verified) {
-        window.location.reload();
-      }
-    } catch (e) {
-      console.error("Error checking wallet verification:", e);
-      setError("Failed to verify wallet");
-      setIsVerified(false);
-    } finally {
-      setLoading(false);
+    // 2. Hide if already verified
+    if (isVerified) {
+        return null;
     }
-  }
 
-  // Don't show anything if no wallet connected or still loading
-  if (!account || loading) {
-    return null;
-  }
-
-  // Don't show warning if wallet is verified
-  if (isVerified) {
-    return null;
-  }
-
-  return (
-    <div className="wallet-verification-banner">
-      <div className="warning-content">
-        <div className="warning-icon">⚠️</div>
-        <div className="warning-text">
-          <strong>Wallet Not Vinculated</strong>
-          <span>This wallet is not linked to any member account. Some features may be limited.</span>
-          {error && <span className="error-small">Verification failed: {error}</span>}
+    // 3. Show the banner (with local button loading state)
+    return (
+        <div className="wallet-verification-banner">
+            <div className="warning-content">
+                <div className="warning-icon">⚠️</div>
+                <div className="warning-text">
+                    <strong>Wallet Not Vinculated</strong>
+                    <span>This wallet is not linked to any member account. Some features may be limited.</span>
+                    {error && <span className="error-small">Verification failed: {error}</span>}
+                </div>
+                <button 
+                    onClick={handleRetry} 
+                    className="retry-button-banner"
+                    disabled={retryLoading} // Use local retryLoading state
+                >
+                    {retryLoading ? "Checking..." : "Retry"}
+                </button>
+            </div>
         </div>
-        <button 
-          onClick={handleRetry} 
-          className="retry-button"
-          disabled={loading}
-        >
-          {loading ? "Checking..." : "Retry"}
-        </button>
-      </div>
-    </div>
-  );
+    );
 }

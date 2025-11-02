@@ -1,5 +1,3 @@
-// Web3Context.jsx (FINAL)
-
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
@@ -11,7 +9,6 @@ import { fetchWalletMember } from './graphql-frontend-query';
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const REPUTATION_CONTRACT_ADDRESS = import.meta.env.VITE_REPUTATION_CONTRACT_ADDRESS;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
-const VITE_SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
 // USDT ABI - minimal version for the functions we need
 const USDT_ABI = [
@@ -26,7 +23,6 @@ const USDT_ABI = [
   "function mint(address to, uint256 amount) returns (bool)"
 ];
 
-// Para desenvolvimento local, use o endereço do MockUSDT do seu deploy
 const MOCK_USDT_ADDRESS = import.meta.env.VITE_MOCK_USDT_ADDRESS;
 
 const Web3Context = createContext();
@@ -37,7 +33,6 @@ export function Web3Provider({ children }) {
   const [reputationContract, setReputationContract] = useState(null);
   const [usdtContract, setUsdtContract] = useState(null);
   const [provider, setProvider] = useState(null);
-  // Estado inicial agora é false, sem conexão automática
   const [loading, setLoading] = useState(false); 
   const [error, setError] = useState('');
   const [chainId, setChainId] = useState(null);
@@ -45,80 +40,73 @@ export function Web3Provider({ children }) {
   const [connectionType, setConnectionType] = useState(null); 
 
   // Function to fetch member data
-  const fetchMemberData = async (walletAddress) => {
-    try {
-      let memberData;
-      let hasVinculation = true;
-      
-      try {
-        memberData = await fetchWalletMember(walletAddress);
-        if (!memberData || (!memberData.id && !memberData.memberId)) {
-          console.warn('⚠️ Wallet not vinculated to any member');
-          hasVinculation = false;
-          memberData = null;
-        }
-      } catch (subgraphError) {
-        console.warn('❌ Subgraph query failed:', subgraphError);
-        hasVinculation = false;
-        memberData = null;
-      }
-      
-      if (!hasVinculation || !memberData) {
-        const noMemberData = {
-          id: null,
-          memberId: null,
-          walletAddress: walletAddress,
-          hasVinculation: false,
-          error: 'Wallet not vinculated to any member'
+    const fetchMemberData = async (walletAddress) => {
+        const defaultMemberData = { 
+            id: null, memberId: null, walletAddress, hasVinculation: false 
         };
-        setMember(noMemberData);
-        return noMemberData;
-      }
-      
-      const finalMemberData = {
-        id: memberData.memberId || memberData.id,
-        memberId: memberData.memberId || memberData.id,
-        walletAddress: memberData.wallet?.id || walletAddress,
-        name: memberData.name || `Member ${memberData.memberId || memberData.id}`,
-        hasVinculation: true,
-        ...memberData
-      };
-      
-      setMember(finalMemberData);
-      return finalMemberData;
-      
-    } catch (err) {
-      console.error('❌ Error in fetchMemberData:', err);
-      const errorMemberData = {
-        id: null,
-        memberId: null,
-        walletAddress: walletAddress,
-        hasVinculation: false,
-        error: 'Failed to check member vinculation'
-      };
-      setMember(errorMemberData);
-      return errorMemberData;
-    }
-  };
 
- useEffect(() => {
-  // Remove a conexão automática e define loading como false
-  setLoading(false); 
+        try {
+            const subgraphResult = await fetchWalletMember(walletAddress); 
+            // Keep debug logs for now to confirm the true state on reload
+            console.log('Subgraph Result:', subgraphResult); 
+            console.log('Vinculation Status:', subgraphResult?.hasVinculation); 
+            
+            if (subgraphResult && subgraphResult.hasVinculation) {
+                
+                // SUCCESS PATH: Vinculation found
+                const finalMemberData = {
+                    id: subgraphResult.memberId,
+                    memberId: subgraphResult.memberId,
+                    walletAddress: walletAddress,
+                    name: `Member ${subgraphResult.memberId}`,
+                    hasVinculation: true,
+                    ...subgraphResult
+                };
 
-  // ✅ Auto-reconnect from localStorage
-  const savedType = localStorage.getItem('connectedWalletType');
-  if (!account && savedType === 'local') connectToLocalNode();
-  else if (!account && savedType === 'external') connectToExternalWallet();
+                setMember(finalMemberData);
+                return finalMemberData;
 
-}, []); 
+            } else {
+                // NO VINCUATION PATH
+                const noMemberData = {
+                    ...defaultMemberData,
+                    error: 'Wallet not vinculated to any member',
+                };
+                
+                setMember(noMemberData); 
+                return noMemberData;
+            }
+
+        } catch (err) {
+            console.error('❌ Error in fetchMemberData (Network/Subgraph Query):', err);
+            const errorMemberData = {
+                ...defaultMemberData,
+                error: 'Failed to check member vinculation due to network/subgraph error.',
+            };
+
+            setMember(errorMemberData);
+            return errorMemberData;
+        }
+    };
+
+    // 🚩 AUTO-RECONNECT LOGIC
+    useEffect(() => {
+        const savedType = localStorage.getItem('connectedWalletType');
+        const savedAccount = localStorage.getItem('connectedWalletAddress'); // Use your specific key
+        
+        if (savedType && savedAccount && !account) {
+            setLoading(true); 
+            // Pass the saved account to initiate reconnection
+            if (savedType === 'local') connectToLocalNode(savedAccount);
+            else if (savedType === 'external') connectToExternalWallet(savedAccount);
+        } else if (!savedType) {
+            setLoading(false);
+        }
+    }, []); 
 
   // Configurar contratos com um Provider/Signer
   const setupContracts = async (newProvider, newSigner, newAccount, newChainId, type) => {
-    
-    // Verificações de rede (Apenas para local)
-    if (type === 'local' && newChainId !== 31337) { 
-        console.warn('ChainId é diferente do esperado para o ambiente local:', newChainId);
-    }
+    // ... (network checks and contract instantiation) ...
     
     // 1. Contratos principais com o novo Signer
     const loanContract = new ethers.Contract(CONTRACT_ADDRESS, LoanMachineABI.abi, newSigner);
@@ -128,7 +116,7 @@ export function Web3Provider({ children }) {
       newSigner
     );
     
-    // 2. Contrato USDT (usando endereço mock em ambos os casos)
+    // 2. Contrato USDT
     const usdtAddress = MOCK_USDT_ADDRESS;
     if (!usdtAddress) {
       throw new Error('Mock USDT address not configured. Check VITE_MOCK_USDT_ADDRESS env variable');
@@ -136,16 +124,14 @@ export function Web3Provider({ children }) {
 
     const usdtTokenContract = new ethers.Contract(usdtAddress, USDT_ABI, newSigner);
 
-    // Teste de conexão com o contrato USDT (pode falhar se estiver em uma rede externa)
+    // Teste de conexão com o contrato USDT (retained for safety)
     try {
         await usdtTokenContract.symbol();
     } catch (testError) {
         console.warn(`⚠️ Não foi possível conectar ao MockUSDT em ${usdtAddress}. Isso é esperado se você NÃO estiver na rede Hardhat local.`);
-        // Se for conexão externa, o contrato USDT não será funcional, mas o restante sim.
         if(type === 'external') {
            setError('MockUSDT contract not found on this network. Faucet will be disabled.');
         } else {
-            // Se for local e falhar, é um erro real.
             throw new Error(`USDT contract not working at ${usdtAddress}. Please check deployment.`);
         }
     }
@@ -158,71 +144,83 @@ export function Web3Provider({ children }) {
     setChainId(newChainId);
     setConnectionType(type); 
     if(error === 'MockUSDT contract not found on this network. Faucet will be disabled.') {
-      // Não limpe o erro do MockUSDT
+      // Don't clear the MockUSDT error
     } else {
       setError('');
     }
+    
+    // No longer saving here. We rely on the initial saving from WalletConnection.jsx
     await fetchMemberData(newAccount);
-    setLoading(false);
+    setLoading(false); 
   };
 
   // Conexão com Provedor Externo (MetaMask, etc.)
-  const connectToExternalWallet = async (preferredAccount = null) => {
-  setLoading(true);
-  setError('');
+  const connectToExternalWallet = async (preferredAccount = null) => { 
+  setLoading(true);
+  setError('');
 
-  if (!window.ethereum) {
-    setError('No external wallet provider detected.');
-    setLoading(false);
-    return;
-  }
+  if (!window.ethereum) {
+    setError('No external wallet provider detected.');
+    setLoading(false);
+    return;
+  }
 
-  try {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const externalProvider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = externalProvider.getSigner();
-    const network = await externalProvider.getNetwork();
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const externalProvider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = externalProvider.getSigner();
+    const network = await externalProvider.getNetwork();
 
+    // 🚨 NEW LOGIC: ONLY use preferredAccount, otherwise error and force back to connection screen
     const defaultAccount = preferredAccount && accounts.includes(preferredAccount) 
-      ? preferredAccount 
-      : accounts[0];
+      ? preferredAccount 
+      : accounts[0]; // Retain for first time connection, as accounts[0] is the authorized one
 
-    await setupContracts(externalProvider, signer, defaultAccount, network.chainId, 'external');
+    if (!defaultAccount) {
+      throw new Error('No authorized account found from wallet provider.');
+    }
+    
+    await setupContracts(externalProvider, signer, defaultAccount, network.chainId, 'external'); 
 
-    window.ethereum.on('accountsChanged', (newAccounts) => {
-      if (newAccounts.length > 0) window.location.reload();
-      else disconnect();
-    });
-    window.ethereum.on('chainChanged', () => window.location.reload());
-  } catch (err) {
-    console.error('Error connecting to external wallet:', err);
-    setError(`Failed to connect: ${err.message}`);
-    setLoading(false);
-  }
+    window.ethereum.on('accountsChanged', (newAccounts) => {
+      if (newAccounts.length > 0) window.location.reload();
+      else disconnect();
+    });
+    window.ethereum.on('chainChanged', () => window.location.reload());
+  } catch (err) {
+    console.error('Error connecting to external wallet:', err);
+    setError(`Failed to connect: ${err.message}`);
+    setLoading(false);
+  }
 };
 
   // Conexão com Nó Local
- const connectToLocalNode = async (preferredAccount = null) => {
-  setLoading(true); 
-  setError('');
-  try {
-    const localProvider = new ethers.providers.JsonRpcProvider(RPC_URL);
-    const network = await localProvider.getNetwork();
-    const accounts = await localProvider.listAccounts();
-    
-    if (accounts.length === 0) throw new Error('No accounts found in local node');
+ const connectToLocalNode = async (preferredAccount = null) => { 
+  setLoading(true); 
+  setError('');
+  try {
+    const localProvider = new ethers.providers.JsonRpcProvider(RPC_URL);
+    const network = await localProvider.getNetwork();
+    const accounts = await localProvider.listAccounts();
+    
+    if (accounts.length === 0) throw new Error('No accounts found in local node');
 
-    const defaultAccount = preferredAccount && accounts.includes(preferredAccount) 
-      ? preferredAccount 
-      : accounts[0];
+    // 🚨 NEW LOGIC: ONLY use preferredAccount. If not passed during reconnect, fail.
+    // However, on first connect (when preferredAccount is null), use accounts[0] (the default)
+    // The "default wallet logic" is essential here if the user hasn't selected a wallet yet.
+    const finalAccount = preferredAccount || accounts[0]; // Safe fallback for first connection
 
-    const signer = localProvider.getSigner(defaultAccount);
-    await setupContracts(localProvider, signer, defaultAccount, network.chainId, 'local');
-  } catch (err) {
-    console.error('Error connecting to local node:', err);
-    setError(`Failed to connect to local node: ${err.message}`);
-    setLoading(false);
-  }
+    if (!accounts.includes(finalAccount)) {
+      throw new Error('Saved account not available in local node.');
+    }
+
+    const signer = localProvider.getSigner(finalAccount);
+    await setupContracts(localProvider, signer, finalAccount, network.chainId, 'local'); 
+  } catch (err) {
+    console.error('Error connecting to local node:', err);
+    setError(`Failed to connect to local node: ${err.message}`);
+    setLoading(false);
+  }
 };
 
   // Desconexão
@@ -236,6 +234,8 @@ export function Web3Provider({ children }) {
       setLoading(false);
       setError('');
       setConnectionType(null);
+      // NOTE: We do NOT clear localStorage here, as this function is called 
+      // by external wallet listeners. The App.jsx/WalletConnection handles clearing.
   };
 
   // Troca de Conta (apenas para conexão local)
@@ -245,12 +245,15 @@ export function Web3Provider({ children }) {
         return;
     }
 
+    setLoading(true); 
+
     try {
       const accounts = await provider.listAccounts();
       if (accountIndex >= 0 && accountIndex < accounts.length) {
         const newAccount = accounts[accountIndex];
         const newSigner = provider.getSigner(newAccount);
         
+        // Re-instantiate contracts with the new signer
         const newContract = new ethers.Contract(CONTRACT_ADDRESS, LoanMachineABI.abi, newSigner);
         const newReputationContract = new ethers.Contract(
           REPUTATION_CONTRACT_ADDRESS, 
@@ -263,15 +266,21 @@ export function Web3Provider({ children }) {
         setContract(newContract);
         setReputationContract(newReputationContract); 
         setUsdtContract(newUsdtContract);
+
+        // NOTE: WalletConnection.jsx is responsible for saving the new account to localStorage 
+        // after a switch, but we'll leave it to the user to handle.
         
         await fetchMemberData(newAccount);
       }
     } catch (err) {
       console.error('Error switching account:', err);
+    } finally {
+        setLoading(false); 
     }
   };
 
-  // --- Funções Auxiliares (sem alterações) ---
+  // ... (Auxiliary functions: getUSDTBalance, approveUSDT, etc. - unchanged) ...
+ // 
 
   // Helper function to get USDT balance for any address
   const getUSDTBalance = async (address = null) => {

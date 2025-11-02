@@ -52,4 +52,6 @@ sistema de monitoramento de pagamento --
 
 permitir seleção de intervalos entre parcelas --
 
+ver data da criação da eleição, a unica que esta nohorario "certo"
+
 --------------------------------------------------------------

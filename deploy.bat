@@ -2,6 +2,12 @@
 
 rem Ensure 'graph-cli' is installed on your host machine before running!
 
+echo --- 0. Resetting GraphQL data... ---
+rmdir /s /q .\data\postgres 2>nul
+rmdir /s /q .\data\ipfs 2>nul
+mkdir .\data\postgres 2>nul
+mkdir .\data\ipfs 2>nul
+
 echo --- 1. Building and starting all containers... ---
 rem Start all services in the background (--build forces a rebuild)
 docker-compose up -d --build
