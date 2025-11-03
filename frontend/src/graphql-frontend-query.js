@@ -309,12 +309,12 @@ export async function fetchUserData(userAddress) {
     query GetUserData($userAddress: Bytes!) {
       donatedEvents(where: { donor: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
         id
-        amount
+        totalDonation
         blockTimestamp
       }
       borrowedEvents(where: { borrower: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
         id
-        amount
+        totalBorrowing
         blockTimestamp
       }
       repaidEvents(where: { borrower: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
@@ -335,8 +335,8 @@ export async function fetchUserData(userAddress) {
     const borrows = data.borrowedEvents || [];
     const repayments = data.repaidEvents || [];
 
-    const totalDonated = donations.reduce((sum, d) => sum + Number(d.amount), 0).toString();
-    const totalBorrowed = borrows.reduce((sum, b) => sum + Number(b.amount), 0).toString();
+    const totalDonated = donations.reduce((sum, d) => sum + Number(d.totalDonation), 0).toString();
+    const totalBorrowed = borrows.reduce((sum, b) => sum + Number(b.totalBorrowing), 0).toString();
     const currentDebt = repayments.length > 0 ? repayments[repayments.length - 1].remainingDebt : totalBorrowed;
     const lastActivity = Math.max(
       ...[
@@ -400,6 +400,39 @@ export async function fetchWalletMember(walletAddress) {
   }
 }
 
+
+export async function fetchMemberReputation(memberId) {
+  const query = `
+    query GetMemberReputation($memberId: Int!) {
+      reputationChangedEvents(
+        where: { memberId: $memberId }
+        orderBy: timestamp
+        orderDirection: desc
+        first: 1
+      ) {
+        newReputation
+        points
+        increase
+        timestamp
+      }
+    }
+  `;
+
+  const variables = { memberId };
+  
+  try {
+    const data = await request(GRAPHQL_URL, query, variables);
+    
+    if (data.reputationChangedEvents && data.reputationChangedEvents.length > 0) {
+      return data.reputationChangedEvents[0].newReputation;
+    }
+    
+    return 0; // Default reputation if no events found
+  } catch (error) {
+    console.error('Error fetching member reputation:', error);
+    return 0; // Return 0 on error
+  }
+}
 
 
 export async function fetchCompleteMemberData(walletAddress, memberId = null) {
@@ -584,3 +617,4 @@ export async function fetchBorrowerRequisitions(borrower) {
     throw error;
   }
 }
+

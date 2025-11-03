@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
-import { fetchCompleteMemberData } from "../graphql-frontend-query";
 
 function VinculateMember() {
   const [memberId, setMemberId] = useState("");
@@ -32,8 +31,8 @@ function VinculateMember() {
       await tx.wait();
       alert(`Member ID ${memberId} vinculated to your wallet!`);
       setMemberId("");
+      // Simply refresh the member data
       await refreshMemberData();
-
     } catch (err) {
       alert("Error vinculating member to wallet");
       throw err;
@@ -59,7 +58,7 @@ function VinculateMember() {
             <strong style={{ color: 'var(--accent-green)' }}>Wallet Already Vinculated</strong>
           </div>
           
-          {/* Member Information - Simplified */}
+          {/* Member Information */}
           <div style={{ 
             background: 'var(--bg-primary)', 
             padding: '15px', 

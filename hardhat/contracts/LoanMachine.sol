@@ -454,11 +454,11 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
 
         bool isNewDonor = donations[msg.sender] == 0;
         
-        unchecked {
+
             donations[msg.sender] += amount;
             totalDonations += amount;
             availableBalance += amount;
-        }
+
         
         emit Donated(msg.sender, amount, donations[msg.sender]);
         emit TotalDonationsUpdated(totalDonations);

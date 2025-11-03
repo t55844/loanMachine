@@ -36,12 +36,13 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
       const allocatedWei = await contract.getDonationsInCoverage(account);
       const allocatedBalance = parseFloat(ethers.utils.formatUnits(allocatedWei, 6));
-      const freeBalance = totalBalance - allocatedBalance;
+      const freeBalanceWei = await contract.getDonation(account);
+      const freeBalance = parseFloat(ethers.utils.formatUnits(freeBalanceWei, 6));
 
       setDonationBalances({
         total: totalBalance.toString(),
         allocated: allocatedBalance.toString(),
-        free: Math.max(0, freeBalance).toString()
+        free: freeBalance.toString()
       });
     } catch (err) {
       console.error("Error loading donation balances:", err);
@@ -55,7 +56,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     try {
       // Use GraphQL to get pending requisitions
       const graphRequisitions = await fetchLoanRequisitions();
-      console.log("GraphQL requisitions:", graphRequisitions);
       
       const requisitionDetails = await Promise.all(
         graphRequisitions.map(async (graphReq) => {
@@ -121,7 +121,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
         .filter(req => req !== null)
         .filter(req => req.status === 0 || req.status === 1); // Pending or Partially Covered
 
-      console.log("Pending requisitions:", pendingRequisitions);
       setRequisitions(pendingRequisitions);
     } catch (err) {
       console.error("Error loading pending requisitions:", err);

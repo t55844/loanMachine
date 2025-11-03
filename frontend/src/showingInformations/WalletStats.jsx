@@ -19,7 +19,6 @@ async function fetchUserStats(userAddress) {
     borrowings: userBorrowed,
     currentDebt,
     canBorrowNow,
-    donationCount: userData.donations.length,
     borrowCount: userData.borrows.length,
   };
 }
@@ -125,10 +124,6 @@ export default function UserStatus() {
             <span className={userData.canBorrowNow ? "can-borrow-yes" : "can-borrow-no"}>
               {userData.canBorrowNow ? "Yes" : "No"}
             </span>
-          </div>
-          <div className="stat-item">
-            <strong>User Donations Made:</strong> 
-            <span>{userData.donationCount}</span>
           </div>
           <div className="stat-item">
             <strong>User Loans Taken:</strong> 

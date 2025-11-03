@@ -93,13 +93,6 @@ export default function TransactionPendingRequisition({
     const percentageUint32 = Number(percentage);
     const memberIdUint32 = Number(member.id);
 
-    console.log("Cover loan validation:", {
-      currentAccount: account,
-      memberId: memberIdUint32,
-      requisitionId: requisitionIdUint32,
-      percentage: percentageUint32
-    });
-
     // Validate parameters
     if (isNaN(requisitionIdUint32) || requisitionIdUint32 < 0) {
       showError("Invalid requisition ID");
@@ -134,9 +127,7 @@ export default function TransactionPendingRequisition({
 
     // CRITICAL: Check if the current wallet is properly vinculated to the member ID
     try {
-      console.log("Checking wallet vinculated status...");
       const isVinculated = await contract.isWalletVinculated(account);
-      console.log("Is wallet vinculated:", isVinculated);
       
       if (!isVinculated) {
         showError("Your wallet is not vinculated to any member. Please register first.");
@@ -145,15 +136,12 @@ export default function TransactionPendingRequisition({
 
       // Check if the member ID matches what's registered for this wallet
       const contractMemberId = await contract.getMemberId(account);
-      console.log("Contract member ID for wallet:", contractMemberId.toString());
-      console.log("Our context member ID:", memberIdUint32);
 
       if (Number(contractMemberId.toString()) !== memberIdUint32) {
         showError(`Member ID mismatch! Wallet ${account} is vinculated to member ${contractMemberId.toString()} but you're trying to use member ${memberIdUint32}. Please use the correct wallet.`);
         return;
       }
 
-      console.log("✅ Member validation passed!");
 
     } catch (err) {
       console.error("Error during member validation:", err);
