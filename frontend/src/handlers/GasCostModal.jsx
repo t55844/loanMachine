@@ -1,4 +1,3 @@
-// GasCostModal.jsx
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWeb3 } from "../Web3Context";
@@ -33,7 +32,7 @@ async function estimateGasCost() {
     const { method, params = [], value = "0" } = transactionData;
     
     if (!contract[method]) {
-      throw new Error(`Method ${method} not found on contract`);
+      throw new Error(`Método ${method} não encontrado no contrato`);
     }
 
     // Try to estimate gas
@@ -47,7 +46,7 @@ async function estimateGasCost() {
 
     setGasCost(gasCostEth);
   } catch (err) {
-    console.error("Gas estimation error:", err);
+    console.error("Erro de estimativa de gas:", err);
     
     // Use extractErrorMessage but don't emit toast here
     let userFriendlyError = extractErrorMessage(err);
@@ -77,43 +76,43 @@ async function estimateGasCost() {
   return (
     <div className="confirmation-modal-overlay">
       <div className="confirmation-modal">
-        <h3>Gas Cost Estimation</h3>
+        <h3>Estimativa de Custo de Gas</h3>
         
         <div className="gas-info">
           {loading ? (
-            <p>Calculating gas cost...</p>
+            <p>Calculando custo de gas...</p>
           ) : gasError ? (
             <div>
               <p className="error-message">⚠️ {gasError}</p>
               <button onClick={handleRetry} className="refresh-button">
-                Retry Estimation
+                Tentar Estimação Novamente
               </button>
             </div>
           ) : gasCost ? (
             <div>
               <div className="detail-item">
-                <strong>Estimated Gas Cost:</strong>
+                <strong>Custo Estimado de Gas:</strong>
                 <span>{parseFloat(gasCost).toFixed(6)} ETH</span>
               </div>
               
               {transactionValue > 0 && (
                 <div className="detail-item">
-                  <strong>Transaction Value:</strong>
+                  <strong>Valor da Transação:</strong>
                   <span>{transactionValue} ETH</span>
                 </div>
               )}
               
               {transactionContext?.token === 'USDT' && transactionValue === 0 && (
                 <div className="detail-item">
-                  <strong>Token Transfer:</strong>
+                  <strong>Transferência de Token:</strong>
                   <span style={{color: 'var(--accent-blue)'}}>
-                    {transactionContext.amount} USDT (separate approval)
+                    {transactionContext.amount} USDT (aprovação separada)
                   </span>
                 </div>
               )}
               
               <div className="detail-item total-cost">
-                <strong>Total Network Fee:</strong>
+                <strong>Taxa Total da Rede:</strong>
                 <span style={{color: 'var(--accent-green)', fontWeight: 'bold'}}>
                   {totalCost} ETH
                 </span>
@@ -121,7 +120,7 @@ async function estimateGasCost() {
               
               <div className="fee-note">
                 <small>
-                  * Gas fees are paid in ETH, not USDT. This covers the network transaction cost.
+                  * As taxas de gas são pagas em ETH, não em USDT. Isso cobre o custo da transação na rede.
                 </small>
               </div>
             </div>
@@ -134,14 +133,14 @@ async function estimateGasCost() {
             className="cancel-button"
             disabled={loading}
           >
-            Cancel
+            Cancelar
           </button>
           <button 
             onClick={() => onConfirm(transactionData)}
             className="confirm-button"
             disabled={loading || gasError}
           >
-            {loading ? "Calculating..." : "Confirm Transaction"}
+            {loading ? "Calculando..." : "Confirmar Transação"}
           </button>
         </div>
       </div>

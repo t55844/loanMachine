@@ -24,8 +24,8 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       const requisitionDetails = await fetchBorrowerRequisitions(account);
       setRequisitions(requisitionDetails);
     } catch (err) {
-      console.error("Error loading requisitions:", err);
-      setError("Failed to load loan requisitions");
+      console.error("Erro ao carregar requisições:", err);
+      setError("Falha ao carregar requisições de empréstimo");
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
 
   const handleCancelRequisition = async (requisitionId) => {
     if (!contract || !memberId) {
-      showError("Contract or member ID not available");
+      showError("Contrato ou ID do membro não disponível");
       return;
     }
 
@@ -44,13 +44,13 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       await tx.wait();
       
       // Show success message
-      showSuccess(`Requisition #${requisitionId} cancelled successfully!`);
+      showSuccess(`Requisição #${requisitionId} cancelada com sucesso!`);
       
       // Refresh the list
       await loadRequisitions();
       
     } catch (err) {
-      handleContractError(err, "cancelling loan requisition");
+      handleContractError(err, "cancelando requisição de empréstimo");
     } finally {
       setCancellingId(null);
     }
@@ -59,13 +59,13 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
   // ... rest of your component functions remain the same ...
   const getStatusText = (status) => {
     switch (status) {
-      case 0: return "Pending";
-      case 1: return "Partially Covered";
-      case 2: return "Fully Covered";
-      case 3: return "Active";
-      case 4: return "Repaid";
-      case 5: return "Cancelled";
-      default: return "Unknown";
+      case 0: return "Pendente";
+      case 1: return "Parcialmente Coberto";
+      case 2: return "Totalmente Coberto";
+      case 3: return "Ativo";
+      case 4: return "Quitado";
+      case 5: return "Cancelado";
+      default: return "Desconhecido";
     }
   };
 
@@ -98,7 +98,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       border: '1px solid var(--border-color)',
       marginTop: '16px'
     }}>
-      <h2>My Loan Requisitions</h2>
+      <h2>Minhas Requisições de Empréstimo</h2>
       
       {error && <div style={{
         color: 'var(--accent-red)', 
@@ -110,9 +110,9 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       }}>{error}</div>}
       
       {loading ? (
-        <p>Loading requisitions...</p>
+        <p>Carregando requisições...</p>
       ) : requisitions.length === 0 ? (
-        <p>No loan requisitions found.</p>
+        <p>Nenhuma requisição de empréstimo encontrada.</p>
       ) : (
         <div style={{ textAlign: 'left' }}>
           {requisitions.map((req) => (
@@ -124,7 +124,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
               backgroundColor: 'var(--bg-secondary)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0 }}>Requisition #{req.id}</h3>
+                <h3 style={{ margin: 0 }}>Requisição #{req.id}</h3>
                 <span style={{ 
                   color: getStatusColor(req.status),
                   fontWeight: 'bold',
@@ -136,16 +136,16 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
-                  <strong>Amount:</strong> {formatUSDT(req.amount)} USDT
+                  <strong>Valor:</strong> {formatUSDT(req.amount)} USDT
                 </div>
                 <div>
-                  <strong>Created:</strong> {req.creationTime}
+                  <strong>Criada em:</strong> {req.creationTime}
                 </div>
                 <div>
-                  <strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%
+                  <strong>Cobertura:</strong> {req.currentCoverage}% / {req.minimumCoverage}%
                 </div>
                 <div>
-                  <strong>Lenders:</strong> {req.coveringLendersCount}
+                  <strong>Credores:</strong> {req.coveringLendersCount}
                 </div>
               </div>
               
@@ -180,7 +180,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
                       opacity: cancellingId === req.id ? 0.6 : 1
                     }}
                   >
-                    {cancellingId === req.id ? 'Cancelling...' : 'Cancel Requisition'}
+                    {cancellingId === req.id ? 'Cancelando...' : 'Cancelar Requisição'}
                   </button>
                 </div>
               )}
@@ -194,7 +194,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
         className="wallet-button"
         style={{ marginTop: '16px' }}
       >
-        Refresh Requisitions
+        Atualizar Requisições
       </button>
     </div>
   );

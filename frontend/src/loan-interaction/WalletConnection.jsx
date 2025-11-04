@@ -1,4 +1,3 @@
-// components/WalletConnection.jsx
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../Web3Context'; 
 import { ethers } from 'ethers'; 
@@ -53,7 +52,7 @@ const WalletConnection = ({ onContinue }) => {
           const balance = await getUSDTBalance();
           setUsdtBalance(balance);
         } catch (err) {
-          console.error('Error fetching data:', err);
+          console.error('Erro ao buscar dados:', err);
         }
       }
     };
@@ -63,7 +62,7 @@ const WalletConnection = ({ onContinue }) => {
   // ✅ Request faucet
   const requestFaucet = async () => {
     if (!usdtContract || !account) {
-      setFaucetError('Wallet not connected or USDT contract not found');
+      setFaucetError('Carteira não conectada ou contrato USDT não encontrado');
       return;
     }
 
@@ -82,8 +81,8 @@ const WalletConnection = ({ onContinue }) => {
       setFaucetSuccess(true);
       setTimeout(() => setFaucetSuccess(false), 3000);
     } catch (err) {
-      console.error('Faucet error:', err);
-      setFaucetError(err.data?.message || err.message || 'Failed to get USDT from faucet');
+      console.error('Erro no faucet:', err);
+      setFaucetError(err.data?.message || err.message || 'Falha ao obter USDT do faucet');
     } finally {
       setFaucetLoading(false);
     }
@@ -120,25 +119,25 @@ const WalletConnection = ({ onContinue }) => {
   if (!account && !loading) {
     return (
       <div className="wallet-connection-block initial-state">
-        <h3>🔌 Connect Your Wallet</h3>
-        <p>Choose how you want to connect for testing.</p>
+        <h3>🔌 Conecte Sua Carteira</h3>
+        <p>Escolha como deseja conectar para teste.</p>
         <div className="connection-options" style={{display: 'flex', flexDirection:'row', justifyContent: 'space-around'}}>
           <button 
             onClick={handleConnectExternal} 
             className="faucet-button primary"
           >
-             Connect External Wallet
+             Conectar Carteira Externa
           </button>
           <button 
             onClick={handleConnectLocal} 
             className="faucet-button secondary"
           >
-             Connect to Local Node
+             Conectar ao Nó Local
           </button>
         </div>
         {error && (
           <div className="error-message" style={{marginTop: '1rem'}}>
-            Error: {error}
+            Erro: {error}
           </div>
         )}
       </div>
@@ -148,7 +147,7 @@ const WalletConnection = ({ onContinue }) => {
   if (loading) {
     return (
       <div className="wallet-connection loading">
-        <div className="loading-spinner">Connecting to wallet...</div>
+        <div className="loading-spinner">Conectando à carteira...</div>
       </div>
     );
   }
@@ -156,9 +155,9 @@ const WalletConnection = ({ onContinue }) => {
   if (error && !account) {
     return (
       <div className="wallet-connection error">
-        <p>Error: {error}</p>
+        <p>Erro: {error}</p>
         <button onClick={handleDisconnect} className="retry-button">
-          Go Back
+          Voltar
         </button>
       </div>
     );
@@ -169,17 +168,17 @@ const WalletConnection = ({ onContinue }) => {
     <div className="wallet-connection-block">
       <div className="wallet-info">
         <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>💰 Wallet Connected</span>
+            <span>💰 Carteira Conectada</span>
             <span className={`connection-badge ${connectionType}`}>
-                {connectionType === 'local' ? 'LOCAL' : 'EXTERNAL'}
+                {connectionType === 'local' ? 'LOCAL' : 'EXTERNA'}
             </span>
         </h3>
         
         <div className="user-address">
-          <strong>Address:</strong> {account}
+          <strong>Endereço:</strong> {account}
         </div>
         <div className="balance-info">
-          <strong>USDT Balance:</strong> {parseFloat(usdtBalance).toLocaleString()} USDT
+          <strong>Saldo USDT:</strong> {parseFloat(usdtBalance).toLocaleString()} USDT
         </div>
 
         {error && (
@@ -195,7 +194,7 @@ const WalletConnection = ({ onContinue }) => {
               disabled={faucetLoading}
               className={`faucet-button ${faucetLoading ? 'loading' : ''}`}
             >
-              {faucetLoading ? 'Minting USDT...' : '🎯 Get 1000 Test USDT'}
+              {faucetLoading ? 'Mintando USDT...' : '🎯 Obter 1000 USDT de Teste'}
             </button>
             
             {faucetError && (
@@ -203,12 +202,12 @@ const WalletConnection = ({ onContinue }) => {
             )}
             
             {faucetSuccess && (
-              <div className="success-message">✅ Success! 1000 USDT added.</div>
+              <div className="success-message">✅ Sucesso! 1000 USDT adicionados.</div>
             )}
           </div>
         ) : (
             <div className="faucet-section external-note">
-                <p>ℹ️ Faucet is only available on Local Node connections.</p>
+                <p>ℹ️ O faucet está disponível apenas para conexões com o Nó Local.</p>
             </div>
         )}
 
@@ -218,7 +217,7 @@ const WalletConnection = ({ onContinue }) => {
               onClick={() => setShowAccountSelector(!showAccountSelector)}
               className="toggle-selector"
             >
-              🔄 Switch Test Account {showAccountSelector ? '▲' : '▼'}
+              🔄 Alternar Conta de Teste {showAccountSelector ? '▲' : '▼'}
             </button>
             
             {showAccountSelector && (
@@ -229,8 +228,8 @@ const WalletConnection = ({ onContinue }) => {
                     className={`account-option ${acc === account ? 'active' : ''}`}
                     onClick={() => handleAccountSwitch(index)}
                   >
-                    <span>Account {index}: {acc.slice(0, 8)}...{acc.slice(-6)}</span>
-                    {acc === account && <span> ✅ Current</span>}
+                    <span>Conta {index}: {acc.slice(0, 8)}...{acc.slice(-6)}</span>
+                    {acc === account && <span> ✅ Atual</span>}
                   </div>
                 ))}
               </div>
@@ -241,16 +240,15 @@ const WalletConnection = ({ onContinue }) => {
         <button onClick={() => {
           if (account && connectionType) {
             localStorage.setItem('connectedWalletType', connectionType);
-            localStorage.setItem('connectedWalletAddress', account); // save selected wallet
+            localStorage.setItem('connectedWalletAddress', account);
           }
           onContinue?.();
         }} className="faucet-button primary">
-          🚀 Continue to DApp
+          🚀 Continuar para DApp
         </button>
 
-        {/* ✅ Disconnect button */}
         <button onClick={handleDisconnect} className="faucet-button danger">
-          ❌ Disconnect Wallet
+          ❌ Desconectar Carteira
         </button>
       </div>
     </div>

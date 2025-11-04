@@ -1,4 +1,3 @@
-// DonationWithdrawTabs.jsx
 import { useState } from "react";
 import Donate from "../loan-interaction/Donate";
 import Withdraw from "../loan-interaction/Withdraw";
@@ -13,13 +12,13 @@ function DonationWithdrawTabs() {
           className={`tab-button ${activeTab === 'donate' ? 'active' : ''}`}
           onClick={() => setActiveTab('donate')}
         >
-          Donate
+          Doar
         </button>
         <button 
           className={`tab-button ${activeTab === 'withdraw' ? 'active' : ''}`}
           onClick={() => setActiveTab('withdraw')}
         >
-          Withdraw
+          Retirar
         </button>
       </div>
       

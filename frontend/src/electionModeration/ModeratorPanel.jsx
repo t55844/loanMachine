@@ -1,4 +1,3 @@
-// components/ModeratorPanel.jsx
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { useWeb3 } from '../Web3Context';
@@ -42,25 +41,25 @@ const ModeratorPanel = () => {
   // Manual moderator check function
   const manualCheckModerator = async () => {
     if (!reputationContract) {
-      setDebugInfo('Error: No reputation contract available');
+      setDebugInfo('Erro: Nenhum contrato de reputação disponível');
       return;
     }
     
     if (!memberId || memberId === 0) {
-      setDebugInfo('Error: No valid member ID. Please register first.');
+      setDebugInfo('Erro: Nenhum ID de membro válido. Por favor, registre-se primeiro.');
       return;
     }
 
     try {
-      setDebugInfo('Checking moderator status...');
+      setDebugInfo('Verificando status de moderador...');
       const moderatorStatus = await reputationContract.isModerator(memberId);
       
       setIsModerator(moderatorStatus);
-      setDebugInfo(moderatorStatus ? '✓ Moderator access granted' : '✗ Not a moderator');
+      setDebugInfo(moderatorStatus ? '✓ Acesso de moderador concedido' : '✗ Não é um moderador');
       
     } catch (error) {
-      console.error('Error checking moderator status:', error);
-      setDebugInfo(`Error: ${error.message}`);
+      console.error('Erro ao verificar status de moderador:', error);
+      setDebugInfo(`Erro: ${error.message}`);
       setIsModerator(false);
     }
   };
@@ -68,13 +67,13 @@ const ModeratorPanel = () => {
   // Get events from blockchain
   const getBlockchainEvents = async () => {
     if (!contract || !provider) {
-      setMessage('Error: Contract or provider not available');
+      setMessage('Erro: Contrato ou provedor não disponível');
       return [];
     }
 
     try {
       setLoading(true);
-      setMessage('Querying blockchain events...');
+      setMessage('Consultando eventos da blockchain...');
       
       const events = [];
       const currentBlock = await provider.getBlockNumber();
@@ -117,18 +116,18 @@ const ModeratorPanel = () => {
             });
           }
         } catch (error) {
-          console.error(`Error querying ${eventFilter.name} events:`, error);
+          console.error(`Erro consultando eventos ${eventFilter.name}:`, error);
         }
       }
 
       const transactions = processEventsIntoTransactions(events);
       setTransactionHistory(transactions);
-      setMessage(`Found ${transactions.length} transactions`);
+      setMessage(`Encontradas ${transactions.length} transações`);
       return transactions;
 
     } catch (error) {
-      console.error('Error getting blockchain events:', error);
-      setMessage('Error querying blockchain events');
+      console.error('Erro ao obter eventos da blockchain:', error);
+      setMessage('Erro ao consultar eventos da blockchain');
       return [];
     } finally {
       setLoading(false);
@@ -178,7 +177,7 @@ const ModeratorPanel = () => {
   // Export functions
   const exportToFile = async (format = 'csv') => {
   setExporting(true);
-  setMessage(`Exporting as ${format.toUpperCase()}...`);
+  setMessage(`Exportando como ${format.toUpperCase()}...`);
 
   try {
     let transactions = transactionHistory;
@@ -188,7 +187,7 @@ const ModeratorPanel = () => {
     }
 
     if (transactions.length === 0) {
-      setMessage('No transactions found to export');
+      setMessage('Nenhuma transação encontrada para exportar');
       return;
     }
 
@@ -243,11 +242,11 @@ const ModeratorPanel = () => {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 
-    setMessage(`Exported ${transactions.length} transactions`);
+    setMessage(`Exportadas ${transactions.length} transações`);
     
   } catch (error) {
-    console.error('Error exporting:', error);
-    setMessage('Error exporting data');
+    console.error('Erro ao exportar:', error);
+    setMessage('Erro ao exportar dados');
   } finally {
     setExporting(false);
   }
@@ -257,10 +256,10 @@ const ModeratorPanel = () => {
   if (!isModerator) {
     return (
       <div className="moderatorBlock" >
-        <h2>Moderator Panel</h2>
+        <h2>Painel do Moderador</h2>
         <div className="error-message">
-          <p>Access denied. You need moderator privileges to access this panel.</p>
-          <p>Click the button below to check your status.</p>
+          <p>Acesso negado. Você precisa de privilégios de moderador para acessar este painel.</p>
+          <p>Clique no botão abaixo para verificar seu status.</p>
         </div>
         
         <div className="vinculate-section">
@@ -269,7 +268,7 @@ const ModeratorPanel = () => {
             className="wallet-button"
             style={{ marginBottom: '16px' }}
           >
-            Check Moderator Status
+            Verificar Status de Moderador
           </button>
           
           {debugInfo && (
@@ -288,26 +287,26 @@ const ModeratorPanel = () => {
   // Main moderator panel
   return (
     <div className="card">
-      <h2>Moderator Panel</h2>
+      <h2>Painel do Moderador</h2>
       
       {/* Status Header */}
       <div className="balance-info success">
-        ✓ Moderator Access Granted
+        ✓ Acesso de Moderador Concedido
         <button 
           onClick={manualCheckModerator}
           className="refresh-button"
           style={{ marginLeft: '16px', padding: '4px 12px', fontSize: '12px' }}
         >
-          Re-check
+          Verificar Novamente
         </button>
       </div>
 
       {/* Filters */}
       <div className="vinculate-section">
-        <h3>Data Filters</h3>
+        <h3>Filtros de Dados</h3>
         <div className="wallet-input-row">
           <div className="filter-group">
-            <label>Start Block:</label>
+            <label>Bloco Inicial:</label>
             <input 
               type="number" 
               value={filters.startBlock}
@@ -318,7 +317,7 @@ const ModeratorPanel = () => {
           </div>
           
           <div className="filter-group">
-            <label>End Block:</label>
+            <label>Bloco Final:</label>
             <input 
               type="text" 
               value={filters.endBlock}
@@ -329,7 +328,7 @@ const ModeratorPanel = () => {
           </div>
 
           <div className="filter-group">
-            <label>Event Types:</label>
+            <label>Tipos de Evento:</label>
             <select 
               multiple
               value={filters.transactionTypes}
@@ -354,7 +353,7 @@ const ModeratorPanel = () => {
           disabled={loading}
           className="wallet-button"
         >
-          {loading ? 'Loading...' : 'Load Events'}
+          {loading ? 'Carregando...' : 'Carregar Eventos'}
         </button>
         
         <button 
@@ -362,7 +361,7 @@ const ModeratorPanel = () => {
           disabled={exporting || transactionHistory.length === 0}
           className="donate-button"
         >
-          {exporting ? 'Exporting...' : `Export CSV (${transactionHistory.length})`}
+          {exporting ? 'Exportando...' : `Exportar CSV (${transactionHistory.length})`}
         </button>
         
         <button 
@@ -370,7 +369,7 @@ const ModeratorPanel = () => {
           disabled={exporting || transactionHistory.length === 0}
           className="donate-button"
         >
-          {exporting ? 'Exporting...' : `Export JSON (${transactionHistory.length})`}
+          {exporting ? 'Exportando...' : `Exportar JSON (${transactionHistory.length})`}
         </button>
       </div>
 
@@ -386,11 +385,11 @@ const ModeratorPanel = () => {
       {/* Transaction Summary */}
       {transactionHistory.length > 0 && (
         <div className="stats-box">
-          <h3>Transaction Summary</h3>
+          <h3>Resumo de Transações</h3>
           
           <div className="stats-grid">
             <div>
-              <strong>Total Transactions</strong>
+              <strong>Total de Transações</strong>
               <span>{transactionHistory.length}</span>
             </div>
             
@@ -408,34 +407,34 @@ const ModeratorPanel = () => {
           </div>
 
           <div className="transactions-box">
-            <h4>Preview (First 10)</h4>
+            <h4>Pré-visualização (Primeiros 10)</h4>
             
             {/* Simple list using existing contract-item style */}
             {transactionHistory.slice(0, 10).map((transaction, index) => (
               <div key={index} className="contract-item">
                 <div className="contract-header">
                   <span className="status-badge">{transaction.type}</span>
-                  <span>Block #{transaction.blockNumber}</span>
+                  <span>Bloco #{transaction.blockNumber}</span>
                 </div>
                 <div className="details-grid">
                   <div className="detail-item">
-                    <strong>Amount:</strong>
+                    <strong>Quantidade:</strong>
                     <span>{transaction.amount || '0'}</span>
                   </div>
                   <div className="detail-item">
-                    <strong>Address:</strong>
+                    <strong>Endereço:</strong>
                     <span className="user-address" style={{ fontSize: '12px' }}>
                       {transaction.address || 'N/A'}
                     </span>
                   </div>
                   <div className="detail-item">
-                    <strong>Transaction:</strong>
+                    <strong>Transação:</strong>
                     <span className="user-address" style={{ fontSize: '12px' }}>
                       {transaction.transactionHash?.slice(0, 10)}...
                     </span>
                   </div>
                   <div className="detail-item">
-                    <strong>Time:</strong>
+                    <strong>Horário:</strong>
                     <span>{new Date(transaction.timestamp).toLocaleString()}</span>
                   </div>
                 </div>
@@ -444,7 +443,7 @@ const ModeratorPanel = () => {
             
             {transactionHistory.length > 10 && (
               <div className="vinculation-info">
-                Showing 10 of {transactionHistory.length} transactions
+                Mostrando 10 de {transactionHistory.length} transações
               </div>
             )}
           </div>

@@ -1,108 +1,106 @@
-// handlers/errorMapping.js
-
 // Map Solidity error selectors to human-readable messages
 export const SELECTOR_MESSAGES = {
   // ReputationSystem errors
-  '0x0ad153d1': 'ReputationSystem_ActiveElectionExists: An active election already exists',
-  '0xe94b5834': 'ReputationSystem_ElectionExpired: The election has expired',
-  '0xac840993': 'ReputationSystem_ElectionNotActive: The election is not active',
-  '0x1677c8ba': 'ReputationSystem_InvalidCandidate: Invalid candidate for election',
-  '0xd8524fa3': 'ReputationSystem_MemberAlreadyVoted: Member has already voted in this election',
-  '0x0d266952': 'ReputationSystem_MemberIdOrWalletInvalid: Invalid member ID or wallet not vinculated',
-  '0xfe88dfc5': 'ReputationSystem_NoCandidates: No candidates in the election',
-  '0xa1b8c408': 'ReputationSystem_UnauthorizedCaller: Caller is not authorized to perform this action',
-  '0x2dab5e1c': 'ReputationSystem_WalletAlreadyLinkedToAnotherMember: Wallet is already linked to another member',
-  '0xb9d4ab66': 'ReputationSystem_WalletAlreadyVinculated: Wallet is already linked to a member',
+  '0x0ad153d1': 'ReputationSystem_ActiveElectionExists: Uma eleição ativa já existe',
+  '0xe94b5834': 'ReputationSystem_ElectionExpired: A eleição expirou',
+  '0xac840993': 'ReputationSystem_ElectionNotActive: A eleição não está ativa',
+  '0x1677c8ba': 'ReputationSystem_InvalidCandidate: Candidato inválido para eleição',
+  '0xd8524fa3': 'ReputationSystem_MemberAlreadyVoted: Membro já votou nesta eleição',
+  '0x0d266952': 'ReputationSystem_MemberIdOrWalletInvalid: ID do membro inválido ou carteira não vinculada',
+  '0xfe88dfc5': 'ReputationSystem_NoCandidates: Sem candidatos na eleição',
+  '0xa1b8c408': 'ReputationSystem_UnauthorizedCaller: Chamador não autorizado a realizar esta ação',
+  '0x2dab5e1c': 'ReputationSystem_WalletAlreadyLinkedToAnotherMember: Carteira já vinculada a outro membro',
+  '0xb9d4ab66': 'ReputationSystem_WalletAlreadyVinculated: Carteira já vinculada a um membro',
 
   // LoanMachine errors - UPDATED with new errors
-  '0xead1ff82': 'LoanMachine_BorrowNotExpired: Previous loan must be repaid or expired before borrowing again',
-  '0xa5a0e740': 'LoanMachine_ExcessiveDonation: Donation amount exceeds maximum limit',
-  '0x56a620f8': 'LoanMachine_InsufficientDonationBalance: Insufficient donation balance for this action',
-  '0x13e73a29': 'LoanMachine_InsufficientFunds: Insufficient funds for this transaction',
-  '0x9dd88a4e': 'LoanMachine_InsufficientWithdrawableBalance: Insufficient withdrawable balance',
-  '0xde99459f': 'LoanMachine_InvalidAmount: The amount provided is invalid',
-  '0xaac62d72': 'LoanMachine_InvalidCoveragePercentage: Invalid coverage percentage provided',
-  '0x235f466a': 'LoanMachine_InvalidParcelsCount: Invalid number of parcels specified',
-  '0x186ebdb5': 'LoanMachine_LoanNotAvailable: No loans available at the moment',
-  '0x37bc0490': 'LoanMachine_MaxLoanRequisitionPendingReached: Maximum 3 pending loan requisitions reached',
-  '0x5b1a00fa': 'LoanMachine_MemberIdOrWalletInvalid: Invalid member ID or wallet not vinculated. Please check your member registration.',
-  '0x4b4e72f5': 'LoanMachine_MinimumDonationRequired: Donation amount is below the minimum requirement',
-  '0x6925556a': 'LoanMachine_MinimumPercentageCover: Minimum percentage cover not reached',
-  '0xcc2f71e0': 'LoanMachine_NoActiveBorrowing: No active borrowing found for this wallet',
-  '0xded62aaf': 'LoanMachine_OverCoverage: Coverage percentage exceeds maximum allowed',
-  '0x9881a565': 'LoanMachine_ParcelAlreadyPaid: This parcel has already been paid',
-  '0x465b18f9': 'LoanMachine_RepaymentExceedsBorrowed: Repayment amount exceeds borrowed amount',
-  '0xb85dc7a6': 'LoanMachine_TokenTransferFailed: Token transfer failed - check allowance and balance',
-  '0x165baeef': 'LoanMachine_WalletAlreadyVinculated: Wallet is already linked to a member',
-  '0xe1935a36': 'LoanMachine_MaxLoanRequisitionPendingReached: Max Loan Requisition Pending Reached',
+  '0xead1ff82': 'LoanMachine_BorrowNotExpired: Empréstimo anterior deve ser pago ou expirado antes de emprestar novamente',
+  '0xa5a0e740': 'LoanMachine_ExcessiveDonation: Valor da doação excede o limite máximo',
+  '0x56a620f8': 'LoanMachine_InsufficientDonationBalance: Saldo de doação insuficiente para esta ação',
+  '0x13e73a29': 'LoanMachine_InsufficientFunds: Fundos insuficientes para esta transação',
+  '0x9dd88a4e': 'LoanMachine_InsufficientWithdrawableBalance: Saldo sacável insuficiente',
+  '0xde99459f': 'LoanMachine_InvalidAmount: O valor fornecido é inválido',
+  '0xaac62d72': 'LoanMachine_InvalidCoveragePercentage: Porcentagem de cobertura inválida fornecida',
+  '0x235f466a': 'LoanMachine_InvalidParcelsCount: Número inválido de parcelas especificado',
+  '0x186ebdb5': 'LoanMachine_LoanNotAvailable: Nenhum empréstimo disponível no momento',
+  '0x37bc0490': 'LoanMachine_MaxLoanRequisitionPendingReached: Máximo de 3 requisições de empréstimo pendentes atingido',
+  '0x5b1a00fa': 'LoanMachine_MemberIdOrWalletInvalid: ID do membro inválido ou carteira não vinculada. Por favor, verifique seu registro de membro.',
+  '0x4b4e72f5': 'LoanMachine_MinimumDonationRequired: Valor da doação está abaixo do requisito mínimo',
+  '0x6925556a': 'LoanMachine_MinimumPercentageCover: Porcentagem mínima de cobertura não atingida',
+  '0xcc2f71e0': 'LoanMachine_NoActiveBorrowing: Nenhum empréstimo ativo encontrado para esta carteira',
+  '0xded62aaf': 'LoanMachine_OverCoverage: Porcentagem de cobertura excede o máximo permitido',
+  '0x9881a565': 'LoanMachine_ParcelAlreadyPaid: Esta parcela já foi paga',
+  '0x465b18f9': 'LoanMachine_RepaymentExceedsBorrowed: Valor do pagamento excede o valor emprestado',
+  '0xb85dc7a6': 'LoanMachine_TokenTransferFailed: Transferência de token falhou - verifique aprovação e saldo',
+  '0x165baeef': 'LoanMachine_WalletAlreadyVinculated: Carteira já vinculada a um membro',
+  '0xe1935a36': 'LoanMachine_MaxLoanRequisitionPendingReached: Máximo de Requisições de Empréstimo Pendentes Atingido',
   
   // NEW LoanMachine errors from your stack
-  '0x0c42a0c9': 'LoanMachine_CheckIntervalNotYetPassed: Check interval not yet passed. Please wait before performing this action.',
-  '0x5b1a00fa': 'LoanMachine_NotLoanRequisitionCreator: Only the loan requisition creator can perform this action.',
-  '0x4b4e72f5': 'LoanMachine_RequisitionAlreadyActive: Loan requisition is already active and cannot be modified.',
-  '0x6925556a': 'LoanMachine_RequisitionNotFound: Loan requisition not found.',
-  '0x9881a565': 'LoanMachine_OnlyBorrowerCanCancelRequisition: Only the borrower can cancel the loan requisition.',
-  '0x465b18f9': 'LoanMachine_RequisitionNotCancellable: Loan requisition cannot be cancelled in its current state.',
-  '0xb85dc7a6': 'LoanMachine_RequisitionAlreadyFullyCovered: Loan requisition is already fully covered and cannot be cancelled.',
+  '0x0c42a0c9': 'LoanMachine_CheckIntervalNotYetPassed: Intervalo de verificação ainda não passou. Por favor, aguarde antes de realizar esta ação.',
+  '0x5b1a00fa': 'LoanMachine_NotLoanRequisitionCreator: Apenas o criador da requisição de empréstimo pode realizar esta ação.',
+  '0x4b4e72f5': 'LoanMachine_RequisitionAlreadyActive: Requisição de empréstimo já está ativa e não pode ser modificada.',
+  '0x6925556a': 'LoanMachine_RequisitionNotFound: Requisição de empréstimo não encontrada.',
+  '0x9881a565': 'LoanMachine_OnlyBorrowerCanCancelRequisition: Apenas o mutuário pode cancelar a requisição de empréstimo.',
+  '0x465b18f9': 'LoanMachine_RequisitionNotCancellable: Requisição de empréstimo não pode ser cancelada em seu estado atual.',
+  '0xb85dc7a6': 'LoanMachine_RequisitionAlreadyFullyCovered: Requisição de empréstimo já está totalmente coberta e não pode ser cancelada.',
 };
 
 // Map error names to messages (for cases where name is available)
 export const ERROR_MESSAGES = {
   // LoanMachine Custom errors - UPDATED with new errors
-  'LoanMachine_InvalidAmount': 'The amount provided is invalid',
-  'LoanMachine_InsufficientFunds': 'Insufficient funds for this transaction',
-  'LoanMachine_MinimumDonationRequired': 'Donation amount is below the minimum requirement',
-  'LoanMachine_BorrowNotExpired': 'Previous loan must expired before borrowing again',
-  'LoanMachine_InvalidCoveragePercentage': 'Invalid coverage percentage provided',
-  'LoanMachine_OverCoverage': 'Coverage percentage exceeds maximum allowed',
-  'LoanMachine_LoanNotAvailable': 'No loans available at the moment',
-  'LoanMachine_MaxLoanRequisitionPendingReached': 'Maximum 3 pending loan requisitions reached',
-  'LoanMachine_InsufficientDonationBalance': 'Insufficient donation balance for this action',
-  'LoanMachine_NoActiveBorrowing': 'No active borrowing found for this wallet',
-  'LoanMachine_RepaymentExceedsBorrowed': 'Repayment amount exceeds borrowed amount',
-  'LoanMachine_InvalidParcelsCount': 'Invalid number of parcels specified',
-  'LoanMachine_ExcessiveDonation': 'Donation amount exceeds maximum limit',
-  'LoanMachine_TokenTransferFailed': 'Token transfer failed - check allowance and balance',
-  'LoanMachine_MemberIdOrWalletInvalid': 'Invalid member ID or wallet not vinculated. Please check your member registration.',
-  'LoanMachine_WalletAlreadyVinculated': 'Wallet is already linked to a member',
-  'LoanMachine_ParcelAlreadyPaid': 'This parcel has already been paid',
-  'LoanMachine_InsufficientWithdrawableBalance': 'Insufficient withdrawable balance',
-  'LoanMachine_MinimumPercentageCover': 'Minimum percentage cover not reached',
+  'LoanMachine_InvalidAmount': 'O valor fornecido é inválido',
+  'LoanMachine_InsufficientFunds': 'Fundos insuficientes para esta transação',
+  'LoanMachine_MinimumDonationRequired': 'Valor da doação está abaixo do requisito mínimo',
+  'LoanMachine_BorrowNotExpired': 'Empréstimo anterior deve expirar antes de emprestar novamente',
+  'LoanMachine_InvalidCoveragePercentage': 'Porcentagem de cobertura inválida fornecida',
+  'LoanMachine_OverCoverage': 'Porcentagem de cobertura excede o máximo permitido',
+  'LoanMachine_LoanNotAvailable': 'Nenhum empréstimo disponível no momento',
+  'LoanMachine_MaxLoanRequisitionPendingReached': 'Máximo de 3 requisições de empréstimo pendentes atingido',
+  'LoanMachine_InsufficientDonationBalance': 'Saldo de doação insuficiente para esta ação',
+  'LoanMachine_NoActiveBorrowing': 'Nenhum empréstimo ativo encontrado para esta carteira',
+  'LoanMachine_RepaymentExceedsBorrowed': 'Valor do pagamento excede o valor emprestado',
+  'LoanMachine_InvalidParcelsCount': 'Número inválido de parcelas especificado',
+  'LoanMachine_ExcessiveDonation': 'Valor da doação excede o limite máximo',
+  'LoanMachine_TokenTransferFailed': 'Transferência de token falhou - verifique aprovação e saldo',
+  'LoanMachine_MemberIdOrWalletInvalid': 'ID do membro inválido ou carteira não vinculada. Por favor, verifique seu registro de membro.',
+  'LoanMachine_WalletAlreadyVinculated': 'Carteira já vinculada a um membro',
+  'LoanMachine_ParcelAlreadyPaid': 'Esta parcela já foi paga',
+  'LoanMachine_InsufficientWithdrawableBalance': 'Saldo sacável insuficiente',
+  'LoanMachine_MinimumPercentageCover': 'Porcentagem mínima de cobertura não atingida',
   
   // NEW LoanMachine errors
-  'LoanMachine_CheckIntervalNotYetPassed': 'Check interval not yet passed. Please wait before performing this action.',
-  'LoanMachine_NotLoanRequisitionCreator': 'Only the loan requisition creator can perform this action.',
-  'LoanMachine_RequisitionAlreadyActive': 'Loan requisition is already active and cannot be modified.',
-  'LoanMachine_RequisitionNotFound': 'Loan requisition not found.',
-  'LoanMachine_OnlyBorrowerCanCancelRequisition': 'Only the borrower can cancel the loan requisition.',
-  'LoanMachine_RequisitionNotCancellable': 'Loan requisition cannot be cancelled in its current state.',
-  'LoanMachine_RequisitionAlreadyFullyCovered': 'Loan requisition is already fully covered and cannot be cancelled.',
+  'LoanMachine_CheckIntervalNotYetPassed': 'Intervalo de verificação ainda não passou. Por favor, aguarde antes de realizar esta ação.',
+  'LoanMachine_NotLoanRequisitionCreator': 'Apenas o criador da requisição de empréstimo pode realizar esta ação.',
+  'LoanMachine_RequisitionAlreadyActive': 'Requisição de empréstimo já está ativa e não pode ser modificada.',
+  'LoanMachine_RequisitionNotFound': 'Requisição de empréstimo não encontrada.',
+  'LoanMachine_OnlyBorrowerCanCancelRequisition': 'Apenas o mutuário pode cancelar a requisição de empréstimo.',
+  'LoanMachine_RequisitionNotCancellable': 'Requisição de empréstimo não pode ser cancelada em seu estado atual.',
+  'LoanMachine_RequisitionAlreadyFullyCovered': 'Requisição de empréstimo já está totalmente coberta e não pode ser cancelada.',
 
   // ReputationSystem Custom errors
-  'ReputationSystem_ActiveElectionExists': 'An active election already exists',
-  'ReputationSystem_ElectionExpired': 'The election has expired',
-  'ReputationSystem_ElectionNotActive': 'The election is not active',
-  'ReputationSystem_InvalidCandidate': 'Invalid candidate for election',
-  'ReputationSystem_MemberAlreadyVoted': 'Member has already voted in this election',
-  'ReputationSystem_NoCandidates': 'No candidates in the election',
-  'ReputationSystem_UnauthorizedCaller': 'Caller is not authorized to perform this action',
-  'ReputationSystem_WalletAlreadyLinkedToAnotherMember': 'Wallet is already linked to another member',
-  'ReputationSystem_MemberIdOrWalletInvalid': 'Invalid member ID or wallet not vinculated',
-  'ReputationSystem_WalletAlreadyVinculated': 'Wallet is already linked to a member',
+  'ReputationSystem_ActiveElectionExists': 'Uma eleição ativa já existe',
+  'ReputationSystem_ElectionExpired': 'A eleição expirou',
+  'ReputationSystem_ElectionNotActive': 'A eleição não está ativa',
+  'ReputationSystem_InvalidCandidate': 'Candidato inválido para eleição',
+  'ReputationSystem_MemberAlreadyVoted': 'Membro já votou nesta eleição',
+  'ReputationSystem_NoCandidates': 'Sem candidatos na eleição',
+  'ReputationSystem_UnauthorizedCaller': 'Chamador não autorizado a realizar esta ação',
+  'ReputationSystem_WalletAlreadyLinkedToAnotherMember': 'Carteira já vinculada a outro membro',
+  'ReputationSystem_MemberIdOrWalletInvalid': 'ID do membro inválido ou carteira não vinculada',
+  'ReputationSystem_WalletAlreadyVinculated': 'Carteira já vinculada a um membro',
 
   // Common Ethereum errors
-  'user rejected transaction': 'Transaction was rejected by user',
-  'insufficient funds': 'Insufficient ETH for gas fees',
-  'execution reverted': 'Transaction failed - contract execution reverted',
-  'nonce too low': 'Transaction nonce is too low',
-  'gas limit exceeded': 'Transaction requires more gas than provided'
+  'user rejected transaction': 'Transação rejeitada pelo usuário',
+  'insufficient funds': 'ETH insuficiente para taxas de gas',
+  'execution reverted': 'Transação falhou - execução do contrato revertida',
+  'nonce too low': 'Nonce da transação está muito baixo',
+  'gas limit exceeded': 'Transação requer mais gas do que o fornecido'
 };
 
 // Function to extract error message from various error formats
 export function extractErrorMessage(error) {
-  if (!error) return 'Unknown error occurred';
+  if (!error) return 'Erro desconhecido ocorreu';
 
-  console.log('Raw error received:', error);
+  console.log('Erro bruto recebido:', error);
 
   // If it's already a string message and it's one of our mapped errors, return it directly
   if (typeof error === 'string') {
@@ -126,9 +124,9 @@ export function extractErrorMessage(error) {
   let errorData = error.data || error.error?.data;
   let errorCode = error.code;
 
-  console.log('Error message:', errorMessage);
-  console.log('Error data:', errorData);
-  console.log('Error code:', errorCode);
+  console.log('Mensagem de erro:', errorMessage);
+  console.log('Dados de erro:', errorData);
+  console.log('Código de erro:', errorCode);
 
   // STRATEGY: Now with unique selectors, we can reliably map both ways
   // 1. First try to extract from error message/reason (most reliable)
@@ -144,7 +142,7 @@ export function extractErrorMessage(error) {
 
   // Try from reason field
   if (error.reason) {
-    console.log('Error reason:', error.reason);
+    console.log('Razão do erro:', error.reason);
     const extractedFromReason = extractErrorFromMessage(error.reason);
     if (extractedFromReason) {
       return extractedFromReason;
@@ -170,14 +168,14 @@ export function extractErrorMessage(error) {
   }
 
   // Last resort: return the original message or generic error
-  return errorMessage || 'An unexpected error occurred. Please try again.';
+  return errorMessage || 'Um erro inesperado ocorreu. Por favor, tente novamente.';
 }
 
 // Helper function to extract error from blockchain data (selector-based)
 function extractErrorFromData(data) {
   if (!data) return null;
 
-  console.log('Extracting from data:', data);
+  console.log('Extraindo de dados:', data);
 
   let dataString = data;
 
@@ -198,12 +196,12 @@ function extractErrorFromData(data) {
     }
 
     if (selector && SELECTOR_MESSAGES[selector]) {
-      console.log(`Found selector ${selector} - ${SELECTOR_MESSAGES[selector]}`);
+      console.log(`Encontrado seletor ${selector} - ${SELECTOR_MESSAGES[selector]}`);
       return SELECTOR_MESSAGES[selector];
     }
 
     if (selector) {
-      return `Contract error (selector: ${selector})`;
+      return `Erro de contrato (seletor: ${selector})`;
     }
   }
 
@@ -214,14 +212,14 @@ function extractErrorFromData(data) {
 function extractErrorFromMessage(message) {
   if (!message || typeof message !== 'string') return null;
 
-  console.log('Extracting from message:', message);
+  console.log('Extraindo de mensagem:', message);
 
   const lowerMessage = message.toLowerCase();
 
   // Pattern 1: Direct error name in message (most reliable)
   for (const errorName of Object.keys(ERROR_MESSAGES)) {
     if (message.includes(errorName)) {
-      console.log(`Found direct error name: ${errorName}`);
+      console.log(`Encontrado nome de erro direto: ${errorName}`);
       return ERROR_MESSAGES[errorName];
     }
   }
@@ -325,4 +323,4 @@ export function getKnownErrorNames() {
 
 // Note: Some selector collisions detected - this is normal in development
 // In production, ensure each custom error has a unique selector
-console.log('Error mapping updated with new LoanMachine and ReputationSystem errors');
+console.log('Mapeamento de erro atualizado com novos erros do LoanMachine e ReputationSystem');

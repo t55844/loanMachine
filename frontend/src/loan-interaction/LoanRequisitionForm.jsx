@@ -21,12 +21,12 @@ export default function LoanRequisitionForm({
     e.preventDefault();
     
     if (!contract || !account) {
-      showToast("Please connect to Hardhat node first");
+      showToast("Por favor, conecte ao nó Hardhat primeiro");
       return;
     }
 
     if (!member || !member.id) {
-      showToast("Member data not available. Please check your wallet connection.");
+      showToast("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.");
       return;
     }
     
@@ -51,7 +51,7 @@ export default function LoanRequisitionForm({
       setMinimumCoverage("80");
       setDaysIntervalOfPayment("30"); // Reset to default
       
-      showSuccess("Loan requisition created successfully!");
+      showSuccess("Requisição de empréstimo criada com sucesso!");
       
       if (onRequisitionCreated) {
         onRequisitionCreated();
@@ -77,7 +77,7 @@ export default function LoanRequisitionForm({
         border: '1px solid var(--border-color)',
         marginTop: '16px'
       }}>
-        <h2>Create Loan Requisition</h2>
+        <h2>Criar Requisição de Empréstimo</h2>
         
         {!member && account && (
           <div style={{
@@ -88,14 +88,14 @@ export default function LoanRequisitionForm({
             border: '1px solid var(--warning-color)'
           }}>
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--warning-color)' }}>
-              ⚠️ Member data not loaded. Please check your wallet connection.
+              ⚠️ Dados do membro não carregados. Por favor, verifique sua conexão com a carteira.
             </p>
           </div>
         )}
         
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-            <label htmlFor="amount" style={{display: 'block', marginBottom: '8px'}}>Loan Amount (USDT)</label>
+            <label htmlFor="amount" style={{display: 'block', marginBottom: '8px'}}>Valor do Empréstimo (USDT)</label>
             <input
               id="amount"
               type="number"
@@ -104,7 +104,7 @@ export default function LoanRequisitionForm({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="wallet-input"
-              placeholder="Enter amount"
+              placeholder="Insira o valor"
               required
               style={{width: '100%'}}
             />
@@ -112,7 +112,7 @@ export default function LoanRequisitionForm({
 
           <div style={{ display:'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ minWidth: '120px', flex: '1', textAlign: 'left' }}>
-              <label htmlFor="minimumCoverage" style={{display: 'block', marginBottom: '8px'}}>Minimum Coverage (%)</label>
+              <label htmlFor="minimumCoverage" style={{display: 'block', marginBottom: '8px'}}>Cobertura Mínima (%)</label>
               <select
                 id="minimumCoverage"
                 value={minimumCoverage}
@@ -132,7 +132,7 @@ export default function LoanRequisitionForm({
             </div>
             
             <div style={{ minWidth: '120px', flex: '1', textAlign: 'left' }}>
-              <label htmlFor="parcelsQuantity" style={{display: 'block', marginBottom: '8px'}}>Parcels Count</label>
+              <label htmlFor="parcelsQuantity" style={{display: 'block', marginBottom: '8px'}}>Quantidade de Parcelas</label>
               <select
                 id="parcelsQuantity"
                 value={parcelsQuantity}
@@ -157,7 +157,7 @@ export default function LoanRequisitionForm({
             </div>
 
             <div style={{ minWidth: '120px', flex: '1', textAlign: 'left' }}>
-              <label htmlFor="daysIntervalOfPayment" style={{display: 'block', marginBottom: '8px'}}>Payment Interval (Days)</label>
+              <label htmlFor="daysIntervalOfPayment" style={{display: 'block', marginBottom: '8px'}}>Intervalo de Pagamento (Dias)</label>
               <select
                 id="daysIntervalOfPayment"
                 value={daysIntervalOfPayment}
@@ -166,13 +166,13 @@ export default function LoanRequisitionForm({
                 style={{width: '100%'}}
                 required
               >
-                <option value="1">1 Day</option>
-                <option value="5">5 Days</option>
-                <option value="10">10 Days</option>
-                <option value="15">15 Days</option>
-                <option value="20">20 Days</option>
-                <option value="25">25 Days</option>
-                <option value="30">30 Days</option>
+                <option value="1">1 Dia</option>
+                <option value="5">5 Dias</option>
+                <option value="10">10 Dias</option>
+                <option value="15">15 Dias</option>
+                <option value="20">20 Dias</option>
+                <option value="25">25 Dias</option>
+                <option value="30">30 Dias</option>
               </select>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function LoanRequisitionForm({
             disabled={loading || !hasMemberData}
             style={{width: '100%', marginTop: '16px'}}
           >
-            {loading ? "Creating..." : !hasMemberData ? "Wallet Not Vinculated" : "Create Loan Requisition"}
+            {loading ? "Criando..." : !hasMemberData ? "Carteira Não Vinculada" : "Criar Requisição de Empréstimo"}
           </button>
         </form>
       </div>

@@ -1,4 +1,3 @@
-// Repay.jsx
 import { useState } from "react";
 import { ethers } from "ethers";
 import { useGasCostModal } from "../handlers/useGasCostModal";
@@ -9,7 +8,7 @@ function Repay({ account, contract }) {
 
   async function handleRepay() {
     if (!account || !contract || !amount) {
-      alert("Please connect and enter an amount");
+      alert("Por favor, conecte e insira um valor");
       return;
     }
 
@@ -36,11 +35,11 @@ function Repay({ account, contract }) {
       });
       await tx.wait();
       
-      alert(`Repayment of ${amount} ETH successful!`);
+      alert(`Pagamento de ${amount} ETH bem-sucedido!`);
       setAmount("");
     } catch (err) {
       console.error(err);
-      alert("Error processing repayment");
+      alert("Erro ao processar pagamento");
       throw err;
     }
   }
@@ -51,14 +50,14 @@ function Repay({ account, contract }) {
         type="number"
         min={0}
         step="0.01"
-        placeholder="Amount in ETH"
+        placeholder="Quantidade em ETH"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="repay-input"
       />
 
       <button onClick={handleRepay} className="repay-button" disabled={!account || !amount}>
-        Repay
+        Pagar
       </button>
 
       <ModalWrapper onConfirm={confirmTransaction} />

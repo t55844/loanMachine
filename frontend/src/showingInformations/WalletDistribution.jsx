@@ -43,7 +43,7 @@ export default function WalletDistribution() {
         setDonationsData(donationsChartData);
         setBorrowingsData(borrowingsChartData);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Erro ao buscar dados:", err);
       }
     }
     loadData();
@@ -51,11 +51,11 @@ export default function WalletDistribution() {
 
   return (
     <div className="graphBlock">
-      <h2>Wallet Distribution</h2>
+      <h2>Distribuição de Carteiras</h2>
       <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', flexWrap: 'wrap' }}>
         {/* Donations Pie Chart */}
         <div style={{ flex: 1, minWidth: 300 }}>
-          <h3>Donations</h3>
+          <h3>Doações</h3>
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
@@ -79,7 +79,7 @@ export default function WalletDistribution() {
 
         {/* Borrowings Pie Chart */}
         <div style={{ flex: 1, minWidth: 300 }}>
-          <h3>Borrowings</h3>
+          <h3>Empréstimos</h3>
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie

@@ -12,10 +12,10 @@ function VinculateMember() {
   const memberData = member?.hasVinculation ? member : null;
 
   async function handleVinculate() {
-    if (!account || !contract || !memberId) return alert("Please connect wallet and enter a Member ID");
+    if (!account || !contract || !memberId) return alert("Por favor, conecte a carteira e insira um ID de Membro");
     
     const id = parseInt(memberId);
-    if (isNaN(id) || id <= 0) return alert("Please enter a valid positive Member ID");
+    if (isNaN(id) || id <= 0) return alert("Por favor, insira um ID de Membro positivo válido");
 
     showTransactionModal(
       { method: "vinculationMemberToWallet", params: [id, account], value: "0" },
@@ -29,12 +29,12 @@ function VinculateMember() {
       const memberId = transactionData.params[0];
       const tx = await contract.vinculationMemberToWallet(memberId, account);
       await tx.wait();
-      alert(`Member ID ${memberId} vinculated to your wallet!`);
+      alert(`ID do Membro ${memberId} vinculado à sua carteira!`);
       setMemberId("");
       // Simply refresh the member data
       await refreshMemberData();
     } catch (err) {
-      alert("Error vinculating member to wallet");
+      alert("Erro ao vincular membro à carteira");
       throw err;
     } finally {
       setLoading(false);
@@ -46,16 +46,16 @@ function VinculateMember() {
   if (memberData) {
     return (
       <div className="vinculate-member-block">
-        <h2>Wallet Vinculation Status</h2>
+        <h2>Status de Vinculação da Carteira</h2>
         
         <div className="user-address">
-          <strong>Current Wallet:</strong> {account ? `${account.substring(0, 6)}...${account.substring(38)}` : "Not connected"}
+          <strong>Carteira Atual:</strong> {account ? `${account.substring(0, 6)}...${account.substring(38)}` : "Não conectada"}
         </div>
 
         <div className="vinculate-section">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
             <div style={{ color: 'var(--accent-green)' }}>✅</div>
-            <strong style={{ color: 'var(--accent-green)' }}>Wallet Already Vinculated</strong>
+            <strong style={{ color: 'var(--accent-green)' }}>Carteira Já Vinculada</strong>
           </div>
           
           {/* Member Information */}
@@ -67,13 +67,13 @@ function VinculateMember() {
             marginBottom: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span><strong>Member ID:</strong></span>
+              <span><strong>ID do Membro:</strong></span>
               <span style={{ fontWeight: 'bold', color: 'var(--accent-blue)' }}>#{memberData.memberId}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span><strong>Reputation Score:</strong></span>
+              <span><strong>Pontuação de Reputação:</strong></span>
               <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>
-                {memberData.currentReputation} points
+                {memberData.currentReputation} pontos
               </span>
             </div>
           </div>
@@ -81,7 +81,7 @@ function VinculateMember() {
           {/* Wallets List */}
           <div style={{ marginBottom: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <strong>Vinculated Wallets:</strong>
+              <strong>Carteiras Vinculadas:</strong>
               <span style={{ color: 'var(--text-secondary)' }}>({memberData.wallets ? memberData.wallets.length : 0})</span>
             </div>
             <div style={{ 
@@ -108,13 +108,13 @@ function VinculateMember() {
                       </span>
                       <span>
                         {wallet.toLowerCase() === account.toLowerCase() 
-                          ? `${wallet.substring(0, 8)}...${wallet.substring(36)} (Current)` 
+                          ? `${wallet.substring(0, 8)}...${wallet.substring(36)} (Atual)` 
                           : `${wallet.substring(0, 8)}...${wallet.substring(36)}`
                         }
                       </span>
                     </div>
                   ))
-                : <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>No wallets vinculated</div>
+                : <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>Nenhuma carteira vinculada</div>
               }
             </div>
           </div>
@@ -125,20 +125,20 @@ function VinculateMember() {
 
   return (
     <div className="vinculate-member-block">
-      <h2>Vinculate Member to Wallet</h2>
+      <h2>Vincular Membro à Carteira</h2>
       
       <div className="user-address">
-        <strong>Current Wallet:</strong> {account ? `${account.substring(0, 6)}...${account.substring(38)}` : "Not connected"}
+        <strong>Carteira Atual:</strong> {account ? `${account.substring(0, 6)}...${account.substring(38)}` : "Não conectada"}
       </div>
 
       <div className="vinculate-section">
-        <h3>Enter Member ID</h3>
+        <h3>Insira o ID do Membro</h3>
         <div className="wallet-input-row">
           <input
             type="number"
             min="1"
             step="1"
-            placeholder="Enter Member ID"
+            placeholder="Insira o ID do Membro"
             value={memberId}
             onChange={(e) => setMemberId(e.target.value)}
             className="member-id-input"
@@ -166,11 +166,11 @@ function VinculateMember() {
               marginLeft: '10px'
             }}
           >
-            {loading ? "Processing..." : "Vinculate Member"}
+            {loading ? "Processando..." : "Vincular Membro"}
           </button>
         </div>
         <p className="vinculation-info" style={{ marginTop: '10px', color: 'var(--text-secondary)' }}>
-          This will link Member ID {memberId || '___'} to your wallet
+          Isso vinculará o ID do Membro {memberId || '___'} à sua carteira
         </p>
       </div>
 

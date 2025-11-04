@@ -9,9 +9,9 @@ const ElectionManagement = ({ contract, currentAccount, member }) => {
   if (!contract) {
     return (
       <div className="card">
-        <h2>Election Management</h2>
+        <h2>Gerenciamento de Eleição</h2>
         <div className="error-message">
-          Reputation contract not available. Please check your configuration.
+          Contrato de reputação não disponível. Por favor, verifique sua configuração.
         </div>
       </div>
     );
@@ -24,13 +24,13 @@ const ElectionManagement = ({ contract, currentAccount, member }) => {
           className={`tab-button ${activeTab === 'vote' ? 'active' : ''}`}
           onClick={() => setActiveTab('vote')}
         >
-          Vote & Candidates
+          Votar & Candidatos
         </button>
         <button 
           className={`tab-button ${activeTab === 'create' ? 'active' : ''}`}
           onClick={() => setActiveTab('create')}
         >
-          Create Election
+          Criar Eleição
         </button>
       </div>
       

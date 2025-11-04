@@ -41,10 +41,10 @@ function Withdraw() {
       setUsdtBalance(balance || "0");
       setWithdrawableBalance(withdrawable || "0");
     } catch (err) {
-      console.error("❌ Error fetching balances:", err);
+      console.error("❌ Erro ao buscar saldos:", err);
       setUsdtBalance("0");
       setWithdrawableBalance("0");
-      showError("Failed to load balances");
+      showError("Falha ao carregar saldos");
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ function Withdraw() {
       const balance = await contract.getWithdrawableBalance(account);
       return ethers.utils.formatUnits(balance, 6); // USDT has 6 decimals
     } catch (err) {
-      console.error("Error fetching withdrawable balance:", err);
+      console.error("Erro ao buscar saldo sacável:", err);
       return "0";
     }
   }
@@ -95,38 +95,38 @@ function Withdraw() {
       const receipt = await tx.wait();
       
       if (receipt.status === 1) {
-        showSuccess(`Successfully withdrawn ${amount} USDT!`);
+        showSuccess(`Saque de ${amount} USDT bem-sucedido!`);
         setAmount("");
         fetchBalances(); // Refresh balances after withdrawal
       } else {
-        throw new Error("Transaction failed");
+        throw new Error("Transação falhou");
       }
     } catch (err) {
-      showError(err.message || "Withdrawal failed");
+      showError(err.message || "Falha no saque");
       throw err;
     }
   }
 
   async function handleWithdraw() {
     if (!account || !amount) {
-      showWarning("Please connect wallet and enter amount");
+      showWarning("Por favor, conecte a carteira e insira o valor");
       return;
     }
 
     if (!member || !member.id) {
-      showError("Member data not available. Please check your wallet connection.");
+      showError("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.");
       return;
     }
 
     // Check withdrawable balance
     if (parseFloat(amount) > parseFloat(withdrawableBalance)) {
-      showError(`Insufficient withdrawable balance. You can withdraw up to ${parseFloat(withdrawableBalance).toFixed(2)} USDT`);
+      showError(`Saldo sacável insuficiente. Você pode sacar até ${parseFloat(withdrawableBalance).toFixed(2)} USDT`);
       return;
     }
 
     // Check if amount is positive
     if (parseFloat(amount) <= 0) {
-      showError("Please enter a valid amount");
+      showError("Por favor, insira um valor válido");
       return;
     }
 
@@ -157,18 +157,18 @@ function Withdraw() {
   return (
     <div className="donate-block withdraw-block">
       <div className="balance-info">
-        <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
+        <p>Seu Saldo USDT: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
         <p className="withdrawable-info">
-          Withdrawable Balance: <strong>{parseFloat(withdrawableBalance).toFixed(2)} USDT</strong>
+          Saldo Disponível para Saque: <strong>{parseFloat(withdrawableBalance).toFixed(2)} USDT</strong>
         </p>
-        {loading && <p>Loading balances...</p>}
+        {loading && <p>Carregando saldos...</p>}
         {member && (
           <p className="member-info">
-            Member ID: {member.id} {member.name && `- ${member.name}`}
+            ID do Membro: {member.id} {member.name && `- ${member.name}`}
           </p>
         )}
         {!member && account && (
-          <p className="warning-text">⚠️ Member data not loaded</p>
+          <p className="warning-text">⚠️ Dados do membro não carregados</p>
         )}
       </div>
 
@@ -176,7 +176,7 @@ function Withdraw() {
         type="number"
         min={0}
         step="0.01"
-        placeholder="Amount in USDT to withdraw"
+        placeholder="Quantidade em USDT para sacar"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="donate-input withdraw-input"
@@ -184,7 +184,7 @@ function Withdraw() {
 
       {!hasSufficientWithdrawable && amount && (
         <p className="error-text">
-          ❌ You can only withdraw up to {parseFloat(withdrawableBalance).toFixed(2)} USDT
+          ❌ Você só pode sacar até {parseFloat(withdrawableBalance).toFixed(2)} USDT
         </p>
       )}
 
@@ -193,7 +193,7 @@ function Withdraw() {
         className="donate-button withdraw-button" 
         disabled={!canWithdraw}
       >
-        {!hasMemberData ? "Wallet not vinculated" : "Withdraw USDT"}
+        {!hasMemberData ? "Carteira não vinculada" : "Sacar USDT"}
       </button>
 
       <ModalWrapper onConfirm={confirmTransaction} />

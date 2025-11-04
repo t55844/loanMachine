@@ -48,8 +48,8 @@ export default function UserStatus() {
       const stats = await fetchUserStats(account);
       setUserData(stats);
     } catch (e) {
-      console.error("Error loading user data:", e);
-      setError("Failed to load user data");
+      console.error("Erro ao carregar dados do usuário:", e);
+      setError("Falha ao carregar dados do usuário");
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export default function UserStatus() {
       const balance = await getUSDTBalance();
       setUsdtBalance(balance);
     } catch (e) {
-      console.error("Error loading USDT balance:", e);
+      console.error("Erro ao carregar saldo USDT:", e);
     }
   }
 
@@ -78,62 +78,62 @@ export default function UserStatus() {
   if (!account) {
     return (
       <div className="stats-box">
-        <h2>User Status</h2>
-        <p>Connect your wallet to view status</p>
+        <h2>Status do Usuário</h2>
+        <p>Conecte sua carteira para ver o status</p>
       </div>
     );
   }
 
   return (
     <div className="stats-box">
-      <h2>User Status</h2>
+      <h2>Status do Usuário</h2>
       
       <div className="user-address">
-        <strong>Connected:</strong> {account}
+        <strong>Conectado:</strong> {account}
       </div>
 
       {/* USDT Balance Display */}
       <div className="usdt-balance-section">
         <div className="balance-card">
-          <strong>Your USDT Balance:</strong> 
+          <strong>Seu Saldo USDT:</strong> 
           <span className="balance-amount">{formatUSDT(usdtBalance)} USDT</span>
         </div>
       </div>
 
-      {loading && <p>Loading user data...</p>}
+      {loading && <p>Carregando dados do usuário...</p>}
       {error && <p className="error">{error}</p>}
 
       {userData && (
         <div className="stats-grid">
           <div className="stat-item">
-            <strong>User Donations:</strong> 
+            <strong>Doações do Usuário:</strong> 
             <span>{formatUSDT(userData.donations)} USDT</span>
           </div>
           <div className="stat-item">
-            <strong>User Borrowed:</strong> 
+            <strong>Valor Emprestado:</strong> 
             <span>{formatUSDT(userData.borrowings)} USDT</span>
           </div>
           <div className="stat-item">
-            <strong>Current Debt:</strong> 
+            <strong>Dívida Atual:</strong> 
             <span className={parseFloat(userData.currentDebt) > 0 ? "debt-amount" : ""}>
               {formatUSDT(userData.currentDebt)} USDT
             </span>
           </div>
           <div className="stat-item">
-            <strong>Can Borrow:</strong> 
+            <strong>Pode Pegar Empréstimo:</strong> 
             <span className={userData.canBorrowNow ? "can-borrow-yes" : "can-borrow-no"}>
-              {userData.canBorrowNow ? "Yes" : "No"}
+              {userData.canBorrowNow ? "Sim" : "Não"}
             </span>
           </div>
           <div className="stat-item">
-            <strong>User Loans Taken:</strong> 
+            <strong>Empréstimos Realizados:</strong> 
             <span>{userData.borrowCount}</span>
           </div>
         </div>
       )}
 
       <button onClick={refreshAllData} className="refresh-button" disabled={loading}>
-        {loading ? "Refreshing..." : "Refresh Data"}
+        {loading ? "Atualizando..." : "Atualizar Dados"}
       </button>
 
       {/* Replace Donate with Tabbed Interface */}

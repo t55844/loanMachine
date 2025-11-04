@@ -55,7 +55,7 @@ export default function TransactionPendingRequisition({
       const approvalNeeded = await needsUSDTApproval(coverageAmount);
       return approvalNeeded;
     } catch (err) {
-      console.error("Error checking approval:", err);
+      console.error("Erro ao verificar aprovação:", err);
       return true;
     }
   };
@@ -66,11 +66,11 @@ export default function TransactionPendingRequisition({
     setApproving(true);
     try {
       await approveUSDT(currentCoverageAmount);
-      showSuccess("USDT approved successfully!");
+      showSuccess("USDT aprovado com sucesso!");
       setNeedsApproval(false);
       setCurrentCoverageAmount("0");
     } catch (err) {
-      showError("Error approving USDT");
+      showError("Erro ao aprovar USDT");
     } finally {
       setApproving(false);
     }
@@ -78,13 +78,13 @@ export default function TransactionPendingRequisition({
 
   const handleCoverLoan = async (requisitionId, percentage) => {
     if (!contract || !account) {
-      showWarning("Please connect your wallet first");
+      showWarning("Por favor, conecte sua carteira primeiro");
       return;
     }
 
     // Check member data
     if (!member || !member.id) {
-      showError("Member data not available. Please check your wallet connection.");
+      showError("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.");
       return;
     }
 
@@ -95,24 +95,24 @@ export default function TransactionPendingRequisition({
 
     // Validate parameters
     if (isNaN(requisitionIdUint32) || requisitionIdUint32 < 0) {
-      showError("Invalid requisition ID");
+      showError("ID de requisição inválido");
       return;
     }
 
     if (isNaN(percentageUint32) || percentageUint32 < 1 || percentageUint32 > 100) {
-      showError("Invalid coverage percentage");
+      showError("Porcentagem de cobertura inválida");
       return;
     }
 
     if (isNaN(memberIdUint32) || memberIdUint32 < 1) {
-      showError("Invalid member ID");
+      showError("ID do membro inválido");
       return;
     }
 
     const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
     
     if (parseFloat(donationBalances.free) < coverageAmount) {
-      showError(`Insufficient free donation balance. You have ${parseFloat(donationBalances.free).toFixed(2)} USDT free but need ${coverageAmount.toFixed(2)} USDT`);
+      showError(`Saldo de doação livre insuficiente. Você tem ${parseFloat(donationBalances.free).toFixed(2)} USDT livre mas precisa de ${coverageAmount.toFixed(2)} USDT`);
       return;
     }
 
@@ -121,7 +121,7 @@ export default function TransactionPendingRequisition({
     if (approvalNeeded) {
       setCurrentCoverageAmount(coverageAmount.toString());
       setNeedsApproval(true);
-      showWarning("Please approve USDT first before covering this loan");
+      showWarning("Por favor, aprove USDT primeiro antes de cobrir este empréstimo");
       return;
     }
 
@@ -130,7 +130,7 @@ export default function TransactionPendingRequisition({
       const isVinculated = await contract.isWalletVinculated(account);
       
       if (!isVinculated) {
-        showError("Your wallet is not vinculated to any member. Please register first.");
+        showError("Sua carteira não está vinculada a nenhum membro. Por favor, registre-se primeiro.");
         return;
       }
 
@@ -138,14 +138,14 @@ export default function TransactionPendingRequisition({
       const contractMemberId = await contract.getMemberId(account);
 
       if (Number(contractMemberId.toString()) !== memberIdUint32) {
-        showError(`Member ID mismatch! Wallet ${account} is vinculated to member ${contractMemberId.toString()} but you're trying to use member ${memberIdUint32}. Please use the correct wallet.`);
+        showError(`ID do membro não corresponde! Carteira ${account} está vinculada ao membro ${contractMemberId.toString()} mas você está tentando usar o membro ${memberIdUint32}. Por favor, use a carteira correta.`);
         return;
       }
 
 
     } catch (err) {
-      console.error("Error during member validation:", err);
-      showError("Error verifying member registration. Please try again.");
+      console.error("Erro durante a validação do membro:", err);
+      showError("Erro ao verificar registro do membro. Por favor, tente novamente.");
       return;
     }
 
@@ -177,7 +177,7 @@ export default function TransactionPendingRequisition({
       const tx = await contract.coverLoan(requisitionId, percentage, memberId);
       await tx.wait();
 
-      showSuccess(`Successfully covered ${percentage}% of loan #${requisitionId}`);
+      showSuccess(`Cobertura de ${percentage}% do empréstimo #${requisitionId} bem-sucedida`);
       
       if (onCoverLoan) {
         onCoverLoan();
@@ -187,7 +187,7 @@ export default function TransactionPendingRequisition({
       
       await onRefresh();
     } catch (err) {
-      showError(err.message || "Cover loan failed");
+      showError(err.message || "Falha ao cobrir empréstimo");
     } finally {
       setCovering(false);
     }
@@ -213,7 +213,7 @@ export default function TransactionPendingRequisition({
 
   return (
     <div className="cover-loan-section" onClick={stopPropagation}>
-      <h4>Cover This Loan</h4>
+      <h4>Cobrir Este Empréstimo</h4>
       
       {/* Approval Section */}
       {needsApproval && (
@@ -224,20 +224,20 @@ export default function TransactionPendingRequisition({
           border: '1px solid var(--accent-orange)',
           marginBottom: '16px'
         }}>
-          <h4>Approval Required</h4>
-          <p>You need to approve {formatUSDT(currentCoverageAmount)} USDT before covering loans.</p>
+          <h4>Aprovação Necessária</h4>
+          <p>Você precisa aprovar {formatUSDT(currentCoverageAmount)} USDT antes de cobrir empréstimos.</p>
           <button 
             onClick={handleApprove}
             disabled={approving}
             className="approve-button"
           >
-            {approving ? "Approving..." : `Approve ${formatUSDT(currentCoverageAmount)} USDT`}
+            {approving ? "Aprovando..." : `Aprovar ${formatUSDT(currentCoverageAmount)} USDT`}
           </button>
         </div>
       )}
       
       <div className="quick-percentages">
-        <p>Quick select:</p>
+        <p>Seleção rápida:</p>
         <div className="percentage-grid">
           {quickPercentages.map((percentage) => {
             const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
@@ -253,12 +253,12 @@ export default function TransactionPendingRequisition({
                 disabled={covering || !isValid || !canCover || !member?.id}
                 title={
                   !member?.id 
-                    ? "Member data not available"
+                    ? "Dados do membro não disponíveis"
                     : !isValid 
-                      ? `Cannot cover more than ${remainingCoverage}%` 
+                      ? `Não é possível cobrir mais de ${remainingCoverage}%` 
                       : !canCover 
-                        ? `Need ${coverageAmount.toFixed(2)} USDT (You have ${formatUSDT(donationBalances.free)} USDT available)` 
-                        : `Cover ${percentage}% (${coverageAmount.toFixed(2)} USDT)`
+                        ? `Precisa de ${coverageAmount.toFixed(2)} USDT (Você tem ${formatUSDT(donationBalances.free)} USDT disponível)` 
+                        : `Cobrir ${percentage}% (${coverageAmount.toFixed(2)} USDT)`
                 }
               >
                 {percentage}%
@@ -269,7 +269,7 @@ export default function TransactionPendingRequisition({
       </div>
 
       <div className="custom-percentage">
-        <p>Or enter custom percentage (10-100):</p>
+        <p>Ou insira a porcentagem personalizada (10-100):</p>
         <div className="custom-input-group">
           <input
             type="number"
@@ -278,7 +278,7 @@ export default function TransactionPendingRequisition({
             value={customPercentage}
             onChange={(e) => setCustomPercentage(e.target.value)}
             onClick={stopPropagation}
-            placeholder="Enter percentage"
+            placeholder="Insira a porcentagem"
             className="custom-percentage-input"
             disabled={!member?.id}
           />
@@ -288,17 +288,17 @@ export default function TransactionPendingRequisition({
             disabled={covering || !customPercentage || !isPercentageValid(requisition, parseInt(customPercentage)) || !member?.id}
             className="custom-cover-button"
           >
-            {!member?.id ? "No Member Data" : "Cover"}
+            {!member?.id ? "Sem Dados do Membro" : "Cobrir"}
           </button>
         </div>
         {customPercentage && (
           <div className="custom-amount">
-            Coverage amount: {(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT
+            Valor de cobertura: {(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT
             {!isPercentageValid(requisition, parseInt(customPercentage)) && (
               <span className="error-text"> 
                 {parseFloat(donationBalances.free) < (parseFloat(requisition.amount) * parseInt(customPercentage) / 100) 
-                  ? ` - Need ${(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT (You have ${formatUSDT(donationBalances.free)} USDT available)`
-                  : ' - Invalid percentage'
+                  ? ` - Precisa de ${(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT (Você tem ${formatUSDT(donationBalances.free)} USDT disponível)`
+                  : ' - Porcentagem inválida'
                 }
               </span>
             )}

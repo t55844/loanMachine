@@ -1,4 +1,3 @@
-// ContractOverview.jsx
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { fetchContractStats, fetchLastTransactions } from "../graphql-frontend-query";
@@ -42,8 +41,8 @@ export default function ContractOverview() {
         setLastTxs(mapped);
 
       } catch (err) {
-        console.error("ContractOverview load error:", err);
-        if (mounted) setError("Error loading contract statistics");
+        console.error("Erro de carregamento do ContractOverview:", err);
+        if (mounted) setError("Erro ao carregar estatísticas do contrato");
         
         // Set empty stats if there's an error
         setStats({
@@ -72,34 +71,34 @@ export default function ContractOverview() {
 
   return (
     <div className="graphBlock contract-overview">
-      <h2>Contract Overview</h2>
+      <h2>Visão Geral do Contrato</h2>
 
-      {loading && <p className="loading">Loading data...</p>}
+      {loading && <p className="loading">Carregando dados...</p>}
       {error && <p className="error">{error}</p>}
 
       {stats && (
         <div className="stats-grid" style={{ marginTop: 8 }}>
-          <div><strong>Total Donations:</strong> {formatUSDT(stats.totalDonations)} USDT</div>
-          <div><strong>Total Borrowed:</strong> {formatUSDT(stats.totalBorrowed)} USDT</div>
-          <div><strong>Available Balance:</strong> {formatUSDT(stats.availableBalance)} USDT</div>
-          <div><strong>Contract Balance:</strong> {formatUSDT(stats.contractBalance)} USDT</div>
+          <div><strong>Doações Totais:</strong> {formatUSDT(stats.totalDonations)} USDT</div>
+          <div><strong>Total Emprestado:</strong> {formatUSDT(stats.totalBorrowed)} USDT</div>
+          <div><strong>Saldo Disponível:</strong> {formatUSDT(stats.availableBalance)} USDT</div>
+          <div><strong>Saldo do Contrato:</strong> {formatUSDT(stats.contractBalance)} USDT</div>
         </div>
       )}
 
-      <h3 style={{ marginTop: 18 }}>Last 5 Transactions</h3>
+      <h3 style={{ marginTop: 18 }}>Últimas 5 Transações</h3>
 
       <div className="transactions-box" style={{ marginTop: 12 }}>
         {lastTxs.length > 0 ? (
           lastTxs.map((tx, i) => (
             <div key={i} className="transaction-row">
-              <div><strong>Wallet:</strong> {tx.wallet?.slice(0, 6)}...{tx.wallet?.slice(-4)}</div>
-              <div><strong>Amount:</strong> {formatUSDT(tx.amount)} USDT</div>
-              <div><strong>Time:</strong> {tx.time}</div>
-              <div><strong>Type:</strong> {tx.type}</div>
+              <div><strong>Carteira:</strong> {tx.wallet?.slice(0, 6)}...{tx.wallet?.slice(-4)}</div>
+              <div><strong>Valor:</strong> {formatUSDT(tx.amount)} USDT</div>
+              <div><strong>Horário:</strong> {tx.time}</div>
+              <div><strong>Tipo:</strong> {tx.type}</div>
             </div>
           ))
         ) : (
-          !loading && <div className="transaction-row">No transactions found</div>
+          !loading && <div className="transaction-row">Nenhuma transação encontrada</div>
         )}
       </div>
     </div>

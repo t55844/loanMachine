@@ -63,7 +63,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
       setActiveLoans(formattedLoans);
     } catch (err) {
-      console.error("Error loading user loans:", err);
+      console.error("Erro ao carregar empréstimos do usuário:", err);
       handleContractError(err, "loadUserActiveLoans");
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         [requisitionId]: approvalNeeded
       }));
     } catch (err) {
-      console.error("Error checking approval:", err);
+      console.error("Erro ao verificar aprovação:", err);
     }
   };
 
@@ -95,7 +95,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const amountForDisplay = ethers.utils.formatUnits(amountInWei, 6);
       
       await approveUSDT(amountForDisplay);
-      showToast("USDT approved successfully!", "success");
+      showToast("USDT aprovado com sucesso!", "success");
       
       // Update approval status immediately
       setNeedsApproval(prev => ({
@@ -109,7 +109,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       }, 2000);
       
     } catch (err) {
-      console.error("Error approving USDT:", err);
+      console.error("Erro ao aprovar USDT:", err);
       handleContractError(err, "approveUSDT");
       
       // Re-check approval status in case of error
@@ -121,13 +121,13 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
   const handlePayInstallment = async (loan) => {
     if (!contract || !account) {
-      showToast("Please connect your wallet first");
+      showToast("Por favor, conecte sua carteira primeiro");
       return;
     }
 
     // Check if member data is available
     if (!member || !member.id) {
-      showToast("Member data not available. Please check your wallet connection.", "error");
+      showToast("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.", "error");
       return;
     }
 
@@ -136,12 +136,12 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
     try {
       canPay = await contract.canPayRequisition(loan.requisitionId, account);
       if (!canPay) {
-        showToast("Payment is not available at this time", "warning");
+        showToast("Pagamento não disponível neste momento", "warning");
         return;
       }
     } catch (err) {
-      console.error("Error checking payment availability:", err);
-      showToast("Error checking payment availability", "error");
+      console.error("Erro ao verificar disponibilidade de pagamento:", err);
+      showToast("Erro ao verificar disponibilidade de pagamento", "error");
       return;
     }
 
@@ -150,7 +150,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const currentApprovalNeeded = await needsUSDTApproval(loan.nextPaymentAmount);
       
       if (currentApprovalNeeded) {
-        showToast("Please approve USDT first before making payment", "error");
+        showToast("Por favor, aprove USDT primeiro antes de fazer o pagamento", "error");
         setNeedsApproval(prev => ({
           ...prev,
           [loan.requisitionId]: true
@@ -158,10 +158,10 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         return;
       }
     } catch (err) {
-      console.error("Error in final approval check:", err);
+      console.error("Erro na verificação final de aprovação:", err);
       
       // If there's an error checking approval, assume approval is needed
-      showToast("Error checking USDT approval. Please try approving again.", "error");
+      showToast("Erro ao verificar aprovação de USDT. Por favor, tente aprovar novamente.", "error");
       setNeedsApproval(prev => ({
         ...prev,
         [loan.requisitionId]: true
@@ -195,7 +195,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const tx = await contract.repay(requisitionId, amount, memberId);
       await tx.wait();
 
-      showToast(`Payment successful for loan #${requisitionId}`, "success");
+      showToast(`Pagamento bem-sucedido para empréstimo #${requisitionId}`, "success");
       await loadUserActiveLoans();
       setExpandedLoan(null);
       
@@ -203,14 +203,14 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         onLoanUpdate();
       }
     } catch (err) {
-      console.error("Transaction failed:", err);
+      console.error("Transação falhou:", err);
       
       if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
         setNeedsApproval(prev => ({
           ...prev,
           [requisitionId]: true
         }));
-        showToast("USDT approval required. Please approve USDT first.", "error");
+        showToast("Aprovação de USDT necessária. Por favor, aprove USDT primeiro.", "error");
       } else {
         handleContractError(err, "payInstallment");
       }
@@ -222,10 +222,10 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
   const getStatusText = (status) => {
     switch (status) {
-      case 0: return "Active";
-      case 1: return "Completed";
-      case 2: return "Defaulted";
-      default: return "Unknown";
+      case 0: return "Ativo";
+      case 1: return "Concluído";
+      case 2: return "Inadimplente";
+      default: return "Desconhecido";
     }
   };
 
@@ -261,7 +261,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         border: '1px solid var(--border-color)',
         marginTop: '16px'
       }}>
-        <h2>My Loan Contracts</h2>
+        <h2>Meus Contratos de Empréstimo</h2>
 
         {/* Member Info Display */}
         {member && (
@@ -273,7 +273,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
             border: '1px solid var(--border-color)'
           }}>
             <p style={{ margin: 0, fontSize: '0.9em' }}>
-              <strong>Member ID:</strong> {member.id} 
+              <strong>ID do Membro:</strong> {member.id} 
               {member.name && ` - ${member.name}`}
             </p>
             {!member.hasVinculation && (
@@ -282,19 +282,19 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                 fontSize: '0.8em', 
                 color: 'var(--accent-orange)' 
               }}>
-                ⚠️ Wallet not vinculated to any member
+                ⚠️ Carteira não vinculada a nenhum membro
               </p>
             )}
           </div>
         )}
 
         {loading ? (
-          <p>Loading your active loans...</p>
+          <p>Carregando seus empréstimos ativos...</p>
         ) : activeLoans.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
-            <p>No active loan contracts found.</p>
+            <p>Nenhum contrato de empréstimo ativo encontrado.</p>
             <p style={{ fontSize: '0.9em', marginTop: '8px' }}>
-              Your active loan contracts will appear here once your requisitions are fully covered.
+              Seus contratos de empréstimo ativos aparecerão aqui assim que suas requisições estiverem totalmente cobertas.
             </p>
           </div>
         ) : (
@@ -307,7 +307,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                 style={{ cursor: 'pointer' }}
               >
                 <div className="requisition-header">
-                  <h3>Loan Contract #{loan.requisitionId}</h3>
+                  <h3>Contrato de Empréstimo #{loan.requisitionId}</h3>
                   <span 
                     className="status-badge"
                     style={{ color: getStatusColor(loan.status) }}
@@ -317,28 +317,28 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                 </div>
 
                 <div className="requisition-details">
-                  <div><strong>Remaining Debt:</strong> {formatUSDT(loan.totalRemainingDebt)} USDT</div>
-                  <div><strong>Next Payment:</strong> {formatUSDT(loan.nextPaymentAmount)} USDT</div>
-                  <div><strong>Progress:</strong> {loan.totalParcels - loan.parcelsRemaining}/{loan.totalParcels} parcels paid</div>
+                  <div><strong>Dívida Restante:</strong> {formatUSDT(loan.totalRemainingDebt)} USDT</div>
+                  <div><strong>Próximo Pagamento:</strong> {formatUSDT(loan.nextPaymentAmount)} USDT</div>
+                  <div><strong>Progresso:</strong> {loan.totalParcels - loan.parcelsRemaining}/{loan.totalParcels} parcelas pagas</div>
                 </div>
 
                 {expandedLoan === loan.requisitionId && (
                   <div className="cover-loan-section">
-                    <h4>Contract Details</h4>
+                    <h4>Detalhes do Contrato</h4>
                     
                     <div className="requisition-details" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                      <div><strong>Contract Address:</strong> {formatAddress(loan.walletAddress)}</div>
-                      <div><strong>Parcel Value:</strong> {formatUSDT(loan.parcelsValues)} USDT</div>
-                      <div><strong>Total Paid:</strong> 
+                      <div><strong>Endereço do Contrato:</strong> {formatAddress(loan.walletAddress)}</div>
+                      <div><strong>Valor da Parcela:</strong> {formatUSDT(loan.parcelsValues)} USDT</div>
+                      <div><strong>Total Pago:</strong> 
                         {formatUSDT(((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)))} USDT
                       </div>
-                      <div><strong>Completion:</strong> 
+                      <div><strong>Conclusão:</strong> 
                         {Math.round((loan.totalParcels - loan.parcelsRemaining) / loan.totalParcels * 100)}%
                       </div>
                     </div>
 
                     <div style={{ marginTop: '16px' }}>
-                      <strong>Payment Schedule:</strong>
+                      <strong>Cronograma de Pagamentos:</strong>
                       <div style={{ 
                         maxHeight: '150px', 
                         overflowY: 'auto', 
@@ -358,10 +358,10 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                               color: index < loan.totalParcels - loan.parcelsRemaining ? 'var(--accent-green)' : 'var(--text-secondary)'
                             }}
                           >
-                            <span>Parcel {index + 1}:</span>
+                            <span>Parcela {index + 1}:</span>
                             <span>{formatDate(date)}</span>
                             <span>
-                              {index < loan.totalParcels - loan.parcelsRemaining ? '✅ Paid' : '⏳ Pending'}
+                              {index < loan.totalParcels - loan.parcelsRemaining ? '✅ Pago' : '⏳ Pendente'}
                             </span>
                           </div>
                         ))}
@@ -380,7 +380,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                             marginBottom: '12px',
                             textAlign: 'center'
                           }}>
-                            ⚠️ Member data not available. Cannot process payment.
+                            ⚠️ Dados do membro não disponíveis. Não é possível processar o pagamento.
                           </div>
                         )}
 
@@ -399,7 +399,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                               background: 'var(--accent-orange)'
                             }}
                           >
-                            {approving ? "Approving..." : `Approve USDT (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
+                            {approving ? "Aprovando..." : `Aprovar USDT (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
                           </button>
                         )}
 
@@ -413,7 +413,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                           className="repay-button"
                           style={{ width: '100%' }}
                         >
-                          {paying ? "Processing Payment..." : `Pay Installment (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
+                          {paying ? "Processando Pagamento..." : `Pagar Parcela (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
                         </button>
                       </div>
                     )}
@@ -427,7 +427,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                         color: 'var(--text-secondary)',
                         marginTop: '16px'
                       }}>
-                        Next payment will be available on the scheduled date
+                        Próximo pagamento estará disponível na data agendada
                       </div>
                     )}
 
@@ -440,7 +440,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                         color: 'var(--accent-green)',
                         marginTop: '16px'
                       }}>
-                        ✅ Loan fully repaid
+                        ✅ Empréstimo totalmente quitado
                       </div>
                     )}
 
@@ -453,7 +453,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                         color: 'var(--accent-red)',
                         marginTop: '16px'
                       }}>
-                        ⚠️ Loan defaulted
+                        ⚠️ Empréstimo inadimplente
                       </div>
                     )}
                   </div>

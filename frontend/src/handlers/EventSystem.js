@@ -1,4 +1,3 @@
-// utils/EventSystem.js
 class EventSystem {
   constructor() {
     this.listeners = {};

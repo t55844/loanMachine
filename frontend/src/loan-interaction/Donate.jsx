@@ -1,4 +1,3 @@
-// Donate.jsx
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useGasCostModal } from "../handlers/useGasCostModal";
@@ -39,9 +38,9 @@ function Donate() {
       const balance = await getUSDTBalance();
       setUsdtBalance(balance || "0");
     } catch (err) {
-      console.error("❌ Error fetching USDT balance:", err);
+      console.error("❌ Erro ao buscar saldo USDT:", err);
       setUsdtBalance("0");
-      showError("Failed to load USDT balance");
+      showError("Falha ao carregar saldo USDT");
     } finally {
       setLoading(false);
     }
@@ -63,7 +62,7 @@ function Donate() {
       const approvalNeeded = await needsUSDTApproval(amount);
       setNeedsApproval(approvalNeeded);
     } catch (err) {
-      console.error("Error checking approval:", err);
+      console.error("Erro ao verificar aprovação:", err);
     }
   }
 
@@ -93,7 +92,7 @@ function Donate() {
 
   async function handleApprove() {
     if (!amount) {
-      showWarning("Please enter an amount first");
+      showWarning("Por favor, insira um valor primeiro");
       return;
     }
 
@@ -102,11 +101,11 @@ function Donate() {
       const tx = await approveUSDT(amount);
       await tx.wait();
       
-      showSuccess(`Approved ${amount} USDT successfully!`);
+      showSuccess(`${amount} USDT aprovados com sucesso!`);
       setNeedsApproval(false);
       
     } catch (err) {
-      showError(err.message || "Approval failed");
+      showError(err.message || "Falha na aprovação");
     } finally {
       setApproving(false);
     }
@@ -121,32 +120,32 @@ function Donate() {
       const receipt = await tx.wait();
       
       if (receipt.status === 1) {
-        showSuccess(`Successfully donated ${amount} USDT!`);
+        showSuccess(`Doação de ${amount} USDT bem-sucedida!`);
         setAmount("");
         fetchUSDTBalance();
       } else {
-        throw new Error("Transaction failed");
+        throw new Error("Transação falhou");
       }
     } catch (err) {
-      showError(err.message || "Donation failed");
+      showError(err.message || "Falha na doação");
       throw err;
     }
   }
 
   async function handleDonate() {
     if (!account || !amount) {
-      showWarning("Please connect wallet and enter amount");
+      showWarning("Por favor, conecte a carteira e insira o valor");
       return;
     }
 
     if (!member || !member.id) {
-      showError("Member data not available. Please check your wallet connection.");
+      showError("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.");
       return;
     }
 
     // Check balance
     if (parseFloat(usdtBalance) < parseFloat(amount)) {
-      showError(`Insufficient USDT balance. You have ${parseFloat(usdtBalance).toFixed(2)} USDT`);
+      showError(`Saldo USDT insuficiente. Você tem ${parseFloat(usdtBalance).toFixed(2)} USDT`);
       return;
     }
 
@@ -154,12 +153,12 @@ function Donate() {
     try {
       const currentApprovalNeeded = await needsUSDTApproval(amount);
       if (currentApprovalNeeded) {
-        showWarning("Please approve USDT first");
+        showWarning("Por favor, aprove USDT primeiro");
         setNeedsApproval(true);
         return;
       }
     } catch (err) {
-      showError("Error checking approval status");
+      showError("Erro ao verificar status de aprovação");
       return;
     }
 
@@ -190,15 +189,15 @@ function Donate() {
   return (
     <div className="donate-block">
       <div className="balance-info">
-        <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
-        {loading && <p>Loading balance...</p>}
+        <p>Seu Saldo USDT: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
+        {loading && <p>Carregando saldo...</p>}
         {member && (
           <p className="member-info">
-            Member ID: {member.id} {member.name && `- ${member.name}`}
+            ID do Membro: {member.id} {member.name && `- ${member.name}`}
           </p>
         )}
         {!member && account && (
-          <p className="warning-text">⚠️ Member data not loaded</p>
+          <p className="warning-text">⚠️ Dados do membro não carregados</p>
         )}
       </div>
 
@@ -206,7 +205,7 @@ function Donate() {
         type="number"
         min={0}
         step="0.01"
-        placeholder="Amount in USDT"
+        placeholder="Quantidade em USDT"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="donate-input"
@@ -218,7 +217,7 @@ function Donate() {
           className="approve-button"
           disabled={approving || !amount}
         >
-          {approving ? "Approving..." : `Approve ${amount} USDT`}
+          {approving ? "Aprovando..." : `Aprovar ${amount} USDT`}
         </button>
       )}
 
@@ -227,7 +226,7 @@ function Donate() {
         className="donate-button" 
         disabled={!canDonate}
       >
-        {!hasMemberData ? "Maybe wallet not vinculated" : "Donate USDT"}
+        {!hasMemberData ? "Talvez a carteira não esteja vinculada" : "Doar USDT"}
       </button>
 
       <ModalWrapper onConfirm={confirmTransaction} />

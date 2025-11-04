@@ -1,4 +1,3 @@
-// components/GlobalErrorHandler.jsx
 import { useEffect, useState } from 'react';
 import { eventBus, EVENT_TYPES } from '../handlers/EventSystem';
 import EnhancedToast from './EnhancedToast';
@@ -41,7 +40,7 @@ export default function GlobalErrorHandler() {
     const unsubscribeTxStarted = eventBus.subscribe(
       EVENT_TYPES.TRANSACTION_STARTED,
       (data) => {
-        console.log('Transaction started:', data);
+        console.log('Transação iniciada:', data);
         // You can add analytics tracking here
       }
     );
@@ -49,7 +48,7 @@ export default function GlobalErrorHandler() {
     const unsubscribeTxSuccess = eventBus.subscribe(
       EVENT_TYPES.TRANSACTION_SUCCESS,
       (data) => {
-        console.log('Transaction succeeded:', data);
+        console.log('Transação bem-sucedida:', data);
         // Analytics tracking for successful transactions
       }
     );
@@ -57,7 +56,7 @@ export default function GlobalErrorHandler() {
     const unsubscribeTxError = eventBus.subscribe(
       EVENT_TYPES.TRANSACTION_ERROR,
       (data) => {
-        console.log('Transaction failed:', data);
+        console.log('Transação falhou:', data);
         // Error logging service integration
       }
     );

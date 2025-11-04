@@ -1,4 +1,3 @@
-// hooks/useToast.js
 import { useCallback } from 'react';
 import { eventSystem } from '../handlers/EventSystem';
 import { extractErrorMessage, getErrorType } from '../handlers/errorMapping';
@@ -34,7 +33,7 @@ export function useToast() {
   }, [showToast]);
 
   const handleContractError = useCallback((error, context = '') => {
-    console.error(`Error in ${context}:`, error);
+    console.error(`Erro em ${context}:`, error);
     showError(error);
   }, [showError]);
 

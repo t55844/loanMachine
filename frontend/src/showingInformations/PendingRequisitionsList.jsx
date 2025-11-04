@@ -45,7 +45,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
         free: freeBalance.toString()
       });
     } catch (err) {
-      console.error("Error loading donation balances:", err);
+      console.error("Erro ao carregar saldos de doação:", err);
       setDonationBalances({ total: "0", allocated: "0", free: "0" });
     }
   };
@@ -74,7 +74,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
               };
             } catch (contractErr) {
-              console.warn(`Could not get contract data for requisition ${requisitionId}:`, contractErr);
+              console.warn(`Não foi possível obter dados do contrato para requisição ${requisitionId}:`, contractErr);
               // Use GraphQL data as fallback
               contractData = {
                 borrower: graphReq.borrower,
@@ -96,7 +96,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 amount = ethers.utils.formatUnits(graphReq.amount.toString(), 6);
               }
             } catch (e) {
-              console.error("Error formatting amount:", e);
+              console.error("Erro ao formatar valor:", e);
               amount = "0";
             }
 
@@ -111,7 +111,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               coveringLendersCount: coveringLendersCount
             };
           } catch (err) {
-            console.error(`Error loading requisition ${graphReq.requisitionId}:`, err);
+            console.error(`Erro ao carregar requisição ${graphReq.requisitionId}:`, err);
             return null;
           }
         })
@@ -123,8 +123,8 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
       setRequisitions(pendingRequisitions);
     } catch (err) {
-      console.error("Error loading pending requisitions:", err);
-      showToast("Failed to load available requisitions");
+      console.error("Erro ao carregar requisições pendentes:", err);
+      showToast("Falha ao carregar requisições disponíveis");
     } finally {
       setLoading(false);
     }
@@ -138,7 +138,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       if (typeof val === 'string') return parseInt(val);
       return Number(val);
     } catch (e) {
-      console.warn("Error converting number:", val, e);
+      console.warn("Erro ao converter número:", val, e);
       return 0;
     }
   };
@@ -165,13 +165,13 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
   const getStatusText = (status) => {
     switch (status) {
-      case 0: return "Pending";
-      case 1: return "Partially Covered";
-      case 2: return "Fully Covered";
-      case 3: return "Active";
-      case 4: return "Repaid";
-      case 5: return "Defaulted";
-      default: return "Unknown";
+      case 0: return "Pendente";
+      case 1: return "Parcialmente Coberto";
+      case 2: return "Totalmente Coberto";
+      case 3: return "Ativo";
+      case 4: return "Quitado";
+      case 5: return "Inadimplente";
+      default: return "Desconhecido";
     }
   };
 
@@ -188,7 +188,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
   };
 
   const formatAddress = (address) => {
-    if (!address) return "Unknown";
+    if (!address) return "Desconhecido";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -215,7 +215,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     <div className="requsitionBlock">
       <Toast />
       
-      <h2>Available Loan Requisitions</h2>
+      <h2>Requisições de Empréstimo Disponíveis</h2>
 
       {/* Show warning if no member data */}
       {!member && account && (
@@ -227,7 +227,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
           border: '1px solid var(--warning-color)'
         }}>
           <p style={{ margin: 0, fontSize: '14px', color: 'var(--warning-color)' }}>
-            ⚠️ Member data not loaded. Please check your wallet connection.
+            ⚠️ Dados do membro não carregados. Por favor, verifique sua conexão com a carteira.
           </p>
         </div>
       )}
@@ -236,17 +236,17 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       <div className="stats-box">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center' }}>
           <div>
-            <strong>Total Donations:</strong><br />
+            <strong>Doações Totais:</strong><br />
             {formatUSDT(donationBalances.total)} USDT
           </div>
           <div>
-            <strong>In Coverage:</strong><br />
+            <strong>Em Cobertura:</strong><br />
             <span style={{ color: 'var(--text-secondary)' }}>
               {formatUSDT(donationBalances.allocated)} USDT
             </span>
           </div>
           <div>
-            <strong>Available:</strong><br />
+            <strong>Disponível:</strong><br />
             <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>
               {formatUSDT(donationBalances.free)} USDT
             </span>
@@ -261,15 +261,15 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
             fontSize: '0.9em',
             color: 'var(--accent-blue)'
           }}>
-            💡 All your donations are currently allocated to loan coverage
+            💡 Todas as suas doações estão atualmente alocadas para cobertura de empréstimos
           </div>
         )}
       </div>
 
       {loading ? (
-        <p>Loading available requisitions...</p>
+        <p>Carregando requisições disponíveis...</p>
       ) : requisitions.length === 0 ? (
-        <p>No available requisitions found.</p>
+        <p>Nenhuma requisição disponível encontrada.</p>
       ) : (
         <div className="requisitions-list">
           {requisitions.map((req) => (
@@ -282,7 +282,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               }}
             >
               <div className="requisition-header">
-                <h3>Requisition #{req.id}</h3>
+                <h3>Requisição #{req.id}</h3>
                 <span
                   className="status-badge"
                   style={{ color: getStatusColor(req.status) }}
@@ -292,11 +292,11 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               </div>
 
               <div className="requisition-details">
-                <div><strong>Amount:</strong> {formatUSDT(req.amount)} USDT</div>
-                <div><strong>Borrower:</strong> {formatAddress(req.borrower)}</div>
-                <div><strong>Coverage:</strong> {req.currentCoverage}% / {req.minimumCoverage}%</div>
-                <div><strong>Lenders:</strong> {req.coveringLendersCount}</div>
-                <div><strong>Created:</strong> {req.creationTime}</div>
+                <div><strong>Valor:</strong> {formatUSDT(req.amount)} USDT</div>
+                <div><strong>Mutuatário:</strong> {formatAddress(req.borrower)}</div>
+                <div><strong>Cobertura:</strong> {req.currentCoverage}% / {req.minimumCoverage}%</div>
+                <div><strong>Credores:</strong> {req.coveringLendersCount}</div>
+                <div><strong>Criada em:</strong> {req.creationTime}</div>
               </div>
 
               <div className="coverage-bar-container">

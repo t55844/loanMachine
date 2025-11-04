@@ -29,8 +29,8 @@ export default function WalletVerificationBanner() {
             // because 'isVerified' will become true.
             
         } catch (e) {
-            console.error("Error checking wallet verification:", e);
-            setError("Failed to verify wallet");
+            console.error("Erro ao verificar carteira:", e);
+            setError("Falha ao verificar carteira");
         } finally {
             setRetryLoading(false);
         }
@@ -55,16 +55,16 @@ export default function WalletVerificationBanner() {
             <div className="warning-content">
                 <div className="warning-icon">⚠️</div>
                 <div className="warning-text">
-                    <strong>Wallet Not Vinculated</strong>
-                    <span>This wallet is not linked to any member account. Some features may be limited.</span>
-                    {error && <span className="error-small">Verification failed: {error}</span>}
+                    <strong>Carteira Não Vinculada</strong>
+                    <span>Esta carteira não está vinculada a nenhuma conta de membro. Alguns recursos podem ser limitados.</span>
+                    {error && <span className="error-small">Falha na verificação: {error}</span>}
                 </div>
                 <button 
                     onClick={handleRetry} 
                     className="retry-button-banner"
                     disabled={retryLoading} // Use local retryLoading state
                 >
-                    {retryLoading ? "Checking..." : "Retry"}
+                    {retryLoading ? "Verificando..." : "Tentar Novamente"}
                 </button>
             </div>
         </div>

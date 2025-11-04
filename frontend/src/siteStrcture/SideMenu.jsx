@@ -1,4 +1,3 @@
-// SideMenu.jsx
 import { useState, useRef, useEffect } from "react";
 
 export default function SideMenu({ children, position = "left" }) {
@@ -62,7 +61,7 @@ export default function SideMenu({ children, position = "left" }) {
           className={`side-menu ${position} ${isVisible ? 'visible' : ''}`}
         >
           <div className="menu-header">
-            <h3>User Dashboard</h3>
+            <h3>Painel do Usuário</h3>
             <button className="close-button" onClick={toggleMenu}>
               ×
             </button>
