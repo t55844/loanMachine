@@ -214,6 +214,38 @@ export function Web3Provider({ children }) {
     }
   };
 
+const switchAccount = async (accountIndex) => {
+  if (connectionType !== 'local' || !provider || !(provider instanceof ethers.providers.JsonRpcProvider)) {
+    console.warn('Account switching is only supported for local node connections (JsonRpcProvider).');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  
+  try {
+    // We can assume provider is a JsonRpcProvider here due to the check above
+    const accounts = await provider.listAccounts(); 
+    if (accountIndex >= accounts.length) throw new Error('Invalid account index');
+    
+    const newAccount = accounts[accountIndex];
+    const signer = provider.getSigner(newAccount);
+    const network = await provider.getNetwork();
+    
+    // Re-setup contracts with the new signer/account
+    await setupContracts(provider, signer, newAccount, network.chainId, 'local'); 
+
+    // ✅ Crucial step: Save the newly selected account for auto-reconnect
+    localStorage.setItem('connectedWalletAddress', newAccount);
+
+  } catch (err) {
+    console.error('Error switching account:', err);
+    setError(`Failed to switch account: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
   // Disconnect
   const disconnect = () => {
     setAccount(null);
@@ -301,6 +333,7 @@ export function Web3Provider({ children }) {
     approveUSDT,
     getUSDTInfo,
     needsUSDTApproval,
+    switchAccount, 
   };
 
   return (

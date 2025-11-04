@@ -258,10 +258,9 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
         
         if (coverageAmount > 0) {
             // Move funds from 'donationsInCoverage' back to 'donations'
-            unchecked {
                 donationsInCoverage[lender] -= coverageAmount;
                 donations[lender] += coverageAmount;
-            }
+
             totalUncoveredAmount += coverageAmount;
 
             // Clear the coverage amount for this lender on this specific requisition
@@ -277,7 +276,9 @@ function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
     // 3. State Cleanup
     
 
-    loanRequisitionNumber[memberId] -= 1;
+    if (loanRequisitionNumber[memberId] > 0) {
+        loanRequisitionNumber[memberId] -= 1;
+    }
 
 
     // Mark the requisition as cancelled
