@@ -1,3 +1,7 @@
+
+to com preguiça de mexer e traduzir, mas como tudo ta em docker e tem um .bat que roda tudo automatico, só ignore o texto abaixo
+
+========================================================================================================================
 1. Blockchain Sector (Your Business Logic)
 
 This is your smart contract running on Ethereum (or local Hardhat/Anvil/Ganache).
