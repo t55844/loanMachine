@@ -1,32 +1,13 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@nomicfoundation/hardhat-ethers");
+// hardhat.config.js
+require('@nomiclabs/hardhat-ethers');
+require('dotenv').config();
 
-/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: {
-    version: "0.8.19",
-    settings: {
-      viaIR: true,
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
-  },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts"
-  },
+  solidity: "0.7.3",
   networks: {
-    localhost: {
-      url: "http://127.0.0.1:8545",
-      chainId: 31337,
-       mining: {
-        auto: true,
-        interval: 5000 // Mine block every 5 seconds instead of instantly
-      }
+    sepolia: {
+      url: process.env.ALCHEMY_API_URL,
+      accounts: [process.env.PRIVATE_KEY]
     }
   }
 };
