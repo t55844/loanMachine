@@ -25,7 +25,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       const requisitionDetails = await fetchBorrowerRequisitions(account);
       setRequisitions(requisitionDetails);
     } catch (err) {
-      console.error("Erro ao carregar requisições:", err);
+      //console.error("Erro ao carregar requisições:", err);
       setError("Falha ao carregar requisições de empréstimo");
     } finally {
       setLoading(false);

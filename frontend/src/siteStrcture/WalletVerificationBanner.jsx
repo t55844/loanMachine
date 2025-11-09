@@ -29,7 +29,7 @@ export default function WalletVerificationBanner() {
             // because 'isVerified' will become true.
             
         } catch (e) {
-            console.error("Erro ao verificar carteira:", e);
+            //console.error("Erro ao verificar carteira:", e);
             setError("Falha ao verificar carteira");
         } finally {
             setRetryLoading(false);

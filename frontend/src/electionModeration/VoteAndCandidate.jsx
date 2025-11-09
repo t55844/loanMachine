@@ -48,7 +48,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         setElectionInfo(null);
       }
     } catch (err) {
-      console.error('Erro ao carregar informações da eleição:', err);
+      //console.error('Erro ao carregar informações da eleição:', err);
       await showError(err); // UPDATED: Use showError
     }
   };
@@ -61,7 +61,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
       
       }
     } catch (err) {
-      console.error('Erro ao carregar última eleição:', err);
+      //console.error('Erro ao carregar última eleição:', err);
       await showError(err); // UPDATED: Use showError
     }
   };
@@ -96,7 +96,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
       setSelectedCandidate('');
       loadElectionInfo();
     } catch (err) {
-      console.error('Erro ao votar:', err);
+      //console.error('Erro ao votar:', err);
       await showError(err); // UPDATED: Use showError
     } finally {
       setIsLoading(false);
@@ -123,7 +123,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
       setNewCandidateId('');
       loadElectionInfo();
     } catch (err) {
-      console.error('Erro ao adicionar candidato:', err);
+      //console.error('Erro ao adicionar candidato:', err);
       await showError(err); // UPDATED: Use showError
     } finally {
       setIsAddingCandidate(false);

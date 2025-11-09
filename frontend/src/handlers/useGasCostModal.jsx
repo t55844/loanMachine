@@ -28,7 +28,7 @@ export function useGasCostModal() {
       } catch (error) {
         // Error handling is done by the onConfirm function itself
         // No need to show modal for errors since you have toast notifications
-        console.error("Erro na transação:", error);
+        //console.error("Erro na transação:", error);
       }
     };
 

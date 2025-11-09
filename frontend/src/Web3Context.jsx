@@ -70,7 +70,7 @@ export function Web3Provider({ children }) {
         return noMemberData;
       }
     } catch (err) {
-      console.error('Error fetching member data:', err);
+      //console.error('Error fetching member data:', err);
       const errorMemberData = {
         id: null, 
         memberId: null, 
@@ -146,23 +146,23 @@ export function Web3Provider({ children }) {
         const owner = await reputationSystemContract.owner();
         const signerAddress = await newSigner.getAddress();
         if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
-          console.log('Skipping authorization: Not owner wallet.');
+          //console.log('Skipping authorization: Not owner wallet.');
           return;
         }
 
         // Check if LoanMachine is already authorized
         const isAuthorized = await reputationSystemContract.authorizedCallers(CONTRACT_ADDRESS);
         if (isAuthorized) {
-          console.log('LoanMachine already authorized.');
+          //console.log('LoanMachine already authorized.');
           return;
         }
 
-        console.log('Authorizing LoanMachine as caller...');
+        //console.log('Authorizing LoanMachine as caller...');
         const tx = await reputationSystemContract.setAuthorizedCaller(CONTRACT_ADDRESS, true);
         const receipt = await tx.wait();
-        console.log('Authorization successful. Tx hash:', receipt.transactionHash);
+        //console.log('Authorization successful. Tx hash:', receipt.transactionHash);
       } catch (err) {
-        console.error('Auto-authorization skipped due to error:', err.message);
+        //console.error('Auto-authorization skipped due to error:', err.message);
         // Don't throw – keep connection flowing
       }
     };
@@ -218,7 +218,7 @@ export function Web3Provider({ children }) {
       });
       window.ethereum.on('chainChanged', () => window.location.reload());
     } catch (err) {
-      console.error('Error connecting to external wallet:', err);
+      //console.error('Error connecting to external wallet:', err);
       setError(`Failed to connect: ${err.message}`);
       setLoading(false);
     }
@@ -244,7 +244,7 @@ export function Web3Provider({ children }) {
       const signer = localProvider.getSigner(finalAccount);
       await setupContracts(localProvider, signer, finalAccount, network.chainId, 'local'); 
     } catch (err) {
-      console.error('Error connecting to local node:', err);
+      //console.error('Error connecting to local node:', err);
       setError(`Failed to connect to local node: ${err.message}`);
       setLoading(false);
     }
@@ -273,7 +273,7 @@ export function Web3Provider({ children }) {
       localStorage.setItem('connectedWalletAddress', demoAddress);
       localStorage.setItem('connectedWalletType', 'demo');
     } catch (err) {
-      console.error('Error connecting with private key:', err);
+      //console.error('Error connecting with private key:', err);
       setError(`Failed to connect with private key: ${err.message}`);
       setLoading(false);
     }
@@ -281,7 +281,7 @@ export function Web3Provider({ children }) {
 
   const switchAccount = async (accountIndex) => {
     if (connectionType !== 'local' || !provider || !(provider instanceof ethers.providers.JsonRpcProvider)) {
-      console.warn('Account switching is only supported for local node connections (JsonRpcProvider).');
+      //console.warn('Account switching is only supported for local node connections (JsonRpcProvider).');
       return;
     }
 
@@ -304,7 +304,7 @@ export function Web3Provider({ children }) {
       localStorage.setItem('connectedWalletAddress', newAccount);
 
     } catch (err) {
-      console.error('Error switching account:', err);
+      //console.error('Error switching account:', err);
       setError(`Failed to switch account: ${err.message}`);
     } finally {
       setLoading(false);
@@ -343,7 +343,7 @@ export function Web3Provider({ children }) {
       const balance = await usdtContract.balanceOf(targetAddress);
       return ethers.utils.formatUnits(balance, 6);
     } catch (err) {
-      console.warn("Could not fetch USDT balance", err.message);
+      //console.warn("Could not fetch USDT balance", err.message);
       return '0';
     }
   };
@@ -365,7 +365,7 @@ export function Web3Provider({ children }) {
       ]);
       return { name, symbol, decimals, address: usdtContract.address };
     } catch(err) {
-      console.warn("Could not fetch USDT info", err.message);
+      //console.warn("Could not fetch USDT info", err.message);
       return { name: 'MockUSDT', symbol: 'mUSDT', decimals: 6, address: MOCK_USDT_ADDRESS };
     }
   };
@@ -377,7 +377,7 @@ export function Web3Provider({ children }) {
       const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
       return currentAllowance.lt(amountInWei);
     } catch (err) {
-      console.error('Error checking allowance:', err);
+      //console.error('Error checking allowance:', err);
       return true;
     }
   };

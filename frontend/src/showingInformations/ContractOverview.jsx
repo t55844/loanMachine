@@ -41,7 +41,7 @@ export default function ContractOverview() {
         setLastTxs(mapped);
 
       } catch (err) {
-        console.error("Erro de carregamento do ContractOverview:", err);
+        //console.error("Erro de carregamento do ContractOverview:", err);
         if (mounted) setError("Erro ao carregar estatísticas do contrato");
         
         // Set empty stats if there's an error

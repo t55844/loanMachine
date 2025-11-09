@@ -40,7 +40,7 @@ export default function GlobalErrorHandler() {
     const unsubscribeTxStarted = eventBus.subscribe(
       EVENT_TYPES.TRANSACTION_STARTED,
       (data) => {
-        console.log('Transação iniciada:', data);
+        //console.log('Transação iniciada:', data);
         // You can add analytics tracking here
       }
     );
@@ -48,7 +48,7 @@ export default function GlobalErrorHandler() {
     const unsubscribeTxSuccess = eventBus.subscribe(
       EVENT_TYPES.TRANSACTION_SUCCESS,
       (data) => {
-        console.log('Transação bem-sucedida:', data);
+        //console.log('Transação bem-sucedida:', data);
         // Analytics tracking for successful transactions
       }
     );
@@ -56,7 +56,7 @@ export default function GlobalErrorHandler() {
     const unsubscribeTxError = eventBus.subscribe(
       EVENT_TYPES.TRANSACTION_ERROR,
       (data) => {
-        console.log('Transação falhou:', data);
+        //console.log('Transação falhou:', data);
         // Error logging service integration
       }
     );

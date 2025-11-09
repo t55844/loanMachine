@@ -118,7 +118,7 @@ function findNestedData(obj) {
 }
 
 export async function decodeContractError(provider, iface, error) {
-  console.log('Decoding error:', error);
+  //console.log('Decoding error:', error);
 
   let revertData = findNestedData(error) || error.data;
 
@@ -140,7 +140,7 @@ export async function decodeContractError(provider, iface, error) {
         }, error.receipt.blockNumber - 1);
       } catch (replayErr) {
         revertData = findNestedData(replayErr) || replayErr.data;
-        console.log('Replay revert data:', revertData);
+        //console.log('Replay revert data:', revertData);
       }
     }
   }

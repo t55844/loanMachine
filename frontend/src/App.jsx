@@ -49,7 +49,7 @@ export default function App() {
     try {
       const tx = await contract.performPeriodicDebtCheck(10);
       await tx.wait();
-      console.log("Verificação de dívida concluída com sucesso");
+      //console.log("Verificação de dívida concluída com sucesso");
     } catch (error) {
       await showError(error); // UPDATED: Use showError for proper handling
     }

@@ -40,7 +40,7 @@ function Repay({ account, contract }) {
       alert(`Pagamento de ${amount} ETH bem-sucedido!`);
       setAmount("");
     } catch (err) {
-      console.error(err);
+      //console.error(err);
       alert("Erro ao processar pagamento");
       throw err;
     }

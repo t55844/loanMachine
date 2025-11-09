@@ -58,7 +58,7 @@ const ModeratorPanel = () => {
       setDebugInfo(moderatorStatus ? '✓ Acesso de moderador concedido' : '✗ Não é um moderador');
       
     } catch (error) {
-      console.error('Erro ao verificar status de moderador:', error);
+      //console.error('Erro ao verificar status de moderador:', error);
       setDebugInfo(`Erro: ${error.message}`);
       setIsModerator(false);
     }
@@ -116,7 +116,7 @@ const ModeratorPanel = () => {
             });
           }
         } catch (error) {
-          console.error(`Erro consultando eventos ${eventFilter.name}:`, error);
+          //console.error(`Erro consultando eventos ${eventFilter.name}:`, error);
         }
       }
 
@@ -126,7 +126,7 @@ const ModeratorPanel = () => {
       return transactions;
 
     } catch (error) {
-      console.error('Erro ao obter eventos da blockchain:', error);
+      //console.error('Erro ao obter eventos da blockchain:', error);
       setMessage('Erro ao consultar eventos da blockchain');
       return [];
     } finally {
@@ -245,7 +245,7 @@ const ModeratorPanel = () => {
     setMessage(`Exportadas ${transactions.length} transações`);
     
   } catch (error) {
-    console.error('Erro ao exportar:', error);
+    //console.error('Erro ao exportar:', error);
     setMessage('Erro ao exportar dados');
   } finally {
     setExporting(false);

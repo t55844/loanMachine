@@ -39,7 +39,7 @@ function Donate() {
       const balance = await getUSDTBalance();
       setUsdtBalance(balance || "0");
     } catch (err) {
-      console.error("❌ Erro ao buscar saldo USDT:", err);
+      //console.error("❌ Erro ao buscar saldo USDT:", err);
       setUsdtBalance("0");
       showError("Falha ao carregar saldo USDT");
     } finally {
@@ -63,7 +63,7 @@ function Donate() {
       const approvalNeeded = await needsUSDTApproval(amount);
       setNeedsApproval(approvalNeeded);
     } catch (err) {
-      console.error("Erro ao verificar aprovação:", err);
+      //console.error("Erro ao verificar aprovação:", err);
     }
   }
 

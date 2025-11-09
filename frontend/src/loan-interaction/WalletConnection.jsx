@@ -50,7 +50,7 @@ const WalletConnection = ({ onContinue }) => {
           const balance = await getUSDTBalance();
           setUsdtBalance(balance);
         } catch (err) {
-          console.error('Erro ao buscar dados:', err);
+          //console.error('Erro ao buscar dados:', err);
           await showError(err); // UPDATED: Await showError
         }
       }
@@ -77,7 +77,7 @@ const WalletConnection = ({ onContinue }) => {
       
       showSuccess(`Sucesso! ${VITE_VALUE_TO_MINT} USDT adicionados.`);
     } catch (err) {
-      console.error('Erro no faucet:', err);
+      //console.error('Erro no faucet:', err);
       await showError(err); // UPDATED: Await
     } finally {
       setFaucetLoading(false);

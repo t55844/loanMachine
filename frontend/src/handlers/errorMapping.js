@@ -13,7 +13,7 @@ export async function extractErrorMessage(error, provider, iface) {
   }
 
   if (!provider || !iface) {
-    console.warn('Provider or interface missing for decoding');
+    //console.warn('Provider or interface missing for decoding');
     return error.message || 'Erro inesperado';
   }
 
@@ -62,4 +62,4 @@ export function getKnownErrorNames() {
   return Object.keys(ERROR_MESSAGES);
 }
 
-console.log('Error mapping updated with decoder');
+//console.log('Error mapping updated with decoder');

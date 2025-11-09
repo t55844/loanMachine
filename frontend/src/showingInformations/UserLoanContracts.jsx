@@ -64,7 +64,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
       setActiveLoans(formattedLoans);
     } catch (err) {
-      console.error("Erro ao carregar empréstimos do usuário:", err);
+      //console.error("Erro ao carregar empréstimos do usuário:", err);
       await handleContractError(err, "loadUserActiveLoans"); // UPDATED: Await handleContractError
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         [requisitionId]: approvalNeeded
       }));
     } catch (err) {
-      console.error("Erro ao verificar aprovação:", err);
+      //console.error("Erro ao verificar aprovação:", err);
     }
   };
 
@@ -110,7 +110,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       }, 2000);
       
     } catch (err) {
-      console.error("Erro ao aprovar USDT:", err);
+      //console.error("Erro ao aprovar USDT:", err);
       await handleContractError(err, "approveUSDT"); // UPDATED: Await
       
       // Re-check approval status in case of error
@@ -141,7 +141,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         return;
       }
     } catch (err) {
-      console.error("Erro ao verificar disponibilidade de pagamento:", err);
+      //console.error("Erro ao verificar disponibilidade de pagamento:", err);
       showToast("Erro ao verificar disponibilidade de pagamento", "error");
       return;
     }
@@ -159,7 +159,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         return;
       }
     } catch (err) {
-      console.error("Erro na verificação final de aprovação:", err);
+      //console.error("Erro na verificação final de aprovação:", err);
       
       // If there's an error checking approval, assume approval is needed
       showToast("Erro ao verificar aprovação de USDT. Por favor, tente aprovar novamente.", "error");
@@ -204,7 +204,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         onLoanUpdate();
       }
     } catch (err) {
-      console.error("Transação falhou:", err);
+      //console.error("Transação falhou:", err);
       
       if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
         setNeedsApproval(prev => ({

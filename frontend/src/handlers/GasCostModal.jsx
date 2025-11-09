@@ -45,7 +45,7 @@ function GasCostModal({
 
       setGasCost(gasCostEth);
     } catch (err) {
-      console.error("Erro de estimativa de gas:", err);
+      //console.error("Erro de estimativa de gas:", err);
       
       // NEW: Await the decoded message
       const userFriendlyError = await extractErrorMessage(err, provider, contract.interface);

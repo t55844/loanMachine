@@ -37,7 +37,7 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
       setOpponentId('');
       if (onElectionCreated) onElectionCreated();
     } catch (err) {
-      console.error('Erro ao criar eleição:', err);
+      //console.error('Erro ao criar eleição:', err);
       await showError(err); // UPDATED: Use showError
     } finally {
       setIsLoading(false);

@@ -41,7 +41,7 @@ function Withdraw() {
       setUsdtBalance(balance || "0");
       setWithdrawableBalance(withdrawable || "0");
     } catch (err) {
-      console.error("❌ Erro ao buscar saldos:", err);
+      //console.error("❌ Erro ao buscar saldos:", err);
       setUsdtBalance("0");
       setWithdrawableBalance("0");
       showError("Falha ao carregar saldos");
@@ -57,7 +57,7 @@ function Withdraw() {
       const balance = await contract.getWithdrawableBalance(account);
       return ethers.utils.formatUnits(balance, 6); // USDT has 6 decimals
     } catch (err) {
-      console.error("Erro ao buscar saldo sacável:", err);
+      //console.error("Erro ao buscar saldo sacável:", err);
       return "0";
     }
   }

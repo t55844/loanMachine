@@ -48,7 +48,7 @@ export default function UserStatus() {
       const stats = await fetchUserStats(account);
       setUserData(stats);
     } catch (e) {
-      console.error("Erro ao carregar dados do usuário:", e);
+      //console.error("Erro ao carregar dados do usuário:", e);
       setError("Falha ao carregar dados do usuário");
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function UserStatus() {
       const balance = await getUSDTBalance();
       setUsdtBalance(balance);
     } catch (e) {
-      console.error("Erro ao carregar saldo USDT:", e);
+      //console.error("Erro ao carregar saldo USDT:", e);
     }
   }
 

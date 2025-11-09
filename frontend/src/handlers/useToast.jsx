@@ -33,7 +33,7 @@ export function useToast(provider, contract) { // NEW: Accept provider/contract 
 
   // UPDATED: Async, awaits decode
   const handleContractError = useCallback(async (error, context = '') => {
-    console.error(`Erro em ${context}:`, error);
+    //console.error(`Erro em ${context}:`, error);
     await showError(error); // Awaits inside showError
   }, [showError]);
 

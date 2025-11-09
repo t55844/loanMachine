@@ -46,7 +46,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
         free: freeBalance.toString()
       });
     } catch (err) {
-      console.error("Erro ao carregar saldos de doação:", err);
+      //console.error("Erro ao carregar saldos de doação:", err);
       await handleContractError(err, "loadUserDonationBalances"); // UPDATED: Await
       setDonationBalances({ total: "0", allocated: "0", free: "0" });
     }
@@ -76,7 +76,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
               };
             } catch (contractErr) {
-              console.warn(`Não foi possível obter dados do contrato para requisição ${requisitionId}:`, contractErr);
+              //console.warn(`Não foi possível obter dados do contrato para requisição ${requisitionId}:`, contractErr);
               // Use GraphQL data as fallback
               contractData = {
                 borrower: graphReq.borrower,
@@ -98,7 +98,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 amount = ethers.utils.formatUnits(graphReq.amount.toString(), 6);
               }
             } catch (e) {
-              console.error("Erro ao formatar valor:", e);
+              //console.error("Erro ao formatar valor:", e);
               amount = "0";
             }
 
@@ -113,7 +113,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               coveringLendersCount: coveringLendersCount
             };
           } catch (err) {
-            console.error(`Erro ao carregar requisição ${graphReq.requisitionId}:`, err);
+            //console.error(`Erro ao carregar requisição ${graphReq.requisitionId}:`, err);
             return null;
           }
         })
@@ -125,7 +125,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
       setRequisitions(pendingRequisitions);
     } catch (err) {
-      console.error("Erro ao carregar requisições pendentes:", err);
+      //console.error("Erro ao carregar requisições pendentes:", err);
       showToast("Falha ao carregar requisições disponíveis");
     } finally {
       setLoading(false);
@@ -140,7 +140,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       if (typeof val === 'string') return parseInt(val);
       return Number(val);
     } catch (e) {
-      console.warn("Erro ao converter número:", val, e);
+      //console.warn("Erro ao converter número:", val, e);
       return 0;
     }
   };

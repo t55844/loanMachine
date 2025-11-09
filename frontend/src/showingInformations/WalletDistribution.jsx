@@ -43,7 +43,7 @@ export default function WalletDistribution() {
         setDonationsData(donationsChartData);
         setBorrowingsData(borrowingsChartData);
       } catch (err) {
-        console.error("Erro ao buscar dados:", err);
+        //console.error("Erro ao buscar dados:", err);
       }
     }
     loadData();

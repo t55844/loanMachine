@@ -55,7 +55,7 @@ export default function TransactionPendingRequisition({
       const approvalNeeded = await needsUSDTApproval(coverageAmount);
       return approvalNeeded;
     } catch (err) {
-      console.error("Erro ao verificar aprovação:", err);
+      //console.error("Erro ao verificar aprovação:", err);
       return true;
     }
   };
@@ -145,11 +145,10 @@ export default function TransactionPendingRequisition({
 
 
     } catch (err) {
-      console.error("Erro durante a validação do membro:", err);
+      //console.error("Erro durante a validação do membro:", err);
       showError("Erro ao verificar registro do membro. Por favor, tente novamente.");
       return;
     }
-console.log('memberid',requisitionIdUint32, percentageUint32, memberIdUint32)
 
     showTransactionModal(
       {
