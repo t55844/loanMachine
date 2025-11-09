@@ -1,6 +1,8 @@
+// Updated ModeratorPanel.jsx - Removed getHashesFromGraphQL, import fetchEventHashes from query file
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { useWeb3 } from '../Web3Context';
+import { fetchEventHashes } from '../graphql-frontend-query'; // Adjust path to your query file
 
 const ModeratorPanel = () => {
   const [isModerator, setIsModerator] = useState(false);
@@ -12,7 +14,8 @@ const ModeratorPanel = () => {
   const [filters, setFilters] = useState({
     startBlock: 0,
     endBlock: 'latest',
-    transactionTypes: ['ALL']
+    transactionTypes: ['ALL'],
+    source: 'graphql_hashes' // Default para GraphQL hashes + chain details (híbrido, eficiente)
   });
 
   const { 
@@ -64,21 +67,63 @@ const ModeratorPanel = () => {
     }
   };
 
-  // Get events from blockchain
-  const getBlockchainEvents = async () => {
+  // Fetch details from chain using hashes
+  const fetchDetailsFromChain = async (hashMap) => {
+    if (!contract || !provider) {
+      setMessage('Erro: Contrato ou provedor não disponível');
+      return [];
+    }
+
+    const events = [];
+    const uniqueHashes = new Set(Object.values(hashMap).flat().map(item => item.transactionHash));
+
+    for (const hash of uniqueHashes) {
+      try {
+        const receipt = await provider.getTransactionReceipt(hash);
+        if (!receipt) continue;
+
+        const block = await provider.getBlock(receipt.blockNumber);
+        const timestamp = block.timestamp;
+
+        for (const log of receipt.logs) {
+          if (log.address.toLowerCase() !== contract.address.toLowerCase()) continue;
+
+          let parsedLog;
+          try {
+            parsedLog = contract.interface.parseLog(log);
+          } catch (e) {
+            continue; // Log não é de um evento conhecido
+          }
+
+          if (!parsedLog) continue;
+
+          const type = parsedLog.name;
+          if (!Object.keys(hashMap).includes(type)) continue; // Não é um tipo selecionado
+
+          events.push({
+            type,
+            transactionHash: hash,
+            blockNumber: receipt.blockNumber,
+            timestamp,
+            args: parsedLog.args
+          });
+        }
+      } catch (error) {
+        //console.error(`Erro ao obter receipt para hash ${hash}:`, error);
+      }
+    }
+
+    return events;
+  };
+
+  // Get events from blockchain with pagination
+  const getFromBlockchain = async (fromBlock, toBlock, selectedTypes) => {
     if (!contract || !provider) {
       setMessage('Erro: Contrato ou provedor não disponível');
       return [];
     }
 
     try {
-      setLoading(true);
-      setMessage('Consultando eventos da blockchain...');
-      
-      const events = [];
-      const currentBlock = await provider.getBlockNumber();
-      const fromBlock = filters.startBlock || Math.max(0, currentBlock - 10000);
-
       const eventFilters = [
         { name: 'Donated', filter: contract.filters.Donated() },
         { name: 'Withdrawn', filter: contract.filters.Withdrawn() },
@@ -91,47 +136,83 @@ const ModeratorPanel = () => {
         { name: 'LoanCompleted', filter: contract.filters.LoanCompleted() }
       ];
 
-      const selectedTypes = filters.transactionTypes.includes('ALL') 
-        ? availableTransactionTypes.filter(t => t !== 'ALL') 
-        : filters.transactionTypes;
-
       const eventFiltersToQuery = eventFilters.filter(ef => selectedTypes.includes(ef.name));
 
-      for (const eventFilter of eventFiltersToQuery) {
-        try {
-          const eventLogs = await contract.queryFilter(
-            eventFilter.filter, 
-            fromBlock, 
-            filters.endBlock === 'latest' ? currentBlock : filters.endBlock
-          );
-          
-          for (const event of eventLogs) {
-            const block = await event.getBlock();
-            events.push({
-              type: eventFilter.name,
-              transactionHash: event.transactionHash,
-              blockNumber: event.blockNumber,
-              timestamp: block.timestamp,
-              args: event.args
-            });
+      const batchSize = 10;
+      const events = [];
+
+      for (let start = fromBlock; start <= toBlock; start += batchSize) {
+        const end = Math.min(start + batchSize - 1, toBlock);
+        setMessage(`Consultando blocos ${start} a ${end}... (${Math.round((start / toBlock) * 100)}%)`);
+
+        for (const eventFilter of eventFiltersToQuery) {
+          try {
+            const eventLogs = await contract.queryFilter(eventFilter.filter, start, end);
+            for (const event of eventLogs) {
+              const block = await event.getBlock();
+              events.push({
+                type: eventFilter.name,
+                transactionHash: event.transactionHash,
+                blockNumber: event.blockNumber,
+                timestamp: block.timestamp,
+                args: event.args
+              });
+            }
+          } catch (error) {
+            //console.error(`Erro consultando eventos ${eventFilter.name} em batch ${start}-${end}:`, error);
           }
-        } catch (error) {
-          //console.error(`Erro consultando eventos ${eventFilter.name}:`, error);
         }
       }
 
-      const transactions = processEventsIntoTransactions(events);
-      setTransactionHistory(transactions);
-      setMessage(`Encontradas ${transactions.length} transações`);
-      return transactions;
-
+      return events;
     } catch (error) {
       //console.error('Erro ao obter eventos da blockchain:', error);
       setMessage('Erro ao consultar eventos da blockchain');
       return [];
-    } finally {
-      setLoading(false);
     }
+  };
+
+  // Load events based on source
+  const loadEvents = async () => {
+    setLoading(true);
+    setMessage('Consultando eventos...');
+
+    let currentBlock = 0;
+    let startTime = 0;
+    let endTime = Math.floor(Date.now() / 1000);
+
+    if (provider) {
+      currentBlock = await provider.getBlockNumber();
+      const fromBlockNum = filters.startBlock || Math.max(0, currentBlock - 10000);
+      const toBlockNum = filters.endBlock === 'latest' ? currentBlock : Number(filters.endBlock);
+
+      const startBlockInfo = await provider.getBlock(fromBlockNum);
+      startTime = startBlockInfo ? startBlockInfo.timestamp : 0;
+
+      const endBlockInfo = await provider.getBlock(toBlockNum);
+      endTime = endBlockInfo ? endBlockInfo.timestamp : endTime;
+    }
+
+    const selectedTypes = filters.transactionTypes.includes('ALL') 
+      ? availableTransactionTypes.filter(t => t !== 'ALL') 
+      : filters.transactionTypes;
+
+    let events = [];
+    if (filters.source === 'blockchain') {
+      const fromBlockNum = filters.startBlock || Math.max(0, currentBlock - 10000);
+      const toBlockNum = filters.endBlock === 'latest' ? currentBlock : Number(filters.endBlock);
+      events = await getFromBlockchain(fromBlockNum, toBlockNum, selectedTypes);
+    } else {
+      // Híbrido: hashes do GraphQL, details da chain
+      const hashMap = await fetchEventHashes(selectedTypes, startTime, endTime);
+      events = await fetchDetailsFromChain(hashMap);
+    }
+
+    const transactions = processEventsIntoTransactions(events);
+    setTransactionHistory(transactions);
+    setMessage(`Encontradas ${transactions.length} transações`);
+    setLoading(false);
+    return transactions;
   };
 
   // Process events into transaction format
@@ -146,19 +227,23 @@ const ModeratorPanel = () => {
 
       switch (event.type) {
         case 'Donated':
-          return { ...base, address: event.args.donor, amount: event.args.amount.toString() };
+          return { ...base, address: event.args.donor, amount: event.args.amount?.toString() };
         case 'Withdrawn':
-          return { ...base, address: event.args.donor, amount: event.args.amount.toString() };
+          return { ...base, address: event.args.donor, amount: event.args.amount?.toString() };
         case 'Borrowed':
-          return { ...base, address: event.args.borrower, amount: event.args.amount.toString() };
+          return { ...base, address: event.args.borrower, amount: event.args.amount?.toString() };
         case 'Repaid':
-          return { ...base, address: event.args.borrower, amount: event.args.amount.toString() };
+          return { ...base, address: event.args.borrower, amount: event.args.amount?.toString() };
         case 'LoanRequisitionCreatedCancelled':
-          return { ...base, address: event.args.borrower, amount: event.args.amount.toString() };
+          return { ...base, address: event.args.borrower, amount: event.args.amount?.toString() };
         case 'LoanCovered':
-          return { ...base, address: event.args.lender, amount: event.args.coverageAmount.toString() };
+          return { ...base, address: event.args.lender, amount: event.args.coverageAmount?.toString() };
+        case 'LoanFunded':
+          return { ...base, requisitionId: event.args.requisitionId?.toString() };
         case 'LenderRepaid':
-          return { ...base, address: event.args.lender, amount: event.args.amount.toString() };
+          return { ...base, address: event.args.lender, amount: event.args.amount?.toString() };
+        case 'LoanCompleted':
+          return { ...base, requisitionId: event.args.requisitionId?.toString() };
         default:
           return base;
       }
@@ -176,81 +261,79 @@ const ModeratorPanel = () => {
 
   // Export functions
   const exportToFile = async (format = 'csv') => {
-  setExporting(true);
-  setMessage(`Exportando como ${format.toUpperCase()}...`);
+    setExporting(true);
+    setMessage(`Exportando como ${format.toUpperCase()}...`);
 
-  try {
-    let transactions = transactionHistory;
-    
-    if (transactions.length === 0) {
-      transactions = await getBlockchainEvents();
-    }
-
-    if (transactions.length === 0) {
-      setMessage('Nenhuma transação encontrada para exportar');
-      return;
-    }
-
-    let content, mimeType, extension;
-    
-    if (format === 'json') {
-      content = JSON.stringify(transactions, null, 2);
-      mimeType = 'application/json';
-      extension = 'json';
-    } else if (format === 'tsv') {
-      // Tab-separated for better Excel compatibility
-      const headers = ['Type', 'Transaction Hash', 'Block Number', 'Timestamp', 'Address', 'Amount'];
-      const rows = transactions.map(transaction => [
-        transaction.type,
-        transaction.transactionHash,
-        transaction.blockNumber,
-        transaction.timestamp,
-        transaction.address || 'N/A',
-        transaction.amount || '0'
-      ]);
-      content = [headers, ...rows].map(row => row.join('\t')).join('\n');
-      mimeType = 'text/tab-separated-values';
-      extension = 'tsv';
-    } else {
-      // Improved CSV with BOM for Excel
-      const headers = ['Type', 'Transaction Hash', 'Block Number', 'Timestamp', 'Address', 'Amount'];
-      const csvRows = transactions.map(transaction => [
-        transaction.type,
-        `"${transaction.transactionHash}"`,
-        transaction.blockNumber,
-        `"${transaction.timestamp}"`,
-        transaction.address || 'N/A',
-        transaction.amount || '0'
-      ]);
+    try {
+      let transactions = transactionHistory;
       
-      content = '\uFEFF' + [
-        headers.join(','),
-        ...csvRows.map(row => row.join(','))
-      ].join('\n');
+      if (transactions.length === 0) {
+        transactions = await loadEvents();
+      }
+
+      if (transactions.length === 0) {
+        setMessage('Nenhuma transação encontrada para exportar');
+        return;
+      }
+
+      let content, mimeType, extension;
       
-      mimeType = 'text/csv;charset=utf-8;';
-      extension = 'csv';
+      if (format === 'json') {
+        content = JSON.stringify(transactions, null, 2);
+        mimeType = 'application/json';
+        extension = 'json';
+      } else if (format === 'tsv') {
+        const headers = ['Type', 'Transaction Hash', 'Block Number', 'Timestamp', 'Address', 'Amount'];
+        const rows = transactions.map(transaction => [
+          transaction.type,
+          transaction.transactionHash,
+          transaction.blockNumber,
+          transaction.timestamp,
+          transaction.address || 'N/A',
+          transaction.amount || '0'
+        ]);
+        content = [headers, ...rows].map(row => row.join('\t')).join('\n');
+        mimeType = 'text/tab-separated-values';
+        extension = 'tsv';
+      } else {
+        const headers = ['Type', 'Transaction Hash', 'Block Number', 'Timestamp', 'Address', 'Amount'];
+        const csvRows = transactions.map(transaction => [
+          transaction.type,
+          `"${transaction.transactionHash}"`,
+          transaction.blockNumber,
+          `"${transaction.timestamp}"`,
+          transaction.address || 'N/A',
+          transaction.amount || '0'
+        ]);
+        
+        content = '\uFEFF' + [
+          headers.join(','),
+          ...csvRows.map(row => row.join(','))
+        ].join('\n');
+        
+        mimeType = 'text/csv;charset=utf-8;';
+        extension = 'csv';
+      }
+
+      const blob = new Blob([content], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `transactions_${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setMessage(`Exportadas ${transactions.length} transações`);
+      
+    } catch (error) {
+      //console.error('Erro ao exportar:', error);
+      setMessage('Erro ao exportar dados');
+    } finally {
+      setExporting(false);
     }
-
-    const blob = new Blob([content], { type: mimeType });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `transactions_${Date.now()}.${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    setMessage(`Exportadas ${transactions.length} transações`);
-    
-  } catch (error) {
-    //console.error('Erro ao exportar:', error);
-    setMessage('Erro ao exportar dados');
-  } finally {
-    setExporting(false);
-  }
-};
+  };
 
   // If not moderator, show access panel
   if (!isModerator) {
@@ -328,6 +411,18 @@ const ModeratorPanel = () => {
           </div>
 
           <div className="filter-group">
+            <label>Fonte de Dados:</label>
+            <select 
+              value={filters.source}
+              onChange={(e) => setFilters({...filters, source: e.target.value})}
+              className="wallet-input"
+            >
+              <option value="graphql_hashes">GraphQL Hashes + Chain (Rápido)</option>
+              <option value="blockchain">Blockchain Completa (Pode demorar)</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
             <label>Tipos de Evento:</label>
             <select 
               multiple
@@ -349,7 +444,7 @@ const ModeratorPanel = () => {
       {/* Actions */}
       <div className="wallet-input-row">
         <button 
-          onClick={getBlockchainEvents}
+          onClick={loadEvents}
           disabled={loading}
           className="wallet-button"
         >
@@ -409,7 +504,6 @@ const ModeratorPanel = () => {
           <div className="transactions-box">
             <h4>Pré-visualização (Primeiros 10)</h4>
             
-            {/* Simple list using existing contract-item style */}
             {transactionHistory.slice(0, 10).map((transaction, index) => (
               <div key={index} className="contract-item">
                 <div className="contract-header">

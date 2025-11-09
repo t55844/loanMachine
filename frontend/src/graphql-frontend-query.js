@@ -1,3 +1,4 @@
+// Updated graphql-frontend-query.js - Fixed entity names with mapping in fetchEventHashes
 import { request, GraphQLClient } from "graphql-request";
 
 const GRAPHQL_URL = import.meta.env.VITE_SUBGRAPH_URL;
@@ -48,7 +49,7 @@ export async function fetchDonationsAndBorrows() {
     }));
     return [donations, borrows];
   } catch (error) {
-    console.error("Error fetching donations and borrows:", error);
+    //console.error("Error fetching donations and borrows:", error);
     return [[], []];
   }
 }
@@ -84,7 +85,7 @@ export async function fetchContractStats() {
       contractBalance: availableBalance,
     };
   } catch (error) {
-    console.error("Error fetching contract stats:", error);
+    //console.error("Error fetching contract stats:", error);
     throw error;
   }
 }
@@ -100,7 +101,7 @@ const parseCustomDate = (dateString) => {
   const [day, month, year] = datePart.split('/');
   
   // Create a standard ISO-like string format: YYYY-MM-DDTHH:mm:ss for reliable Date parsing.
-  const isoString = `${year}-${month}-${day}T${timePart}`;
+  const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`;
   return new Date(isoString);
 };
 
@@ -162,7 +163,7 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
 
     return allTransactions;
   } catch (error) {
-    console.error("Error fetching last transactions:", error);
+    //console.error("Error fetching last transactions:", error);
     throw error;
   }
 }
@@ -207,7 +208,7 @@ export async function fetchLoanRequisitions() {
       parcelsCount: event.parcelsCount
     }));
   } catch (error) {
-    console.error("Error fetching loan requisitions:", error);
+    //console.error("Error fetching loan requisitions:", error);
     return [];
   }
 }
@@ -271,7 +272,7 @@ export async function fetchUserRequisitions(userAddress) {
       fundedAt: event.status >= 2 ? event.blockTimestamp : null
     }));
   } catch (error) {
-    console.error("Error fetching user requisitions:", error);
+    //console.error("Error fetching user requisitions:", error);
     return [];
   }
 }
@@ -296,7 +297,7 @@ export async function fetchUserDonations(userAddress) {
     });
     return data.donatedEvents || [];
   } catch (error) {
-    console.error("Error fetching user donations:", error);
+    //console.error("Error fetching user donations:", error);
     return [];
   }
 }
@@ -358,7 +359,7 @@ export async function fetchUserData(userAddress) {
       totalBorrowed,
     };
   } catch (error) {
-    console.error("Error fetching user data:", error);
+    //console.error("Error fetching user data:", error);
     throw error;
   }
 }
@@ -367,37 +368,37 @@ export async function fetchUserData(userAddress) {
    Fetch Wallet Member
 ----------------------------------------------------------- */
 export async function fetchWalletMember(walletAddress) {
-  const query = `query GetWalletMember($wallet: Bytes!)
+  const query = `query GetWalletMember($wallet: Bytes!)
   {memberToWalletVinculationEvents(
     where: { wallet: $wallet }, first: 1, orderBy: blockTimestamp, orderDirection: desc){memberId}}`;
 
-  try {
-    const data = await client.request(query, {
-      wallet: walletAddress.toLowerCase(),
-    });
+  try {
+    const data = await client.request(query, {
+      wallet: walletAddress.toLowerCase(),
+    });
 
-    const event = data.memberToWalletVinculationEvents?.[0];
+    const event = data.memberToWalletVinculationEvents?.[0];
 
-    if (!event) {
-      // 🛑 PATH 1: NO EVENT FOUND
-      return { 
-        hasVinculation: false, // Explicitly false
-        memberId: null, 
-        wallets: [],
-      };
-    }
+    if (!event) {
+      // 🛑 PATH 1: NO EVENT FOUND
+      return { 
+        hasVinculation: false, // Explicitly false
+        memberId: null, 
+        wallets: [],
+      };
+    }
 
-    // ✅ PATH 2: EVENT FOUND (SUCCESS)
-    return {
-      memberId: event.memberId,
-      wallets: [walletAddress.toLowerCase()],
-      currentReputation: 0,
-      hasVinculation: true, // 🚨 THIS IS THE MISSING KEY
-    };
-  } catch (error) {
-    console.error("Error fetching wallet member:", error);
-    throw error; // Allow Web3Context to catch this as a network error
-  }
+    // ✅ PATH 2: EVENT FOUND (SUCCESS)
+    return {
+      memberId: event.memberId,
+      wallets: [walletAddress.toLowerCase()],
+      currentReputation: 0,
+      hasVinculation: true, // 🚨 THIS IS THE MISSING KEY
+    };
+  } catch (error) {
+    //console.error("Error fetching wallet member:", error);
+    throw error; // Allow Web3Context to catch this as a network error
+  }
 }
 
 
@@ -429,7 +430,7 @@ export async function fetchMemberReputation(memberId) {
     
     return 0; // Default reputation if no events found
   } catch (error) {
-    console.error('Error fetching member reputation:', error);
+    //console.error('Error fetching member reputation:', error);
     return 0; // Return 0 on error
   }
 }
@@ -465,7 +466,7 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
       
       targetMemberId = memberEvent.memberId;
     } catch (error) {
-      console.error("Error fetching wallet member:", error);
+      //console.error("Error fetching wallet member:", error);
       throw error;
     }
   }
@@ -545,7 +546,7 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
       requisitions: data.loanRequisitions || []
     };
   } catch (error) {
-    console.error("Error fetching complete member data:", error);
+    //console.error("Error fetching complete member data:", error);
     throw error;
   }
 }
@@ -576,7 +577,7 @@ export async function fetchLastElection() {
       blockTimestamp: lastElection.blockTimestamp
     };
   } catch (error) {
-    console.error("Error fetching last election:", error);
+    //console.error("Error fetching last election:", error);
     throw error;
   }
 }
@@ -613,8 +614,76 @@ export async function fetchBorrowerRequisitions(borrower) {
       coveringLendersCount: 0
     }));
   } catch (error) {
-    console.error("Error fetching borrower requisitions:", error);
+    //console.error("Error fetching borrower requisitions:", error);
     throw error;
   }
 }
 
+/* -----------------------------------------------------------
+   Fetch Event Hashes for Moderator Panel (New function for hybrid approach)
+----------------------------------------------------------- */
+// Updated fetchEventHashes in graphql-frontend-query.js - Format timestamps to match stored format "DD/MM/YYYY HH:mm:ss"
+export async function fetchEventHashes(selectedTypes, startTime, endTime) {
+  // Mapping from display type to GraphQL entity name
+  const entityMap = {
+    'Donated': 'donatedEvents',
+    'Withdrawn': 'withdrawnEvents',
+    'Borrowed': 'borrowedEvents',
+    'Repaid': 'repaidEvents',
+    'LoanRequisitionCreatedCancelled': 'loanRequisitionCreatedCancelledEvents',
+    'LoanCovered': 'loanCoveredEvents',
+    'LoanFunded': 'loanFundedEvents',
+    'LenderRepaid': 'lenderRepaidEvents',
+    'LoanCompleted': 'loanCompletedEvents'
+  };
+
+  // Function to format Unix timestamp to "DD/MM/YYYY HH:mm:ss" to match stored blockTimestamp
+  const formatToStoredTimestamp = (unixTimestamp) => {
+    const date = new Date(unixTimestamp * 1000);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const startFormatted = formatToStoredTimestamp(startTime);
+  const endFormatted = formatToStoredTimestamp(endTime);
+
+  // Build dynamic query for selected types
+  let query = '{';
+  selectedTypes.forEach((type) => {
+    const entity = entityMap[type];
+    if (entity) {
+      query += `
+        ${entity}(where: {blockTimestamp_gte: "${startFormatted}", blockTimestamp_lte: "${endFormatted}"}) {
+          transactionHash
+        }
+      `;
+    }
+  });
+  query += '}';
+
+  try {
+    const data = await client.request(query);
+
+    const hashMap = {}; // { type: [{transactionHash}, ...] }
+    selectedTypes.forEach((type) => {
+      const entity = entityMap[type];
+      if (entity && data[entity]) {
+        hashMap[type] = data[entity].map(item => ({
+          transactionHash: item.transactionHash
+        }));
+      } else {
+        hashMap[type] = [];
+      }
+    });
+
+    return hashMap;
+  } catch (error) {
+    //console.error('Error fetching event hashes from GraphQL:', error);
+    return {}; // Return empty map on error
+  }
+}
