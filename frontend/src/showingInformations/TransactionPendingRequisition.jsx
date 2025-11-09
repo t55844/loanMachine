@@ -88,6 +88,7 @@ export default function TransactionPendingRequisition({
       return;
     }
 
+
     // Convert to uint32 compatible values with validation
     const requisitionIdUint32 = Number(requisitionId);
     const percentageUint32 = Number(percentage);
@@ -148,6 +149,7 @@ export default function TransactionPendingRequisition({
       showError("Erro ao verificar registro do membro. Por favor, tente novamente.");
       return;
     }
+console.log('memberid',requisitionIdUint32, percentageUint32, memberIdUint32)
 
     showTransactionModal(
       {

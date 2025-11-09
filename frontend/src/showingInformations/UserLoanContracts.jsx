@@ -13,7 +13,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
   const [approving, setApproving] = useState(false);
   const [needsApproval, setNeedsApproval] = useState({});
 
-  const { toast, showToast, hideToast, handleContractError } = useToast();
+  const { provider, loanInterface } = useWeb3(); // NEW: Get provider and loanInterface
+  const { showToast, showSuccess, showError, handleContractError } = useToast(provider, contract); // UPDATED: Pass provider/contract
   const { needsUSDTApproval, approveUSDT, member } = useWeb3();
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
@@ -64,7 +65,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       setActiveLoans(formattedLoans);
     } catch (err) {
       console.error("Erro ao carregar empréstimos do usuário:", err);
-      handleContractError(err, "loadUserActiveLoans");
+      await handleContractError(err, "loadUserActiveLoans"); // UPDATED: Await handleContractError
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const amountForDisplay = ethers.utils.formatUnits(amountInWei, 6);
       
       await approveUSDT(amountForDisplay);
-      showToast("USDT aprovado com sucesso!", "success");
+      showSuccess("USDT aprovado com sucesso!");
       
       // Update approval status immediately
       setNeedsApproval(prev => ({
@@ -110,7 +111,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       
     } catch (err) {
       console.error("Erro ao aprovar USDT:", err);
-      handleContractError(err, "approveUSDT");
+      await handleContractError(err, "approveUSDT"); // UPDATED: Await
       
       // Re-check approval status in case of error
       await checkApprovalForLoan(loan.requisitionId);
@@ -195,7 +196,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const tx = await contract.repay(requisitionId, amount, memberId);
       await tx.wait();
 
-      showToast(`Pagamento bem-sucedido para empréstimo #${requisitionId}`, "success");
+      showSuccess(`Pagamento bem-sucedido para empréstimo #${requisitionId}`);
       await loadUserActiveLoans();
       setExpandedLoan(null);
       
@@ -212,7 +213,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         }));
         showToast("Aprovação de USDT necessária. Por favor, aprove USDT primeiro.", "error");
       } else {
-        handleContractError(err, "payInstallment");
+        await handleContractError(err, "payInstallment"); // UPDATED: Await
       }
       throw err;
     } finally {
@@ -471,7 +472,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         .approve-button {
           padding: 12px 20px;
           border: none;
-          border-radius: 6px;
+          borderRadius: 6px;
           background: var(--accent-orange);
           color: white;
           cursor: pointer;
@@ -489,7 +490,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         .repay-button {
           padding: 12px 20px;
           border: none;
-          border-radius: 6px;
+          borderRadius: 6px;
           background: var(--accent-green);
           color: white;
           cursor: pointer;

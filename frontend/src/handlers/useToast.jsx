@@ -1,10 +1,9 @@
 import { useCallback } from 'react';
-import { eventSystem } from '../handlers/EventSystem';
-import { extractErrorMessage, getErrorType } from '../handlers/errorMapping';
+import { eventSystem } from './EventSystem';
+import { extractErrorMessage, getErrorType } from './errorMapping';
 
-export function useToast() {
+export function useToast(provider, contract) { // NEW: Accept provider/contract for decoding
   const showToast = useCallback((message, type = 'info', options = {}) => {
-    // Use the event system to show toasts
     eventSystem.emit('showToast', {
       message,
       type,
@@ -14,27 +13,28 @@ export function useToast() {
     });
   }, []);
 
-  const showError = useCallback((error, options = {}) => {
-    const message = extractErrorMessage(error);
+  const showError = useCallback(async (error, options = {}) => {
+    const message = await extractErrorMessage(error, provider, contract.interface);
     const type = getErrorType(error);
-    return showToast(message, type, options);
-  }, [showToast]);
+    showToast(message, type, options);
+  }, [showToast, provider, contract]);
 
   const showSuccess = useCallback((message, options = {}) => {
-    return showToast(message, 'success', options);
+    showToast(message, 'success', options);
   }, [showToast]);
 
   const showWarning = useCallback((message, options = {}) => {
-    return showToast(message, 'warning', options);
+    showToast(message, 'warning', options);
   }, [showToast]);
 
   const showInfo = useCallback((message, options = {}) => {
-    return showToast(message, 'info', options);
+    showToast(message, 'info', options);
   }, [showToast]);
 
-  const handleContractError = useCallback((error, context = '') => {
+  // UPDATED: Async, awaits decode
+  const handleContractError = useCallback(async (error, context = '') => {
     console.error(`Erro em ${context}:`, error);
-    showError(error);
+    await showError(error); // Awaits inside showError
   }, [showError]);
 
   return {

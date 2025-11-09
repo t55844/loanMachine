@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import CreateElection from './CreateElection';
 import VoteAndCandidate from './VoteAndCandidate';
+import { useWeb3 } from '../Web3Context'; // NEW: Import useWeb3
 
 const ElectionManagement = ({ contract, currentAccount, member }) => {
   const [activeTab, setActiveTab] = useState('vote');
+
+  const { provider } = useWeb3(); // NEW: Get provider if needed, but not used here
 
   // Show message if contract is not available
   if (!contract) {

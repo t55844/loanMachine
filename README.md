@@ -17,6 +17,13 @@ Example: Donated(donor, amount).
 
 Think of this as the official record keeper. It’s expensive and slow because it’s decentralized and permanent.
 
+https://etherscan.io/apidashboard
+
+https://www.alchemy.com/faucets/ethereum-sepolia
+https://faucet.triangleplatform.com/ethereum/sepolia
+
+https://thegraph.com/studio/subgraph/
+
 2. The Graph Node Sector (Your Data Indexer)
 
 Watches the blockchain for your events.

@@ -8,7 +8,8 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
   
-  const { showSuccess, showError, handleContractError } = useToast();
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showSuccess, showError, handleContractError } = useToast(provider, contract); // UPDATED: Pass provider/contract
 
   useEffect(() => {
     loadRequisitions();
@@ -50,7 +51,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       await loadRequisitions();
       
     } catch (err) {
-      handleContractError(err, "cancelando requisição de empréstimo");
+      await handleContractError(err, "cancelando requisição de empréstimo"); // UPDATED: Await
     } finally {
       setCancellingId(null);
     }

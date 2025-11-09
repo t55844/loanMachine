@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { useWeb3 } from '../Web3Context'; // NEW: Import useWeb3
+import { useToast } from '../handlers/useToast'; // NEW: Import useToast
 
 const CreateElection = ({ contract, currentAccount, member, onElectionCreated }) => {
   const [candidateId, setCandidateId] = useState('');
   const [opponentId, setOpponentId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showError, showSuccess } = useToast(provider, contract); // NEW: Use toast
 
   // Get memberId from member object with proper null checking
   const memberId = member?.memberId || 0;
@@ -27,12 +32,13 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
     try {
       const tx = await contract.openElection(parseInt(candidateId), parseInt(opponentId));
       await tx.wait();
+      showSuccess('Eleição criada com sucesso!'); // UPDATED: Use showSuccess
       setCandidateId('');
       setOpponentId('');
       if (onElectionCreated) onElectionCreated();
     } catch (err) {
       console.error('Erro ao criar eleição:', err);
-      setError(err.reason || 'Falha ao criar eleição');
+      await showError(err); // UPDATED: Use showError
     } finally {
       setIsLoading(false);
     }

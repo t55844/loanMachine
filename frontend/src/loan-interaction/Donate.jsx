@@ -18,7 +18,8 @@ function Donate() {
     getUSDTBalance, 
     approveUSDT,
     needsUSDTApproval,
-    member
+    member,
+    provider
   } = useWeb3();
 
   // Fetch USDT balance
@@ -113,7 +114,7 @@ function Donate() {
 
   async function confirmTransaction(transactionData) {
     try {
-      const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
+      const amountInWei = ethers.utils.parseUnits(transactionData.params[0], 6); // FIXED: Use utils.parseUnits
       const memberId = transactionData.params[1];
       
       const tx = await contract.donate(amountInWei, memberId);
@@ -162,14 +163,14 @@ function Donate() {
       return;
     }
 
-    const amountInWei = ethers.utils.parseUnits(amount, 6);
+    const amountInWei = ethers.utils.parseUnits(amount, 6); // FIXED: Use utils.parseUnits
     const memberId = member.id;
     
     // Show the gas cost modal with the confirmation function
     showTransactionModal(
       {
         method: "donate",
-        params: [amountInWei, memberId],
+        params: [amountInWei.toString(), memberId], // UPDATED: String for params if needed
         value: "0"
       },
       {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ethers } from "ethers";
+import { useWeb3 } from "../Web3Context"; // Assume this gives provider, contract
 import { useToast } from "../handlers/useToast";
 import Toast from "../handlers/Toast";
 
@@ -12,11 +13,13 @@ export default function LoanRequisitionForm({
   const [amount, setAmount] = useState("");
   const [minimumCoverage, setMinimumCoverage] = useState("80");
   const [parcelsQuantity, setParcelsQuantity] = useState("1");
-  const [daysIntervalOfPayment, setDaysIntervalOfPayment] = useState("30"); // Default value
+  const [daysIntervalOfPayment, setDaysIntervalOfPayment] = useState("30");
   const [loading, setLoading] = useState(false);
   
-  const { showToast, showSuccess, showError, handleContractError } = useToast();
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showToast, showSuccess, handleContractError } = useToast(provider, contract); // NEW: Pass them
 
+  // UPDATED: Async handleSubmit, await in catch
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -33,23 +36,23 @@ export default function LoanRequisitionForm({
     setLoading(true);
 
     try {
+      // FIXED: Use ethers.utils.parseUnits for v5 compatibility
       const amountWei = ethers.utils.parseUnits(amount, 6);
       const memberId = member.id;
-      
+
       const tx = await contract.createLoanRequisition(
         amountWei,
         parseInt(minimumCoverage),
         parseInt(parcelsQuantity),
         memberId,
-        parseInt(daysIntervalOfPayment) // Add the new parameter
+        parseInt(daysIntervalOfPayment)
       );
       
       await tx.wait();
       
-      // Reset form
       setAmount("");
       setMinimumCoverage("80");
-      setDaysIntervalOfPayment("30"); // Reset to default
+      setDaysIntervalOfPayment("30");
       
       showSuccess("Requisição de empréstimo criada com sucesso!");
       
@@ -58,7 +61,7 @@ export default function LoanRequisitionForm({
       }
       
     } catch (err) {
-      handleContractError(err, "createLoanRequisition");
+      await handleContractError(err, "createLoanRequisition"); // NEW: Await
     } finally {
       setLoading(false);
     }

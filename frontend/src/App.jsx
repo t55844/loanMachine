@@ -13,6 +13,7 @@ import Toast from "./handlers/Toast";
 import ElectionManagement from "./electionModeration/ElectionManagement";
 import ModeratorPanel from "./electionModeration/ModeratorPanel";
 import WalletConnection from "./loan-interaction/WalletConnection";
+import { useToast } from "./handlers/useToast"; // NEW: Import useToast
 
 export default function App() {
   const savedWallet = localStorage.getItem('connectedWalletAddress');
@@ -25,10 +26,13 @@ export default function App() {
     loading, 
     member,
     provider,
-    disconnect
+    disconnect,
+    loanInterface // NEW: Get loanInterface for error decoding
   } = useWeb3();
 
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
+
+  const { showError } = useToast(provider, contract); // NEW: Use toast with provider/contract
 
   const runDebtCheck = async () => {
     if (!contract) return;
@@ -47,8 +51,7 @@ export default function App() {
       await tx.wait();
       console.log("Verificação de dívida concluída com sucesso");
     } catch (error) {
-      console.error('Falha na verificação de dívida:', error);
-      throw error;
+      await showError(error); // UPDATED: Use showError for proper handling
     }
   };
 

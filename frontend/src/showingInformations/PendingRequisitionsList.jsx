@@ -16,7 +16,8 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     free: "0"
   });
 
-  const { showToast, showSuccess, showError, handleContractError } = useToast();
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showToast, showSuccess, showError, handleContractError } = useToast(provider, contract); // UPDATED: Pass provider/contract
   const quickPercentages = [10, 15, 20, 25, 33, 50, 75, 100];
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
       });
     } catch (err) {
       console.error("Erro ao carregar saldos de doação:", err);
+      await handleContractError(err, "loadUserDonationBalances"); // UPDATED: Await
       setDonationBalances({ total: "0", allocated: "0", free: "0" });
     }
   };

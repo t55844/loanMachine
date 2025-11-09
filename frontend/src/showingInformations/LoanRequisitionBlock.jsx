@@ -10,7 +10,7 @@ function LoanRequisitionBlock() {
   const [activeTab, setActiveTab] = useState("create");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   // 👇 UPDATE: Include loading and error from the hook
-  const { account, contract, member, loading, error } = useWeb3();
+  const { account, contract, member, loading, error,provider } = useWeb3();
 
   const handleRequisitionCreated = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -116,6 +116,7 @@ function LoanRequisitionBlock() {
           account={account}
           onRequisitionCreated={handleRequisitionCreated}
           member={member}
+          provider={provider}
         />
       )}
       

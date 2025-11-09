@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWeb3 } from "../Web3Context";
-import { extractErrorMessage } from "../handlers/errorMapping";
+import { extractErrorMessage } from "../handlers/errorMapping"; // Now async
 
 function GasCostModal({ 
   isOpen, 
@@ -22,46 +22,38 @@ function GasCostModal({
     }
   }, [isOpen, transactionData]);
 
-  // GasCostModal.jsx - Update the estimateGasCost function
-async function estimateGasCost() {
-  try {
-    setLoading(true);
-    setGasError("");
-    setGasCost(null);
+  // Updated: async, await extractErrorMessage
+  async function estimateGasCost() {
+    try {
+      setLoading(true);
+      setGasError("");
+      setGasCost(null);
 
-    const { method, params = [], value = "0" } = transactionData;
-    
-    if (!contract[method]) {
-      throw new Error(`Método ${method} não encontrado no contrato`);
+      const { method, params = [], value = "0" } = transactionData;
+      
+      if (!contract[method]) {
+        throw new Error(`Método ${method} não encontrado no contrato`);
+      }
+
+      const gasEstimate = await contract.estimateGas[method](...params, {
+        value: ethers.parseEther(value) // v6: parseEther
+      });
+
+      const gasPrice = await provider.getGasPrice();
+      const gasCostWei = gasEstimate * gasPrice;
+      const gasCostEth = ethers.formatEther(gasCostWei);
+
+      setGasCost(gasCostEth);
+    } catch (err) {
+      console.error("Erro de estimativa de gas:", err);
+      
+      // NEW: Await the decoded message
+      const userFriendlyError = await extractErrorMessage(err, provider, contract.interface);
+      setGasError(userFriendlyError);
+    } finally {
+      setLoading(false);
     }
-
-    // Try to estimate gas
-    const gasEstimate = await contract.estimateGas[method](...params, {
-      value: ethers.BigNumber.from(value)
-    });
-
-    const gasPrice = await provider.getGasPrice();
-    const gasCostWei = gasEstimate.mul(gasPrice);
-    const gasCostEth = ethers.utils.formatEther(gasCostWei);
-
-    setGasCost(gasCostEth);
-  } catch (err) {
-    console.error("Erro de estimativa de gas:", err);
-    
-    // Use extractErrorMessage but don't emit toast here
-    let userFriendlyError = extractErrorMessage(err);
-    
-    // If it's a gas estimation error with underlying contract error, 
-    // show the contract error, not the gas estimation wrapper
-    if (err.code === 'UNPREDICTABLE_GAS_LIMIT') {
-      // The extractErrorMessage should have already extracted the underlying error
-    }
-    
-    setGasError(userFriendlyError);
-  } finally {
-    setLoading(false);
   }
-}
 
   const handleRetry = () => {
     estimateGasCost();
@@ -70,7 +62,7 @@ async function estimateGasCost() {
   if (!isOpen) return null;
 
   const transactionValue = transactionData?.value ? 
-    parseFloat(ethers.utils.formatEther(transactionData.value)) : 0;
+    parseFloat(ethers.formatEther(transactionData.value)) : 0;
   const totalCost = (parseFloat(gasCost || 0) + transactionValue).toFixed(6);
 
   return (

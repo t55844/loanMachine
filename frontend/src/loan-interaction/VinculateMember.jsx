@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
 
@@ -7,7 +7,7 @@ function VinculateMember() {
   const [loading, setLoading] = useState(false);
 
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
-  const { account, contract, member, refreshMemberData } = useWeb3();
+  const { account, contract, member, refreshMemberData, provider } = useWeb3(); // NEW: Get provider
 
   const memberData = member?.hasVinculation ? member : null;
 

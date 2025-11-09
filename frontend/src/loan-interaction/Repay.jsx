@@ -1,18 +1,20 @@
-import { useState } from "react";
-import { ethers } from "ethers";
+import { useState, useEffect } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
+import { useWeb3 } from "../Web3Context";
+import { eventSystem } from "../handlers/EventSystem";
 
 function Repay({ account, contract }) {
   const [amount, setAmount] = useState("");
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
+  const { provider } = useWeb3(); // NEW: Get provider
 
   async function handleRepay() {
-    if (!account || !contract || !amount) {
+    if (!account || !amount) {
       alert("Por favor, conecte e insira um valor");
       return;
     }
 
-    const value = ethers.utils.parseEther(amount);
+    const value = ethers.utils.parseEther(amount); // FIXED: Use utils.parseEther
     
     showTransactionModal(
       {

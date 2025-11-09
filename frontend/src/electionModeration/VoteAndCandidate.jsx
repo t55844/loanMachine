@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchLastElection } from '../graphql-frontend-query';
+import { useWeb3 } from '../Web3Context'; // NEW: Import useWeb3 for provider/contract
+import { useToast } from '../handlers/useToast'; // NEW: Import useToast
 
 const VoteAndCandidate = ({ contract, currentAccount, member }) => {
   const [electionInfo, setElectionInfo] = useState(null);
@@ -10,6 +12,9 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showError, showSuccess } = useToast(provider, contract); // NEW: Use toast with provider/contract
 
   // Get memberId from member object with proper null checking
   const memberId = member?.memberId || 0;
@@ -44,6 +49,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
       }
     } catch (err) {
       console.error('Erro ao carregar informações da eleição:', err);
+      await showError(err); // UPDATED: Use showError
     }
   };
 
@@ -56,6 +62,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
       }
     } catch (err) {
       console.error('Erro ao carregar última eleição:', err);
+      await showError(err); // UPDATED: Use showError
     }
   };
 
@@ -85,12 +92,12 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         memberIdNum
       );
       await tx.wait();
-      setSuccess('Voto emitido com sucesso!');
+      showSuccess('Voto emitido com sucesso!'); // UPDATED: Use showSuccess
       setSelectedCandidate('');
       loadElectionInfo();
     } catch (err) {
       console.error('Erro ao votar:', err);
-      setError(err.reason || 'Falha ao emitir voto');
+      await showError(err); // UPDATED: Use showError
     } finally {
       setIsLoading(false);
     }
@@ -112,12 +119,12 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         parseInt(newCandidateId)
       );
       await tx.wait();
-      setSuccess('Candidato adicionado com sucesso!');
+      showSuccess('Candidato adicionado com sucesso!'); // UPDATED: Use showSuccess
       setNewCandidateId('');
       loadElectionInfo();
     } catch (err) {
       console.error('Erro ao adicionar candidato:', err);
-      setError(err.reason || 'Falha ao adicionar candidato');
+      await showError(err); // UPDATED: Use showError
     } finally {
       setIsAddingCandidate(false);
     }

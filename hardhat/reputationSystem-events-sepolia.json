@@ -1,0 +1,15 @@
+{
+  "MemberToWalletVinculation": [],
+  "ReputationChanged": [],
+  "metadata": {
+    "network": "sepolia",
+    "contractAddress": "0xf9B64b3242DDFc7627cd764825617e6d9310Ce95",
+    "deploymentTxHash": "0x6f20cd4b360a93f0ef2afd11c80c6720720a9c372820042e272891f263a5af74",
+    "fetchedAt": "2025-11-06T05:17:17.911Z",
+    "blockRange": {
+      "from": 9570488,
+      "to": 9570741
+    },
+    "totalEvents": 0
+  }
+}

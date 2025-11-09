@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { ethers } from "ethers";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
 import { eventSystem } from "../handlers/EventSystem";
@@ -15,7 +14,8 @@ function Withdraw() {
     account, 
     contract, 
     getUSDTBalance,
-    member
+    member,
+    provider
   } = useWeb3();
 
   // Fetch USDT balance and withdrawable balance
@@ -88,7 +88,7 @@ function Withdraw() {
 
   async function confirmTransaction(transactionData) {
     try {
-      const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
+      const amountInWei = ethers.utils.parseUnits(transactionData.params[0], 6); // FIXED: Use utils.parseUnits
       const memberId = transactionData.params[1];
       
       const tx = await contract.withdraw(amountInWei, memberId);
@@ -130,14 +130,14 @@ function Withdraw() {
       return;
     }
 
-    const amountInWei = ethers.utils.parseUnits(amount, 6);
+    const amountInWei = ethers.utils.parseUnits(amount, 6); // FIXED: Use utils.parseUnits
     const memberId = member.id;
     
     // Show the gas cost modal with the confirmation function
     showTransactionModal(
       {
         method: "withdraw",
-        params: [amountInWei, memberId],
+        params: [amountInWei.toString(), memberId], // UPDATED: String for params if needed
         value: "0"
       },
       {
