@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchBorrowerRequisitions } from "../graphql-frontend-query";
 import { useToast } from "../handlers/useToast";
+import { useWeb3 } from "../Web3Context";
 
 export default function LoanRequisitionMonitor({ contract, account, memberId }) {
   const [requisitions, setRequisitions] = useState([]);
