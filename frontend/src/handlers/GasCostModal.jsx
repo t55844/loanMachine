@@ -13,6 +13,7 @@ function GasCostModal({
   const [gasCost, setGasCost] = useState(null);
   const [loading, setLoading] = useState(false);
   const [gasError, setGasError] = useState("");
+  const [isAllowanceError, setIsAllowanceError] = useState(false); // NEW: Flag for allowance-specific errors
   
   const { contract, provider } = useWeb3();
 
@@ -32,6 +33,7 @@ function GasCostModal({
       setLoading(true);
       setGasError("");
       setGasCost(null);
+      setIsAllowanceError(false); // Reset flag
 
       const { method, params = [], value = "0" } = transactionData;
       
@@ -67,14 +69,14 @@ function GasCostModal({
       // NEW: Special handling for insufficient allowance
       if (err.code === 'UNPREDICTABLE_GAS_LIMIT' && err.error?.message?.includes('insufficient allowance')) {
         setGasError("Aprovação insuficiente de USDT. Por favor, aprove o valor necessário primeiro.");
+        setIsAllowanceError(true); // Flag to enable button despite error
+        setGasCost("0.001"); // Fallback for allowance reverts
       } else {
         // Await the decoded message for other errors
         const userFriendlyError = await extractErrorMessage(err, provider, contract.interface);
         setGasError(userFriendlyError);
+        setGasCost("0.001"); // Fallback for all errors
       }
-      
-      // Optional: Fallback to default estimate (e.g., 200k gas) to avoid blocking UI
-      setGasCost("0.001"); // Rough ETH equiv for ~200k gas @ 20 gwei
     } finally {
       setLoading(false);
     }
@@ -155,7 +157,7 @@ function GasCostModal({
           <button 
             onClick={() => onConfirm(transactionData)}
             className="confirm-button"
-            disabled={loading || gasError}
+            disabled={loading} // FIXED: Remove gasError from disabled - allow confirm on allowance error with fallback
           >
             {loading ? "Calculando..." : "Confirmar Transação"}
           </button>
