@@ -35,7 +35,8 @@ function GasCostModal({
         throw new Error(`Método ${method} não encontrado no contrato`);
       }
 
-      const gasEstimate = await contract.estimateGas[method](...params, {
+      // ✅ FIXED: Correct ethers v6 syntax for estimateGas
+      const gasEstimate = await contract[method].estimateGas(...params, {
         value: ethers.parseEther(value) // v6: parseEther
       });
 
