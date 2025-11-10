@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useWeb3 } from "../Web3Context";
 import { ethers } from "ethers";
 import { useToast } from "../handlers/useToast";
+import Toast from "../handlers/Toast";
 
 const WalletConnection = ({ onContinue }) => {
   const {
