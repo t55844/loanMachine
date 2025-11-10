@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
 import { eventSystem } from "../handlers/EventSystem";
@@ -38,6 +39,13 @@ function Withdraw() {
         getWithdrawableBalance()
       ]);
       
+      /*console.log("💰 Balance debug:", {
+        rawUSDT: balance,
+        rawWithdrawable: withdrawable,
+        parsedUSDT: parseFloat(balance),
+        parsedWithdrawable: parseFloat(withdrawable)
+      });*/
+      
       setUsdtBalance(balance || "0");
       setWithdrawableBalance(withdrawable || "0");
     } catch (err) {
@@ -55,9 +63,15 @@ function Withdraw() {
     
     try {
       const balance = await contract.getWithdrawableBalance(account);
-      return ethers.utils.formatUnits(balance, 6); // USDT has 6 decimals
+      //console.log("🔢 Raw blockchain withdrawable balance:", balance.toString());
+      
+      // Convert from wei/units to USDT (6 decimals)
+      const formatted = ethers.utils.formatUnits(balance, 6);
+      //console.log("💵 Formatted withdrawable balance:", formatted);
+      
+      return formatted;
     } catch (err) {
-      //console.error("Erro ao buscar saldo sacável:", err);
+      //console.error("❌ Erro ao buscar saldo sacável:", err);
       return "0";
     }
   }
@@ -88,7 +102,7 @@ function Withdraw() {
 
   async function confirmTransaction(transactionData) {
     try {
-      const amountInWei = ethers.utils.parseUnits(transactionData.params[0], 6); // FIXED: Use utils.parseUnits
+      const amountInWei = ethers.utils.parseUnits(transactionData.params[0], 6);
       const memberId = transactionData.params[1];
       
       const tx = await contract.withdraw(amountInWei, memberId);
@@ -107,6 +121,27 @@ function Withdraw() {
     }
   }
 
+  // ✅ FIXED: Better number comparison function
+  const compareNumbers = (a, b) => {
+    // Convert to numbers with proper precision handling
+    const numA = Number(a);
+    const numB = Number(b);
+    return numA <= numB;
+  };
+
+  // ✅ FIXED: Safe display formatting
+  const formatDisplayAmount = (amount) => {
+    const num = Number(amount);
+    if (isNaN(num)) return "0.00";
+    return num.toFixed(2);
+  };
+
+  // ✅ FIXED: Safe parse for user input
+  const parseUserAmount = (input) => {
+    const num = Number(input);
+    return isNaN(num) ? 0 : num;
+  };
+
   async function handleWithdraw() {
     if (!account || !amount) {
       showWarning("Por favor, conecte a carteira e insira o valor");
@@ -118,26 +153,36 @@ function Withdraw() {
       return;
     }
 
+    const userAmount = parseUserAmount(amount);
+    const availableAmount = Number(withdrawableBalance);
+
+    /*console.log("🎯 Withdraw validation:", {
+      userAmount,
+      availableAmount,
+      withdrawableBalance,
+      comparison: userAmount <= availableAmount
+    });*/
+
     // Check withdrawable balance
-    if (parseFloat(amount) > parseFloat(withdrawableBalance)) {
-      showError(`Saldo sacável insuficiente. Você pode sacar até ${parseFloat(withdrawableBalance).toFixed(2)} USDT`);
+    if (userAmount > availableAmount) {
+      showError(`Saldo sacável insuficiente. Você pode sacar até ${formatDisplayAmount(withdrawableBalance)} USDT`);
       return;
     }
 
     // Check if amount is positive
-    if (parseFloat(amount) <= 0) {
+    if (userAmount <= 0) {
       showError("Por favor, insira um valor válido");
       return;
     }
 
-    const amountInWei = ethers.utils.parseUnits(amount, 6); // FIXED: Use utils.parseUnits
+    const amountInWei = ethers.utils.parseUnits(amount, 6);
     const memberId = member.id;
     
     // Show the gas cost modal with the confirmation function
     showTransactionModal(
       {
         method: "withdraw",
-        params: [amountInWei.toString(), memberId], // UPDATED: String for params if needed
+        params: [amountInWei.toString(), memberId],
         value: "0"
       },
       {
@@ -150,16 +195,19 @@ function Withdraw() {
     );
   }
 
-  const hasSufficientWithdrawable = parseFloat(amount) <= parseFloat(withdrawableBalance);
+  // ✅ FIXED: Use safe comparison and parsing
+  const userAmount = parseUserAmount(amount);
+  const availableAmount = Number(withdrawableBalance);
+  const hasSufficientWithdrawable = userAmount <= availableAmount;
   const hasMemberData = member && member.id;
-  const canWithdraw = account && amount && hasSufficientWithdrawable && hasMemberData && parseFloat(amount) > 0;
+  const canWithdraw = account && amount && hasSufficientWithdrawable && hasMemberData && userAmount > 0;
 
   return (
     <div className="donate-block withdraw-block">
       <div className="balance-info">
-        <p>Seu Saldo USDT: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
+        <p>Seu Saldo USDT: {formatDisplayAmount(usdtBalance)} USDT</p>
         <p className="withdrawable-info">
-          Saldo Disponível para Saque: <strong>{parseFloat(withdrawableBalance).toFixed(2)} USDT</strong>
+          Saldo Disponível para Saque: <strong>{formatDisplayAmount(withdrawableBalance)} USDT</strong>
         </p>
         {loading && <p>Carregando saldos...</p>}
         {member && (
@@ -184,7 +232,7 @@ function Withdraw() {
 
       {!hasSufficientWithdrawable && amount && (
         <p className="error-text">
-          ❌ Você só pode sacar até {parseFloat(withdrawableBalance).toFixed(2)} USDT
+          ❌ Você só pode sacar até {formatDisplayAmount(withdrawableBalance)} USDT
         </p>
       )}
 
