@@ -4,6 +4,7 @@ import { fetchLoanRequisitions, fetchUserDonations } from "../graphql-frontend-q
 import { useToast } from "../handlers/useToast";
 import Toast from "../handlers/Toast";
 import TransactionPendingRequisition from "./TransactionPendingRequisition";
+import { useWeb3 } from "../Web3Context";
 
 export default function PendingRequisitionsList({ contract, account, onCoverLoan, member }) {
   const [requisitions, setRequisitions] = useState([]);
