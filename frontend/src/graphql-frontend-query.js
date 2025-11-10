@@ -1,12 +1,13 @@
-// graphql-frontend-query.js - Updated to use single client instance for all requests
-import { request, GraphQLClient } from "graphql-request";
+// graphql-frontend-query.js - Updated to use dynamic absolute URL for client-side only
+import { request } from "graphql-request"; // Only import request, no client
 
-const PROXY_URL = '/api/proxy?type=graphql'; // Proxy endpoint for GraphQL
-
-// Single client instance for all queries
-const client = new GraphQLClient(PROXY_URL, {
-  headers: { "Content-Type": "application/json" },
-});
+// Dynamic absolute proxy URL (client-side only)
+const getProxyUrl = () => {
+  if (typeof window === 'undefined') {
+    throw new Error('GraphQL queries can only be executed client-side');
+  }
+  return `${window.location.origin}/api/proxy?type=graphql`;
+};
 
 /* -----------------------------------------------------------
    Fetch Donations and Borrows
@@ -32,7 +33,7 @@ export async function fetchDonationsAndBorrows() {
   `;
 
   try {
-    const data = await client.request(query);
+    const data = await request(getProxyUrl(), query);
     const donations = (data?.donatedEvents || []).map(event => ({
       id: event.id,
       donor: { id: event.donor },
@@ -73,7 +74,7 @@ export async function fetchContractStats() {
   `;
 
   try {
-    const data = await client.request(query);
+    const data = await request(getProxyUrl(), query);
     const totalDonations = data?.totalDonationsUpdatedEvents?.[0]?.total || "0";
     const totalBorrowed = data?.totalBorrowedUpdatedEvents?.[0]?.total || "0";
     const availableBalance = data?.availableBalanceUpdatedEvents?.[0]?.total || "0";
@@ -142,7 +143,7 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
 
   try {
     // Pass the larger fetchLimit to the GraphQL client
-    const data = await client.request(query, { fetchLimit });
+    const data = await request(getProxyUrl(), query, { fetchLimit });
 
     const allTransactions = [
       ...(data?.donatedEvents || []).map((tx) => ({ ...tx, type: "donation", timestamp: tx.blockTimestamp })),
@@ -193,7 +194,7 @@ export async function fetchLoanRequisitions() {
   `;
 
   try {
-    const data = await client.request(query);
+    const data = await request(getProxyUrl(), query);
     return (data.loanRequisitionCreatedCancelledEvents || []).map(event => ({
       id: event.id,
       requisitionId: event.requisitionId,
@@ -253,7 +254,7 @@ export async function fetchUserRequisitions(userAddress) {
   `;
 
   try {
-    const data = await client.request(query, {
+    const data = await request(getProxyUrl(), query, {
       userAddress: userAddress.toLowerCase(),
     });
     return (data.loanRequisitionCreatedCancelledEvents || []).map(event => ({
@@ -292,7 +293,7 @@ export async function fetchUserDonations(userAddress) {
   `;
 
   try {
-    const data = await client.request(query, {
+    const data = await request(getProxyUrl(), query, {
       userAddress: userAddress.toLowerCase(),
     });
     return data.donatedEvents || [];
@@ -328,7 +329,7 @@ export async function fetchUserData(userAddress) {
   `;
 
   try {
-    const data = await client.request(query, {
+    const data = await request(getProxyUrl(), query, {
       userAddress: userAddress.toLowerCase(),
     });
 
@@ -373,7 +374,7 @@ export async function fetchWalletMember(walletAddress) {
     where: { wallet: $wallet }, first: 1, orderBy: blockTimestamp, orderDirection: desc){memberId}}`;
 
   try {
-    const data = await client.request(query, {
+    const data = await request(getProxyUrl(), query, {
       wallet: walletAddress.toLowerCase(),
     });
 
@@ -422,7 +423,7 @@ export async function fetchMemberReputation(memberId) {
   const variables = { memberId };
   
   try {
-    const data = await client.request(query, variables);
+    const data = await request(getProxyUrl(), query, variables);
     
     if (data.reputationChangedEvents && data.reputationChangedEvents.length > 0) {
       return data.reputationChangedEvents[0].newReputation;
@@ -457,7 +458,7 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
     `;
 
     try {
-      const memberData = await client.request(memberQuery, {
+      const memberData = await request(getProxyUrl(), memberQuery, {
         wallet: walletAddress.toLowerCase(),
       });
 
@@ -523,7 +524,7 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
   `;
 
   try {
-    const data = await client.request(completeQuery, {
+    const data = await request(getProxyUrl(), completeQuery, {
       wallet: walletAddress.toLowerCase(),
       memberId: targetMemberId
     });
@@ -565,7 +566,7 @@ export async function fetchLastElection() {
   `;
 
   try {
-    const data = await client.request(query);
+    const data = await request(getProxyUrl(), query);
     const lastElection = data.electionClosedEvents?.[0];
     
     if (!lastElection) return null;
@@ -600,7 +601,7 @@ export async function fetchBorrowerRequisitions(borrower) {
   `;
 
   try {
-    const data = await client.request(query, { wallet: borrower.toLowerCase() });
+    const data = await request(getProxyUrl(), query, { wallet: borrower.toLowerCase() });
     const requisitions = data.loanRequisitions || [];
     
     return requisitions.map(req => ({
@@ -667,7 +668,7 @@ export async function fetchEventHashes(selectedTypes, startTime, endTime) {
   query += '}';
 
   try {
-    const data = await client.request(query);
+    const data = await request(getProxyUrl(), query);
 
     const hashMap = {}; // { type: [{transactionHash}, ...] }
     selectedTypes.forEach((type) => {
