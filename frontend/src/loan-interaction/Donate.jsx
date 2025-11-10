@@ -41,7 +41,6 @@ function Donate() {
     } catch (err) {
       //console.error("❌ Erro ao buscar saldo USDT:", err);
       setUsdtBalance("0");
-      // FIXED: Use existing eventSystem for toast (no new hook)
       eventSystem.emit('showToast', {
         message: "Falha ao carregar saldo USDT",
         isError: true
@@ -109,6 +108,8 @@ function Donate() {
       showSuccess(`${amount} USDT aprovados com sucesso!`);
       setNeedsApproval(false);
       
+      // FIXED: Re-check after approval to ensure state update
+      await checkApproval();
     } catch (err) {
       showError(err.message || "Falha na aprovação");
     } finally {
@@ -154,13 +155,13 @@ function Donate() {
       return;
     }
 
-    // Final approval check
+    // FIXED: Await final approval check - block modal if needed
     try {
       const currentApprovalNeeded = await needsUSDTApproval(amount);
       if (currentApprovalNeeded) {
-        showWarning("Por favor, aprove USDT primeiro");
-        setNeedsApproval(true);
-        return;
+        showWarning("Por favor, aprove USDT primeiro"); // Prompts user to approve
+        setNeedsApproval(true); // Shows approval button
+        return; // Don't show modal
       }
     } catch (err) {
       showError("Erro ao verificar status de aprovação");
@@ -170,11 +171,11 @@ function Donate() {
     const amountInWei = ethers.utils.parseUnits(amount, 6); // FIXED: Use utils.parseUnits
     const memberId = member.id;
     
-    // FIXED: Ensure params are strings/arrays for modal (prevents estimation parse errors)
+    // FIXED: Ensure params are strings for modal (prevents estimation parse errors)
     showTransactionModal(
       {
         method: "donate",
-        params: [amountInWei.toString(), memberId.toString()], // NEW: .toString() for BigNumber/ID serialization
+        params: [amountInWei.toString(), memberId.toString()], // NEW: .toString() for BigNumber/ID
         value: "0"
       },
       {
