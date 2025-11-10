@@ -99,12 +99,12 @@ export function Web3Provider({ children }) {
     } 
   }; 
 
-  // Auto-reconnect logic (added demo) 
+  // ✅ FIXED: Auto-reconnect logic - Now waits for config to load before attempting reconnect
   useEffect(() => { 
     const savedType = localStorage.getItem('connectedWalletType'); 
     const savedAccount = localStorage.getItem('connectedWalletAddress'); 
     const savedPK = localStorage.getItem('demoPrivateKey'); 
-    if (savedType && savedAccount && !account) { 
+    if (config && savedType && savedAccount && !account) { 
       setLoading(true); 
       if (savedType === 'local') connectToLocalNode(savedAccount); 
       else if (savedType === 'external') connectToExternalWallet(savedAccount); 
@@ -112,7 +112,7 @@ export function Web3Provider({ children }) {
     } else if (!savedType) { 
       setLoading(false); 
     } 
-  }, [account]); 
+  }, [account, config]); // ✅ Added config to deps
 
   // Setup contracts 
   const setupContracts = async (newProvider, newSigner, newAccount, newChainId, type) => { 

@@ -64,7 +64,9 @@ export default function App() {
 
   if (!enteredSite) {
     return (
+      
       <div className="app-container">
+      <Toast />
         <div className="card">
           <h1>Sua DApp</h1>
           <WalletConnection onContinue={() => setEnteredSite(true)} />
