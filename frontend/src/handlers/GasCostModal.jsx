@@ -37,13 +37,26 @@ function GasCostModal({
       
       // ✅ FIXED: Populate tx first (v5/v6 compatible)
       const populatedTx = await contract.populateTransaction[method](...params, {
-        value: ethers.utils.parseEther(value), // v5: utils.parseEther (fallback for v6 too)
+        value: ethers.utils.parseEther(value || "0"), // FIXED: Fallback to "0" if value undefined
         from: await contract.signer.getAddress(), // Ensure 'from' for accurate estimate
       });
 
       // Estimate on provider (universal)
       const gasEstimate = await provider.estimateGas(populatedTx);
-      const gasPrice = await provider.getFeeData().gasPrice; // v5: getFeeData for price
+      
+      // FIXED: Use legacy getGasPrice as fallback if getFeeData fails
+      let gasPrice;
+      try {
+        const feeData = await provider.getFeeData();
+        gasPrice = feeData.gasPrice || await provider.getGasPrice();
+      } catch {
+        gasPrice = await provider.getGasPrice(); // Legacy fallback
+      }
+      
+      if (!gasPrice || gasPrice.isZero()) {
+        throw new Error("Não foi possível obter o preço do gas");
+      }
+
       const gasCostWei = gasEstimate.mul(gasPrice); // v5: BigNumber mul
       const gasCostEth = ethers.utils.formatEther(gasCostWei);
 
