@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { fetchUserData } from "../graphql-frontend-query"; // Use GraphQL
+import { fetchUserData } from "../graphql-frontend-query";
 import { useWeb3 } from "../Web3Context";
 import DonationWithdrawTabs from "../showingInformations/DonationWithdrawTabs";
 
@@ -12,48 +12,60 @@ export default function UserStatus() {
   
   const { account, getUSDTBalance } = useWeb3();
 
+  // Fixed: Use const arrow functions to avoid hoisting issues
+  const loadUserData = async () => {
+    if (!account) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await fetchUserData(account);
+      
+      // Use the pre-calculated totals directly
+      const totalDonatedWei = parseInt(data.totalDonated || "0");
+      const totalBorrowedWei = parseInt(data.totalBorrowed || "0");
+      const currentDebtWei = parseInt(data.currentDebt || "0");
+      
+      // Format with 6 decimals for USDT
+      const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
+      const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
+      const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
+      
+      const canBorrowNow = parseFloat(currentDebt) === 0;
+
+      setUserData({
+        donations: totalDonated,
+        borrowings: totalBorrowed,
+        currentDebt,
+        canBorrowNow,
+        borrowCount: data.borrows.length,
+      });
+    } catch (e) {
+      //console.error("Error loading user data:", e);
+      setError("Falha ao carregar dados do usuário");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUSDTBalance = async () => {
+    if (!account) return;
+    
+    try {
+      const balance = await getUSDTBalance();
+      setUsdtBalance(balance);
+    } catch (e) {
+      //console.error("Erro ao carregar saldo USDT:", e);
+    }
+  };
+
   useEffect(() => {
     if (account) {
       loadUserData();
       loadUSDTBalance();
     }
   }, [account]);
-
-  async function loadUserData() {
-  if (!account) return;
-
-  setLoading(true);
-  setError("");
-
-  try {
-    const data = await fetchUserData(account);
-    
-    // ✅ Use the pre-calculated totals directly
-    const totalDonatedWei = parseInt(data.totalDonated || "0");
-    const totalBorrowedWei = parseInt(data.totalBorrowed || "0");
-    const currentDebtWei = parseInt(data.currentDebt || "0");
-    
-    // Format with 6 decimals for USDT
-    const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
-    const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
-    const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
-    
-    const canBorrowNow = parseFloat(currentDebt) === 0;
-
-    setUserData({
-      donations: totalDonated,
-      borrowings: totalBorrowed,
-      currentDebt,
-      canBorrowNow,
-      borrowCount: data.borrows.length,
-    });
-  } catch (e) {
-    console.error("Error loading user data:", e);
-    setError("Falha ao carregar dados do usuário");
-  } finally {
-    setLoading(false);
-  }
-}
 
   const refreshAllData = async () => {
     await Promise.all([loadUserData(), loadUSDTBalance()]);

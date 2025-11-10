@@ -316,7 +316,7 @@ export async function fetchUserData(userAddress) {
         first: 1
       ) {
         id
-        totalDonation  // This is the cumulative total
+        totalDonation
         blockTimestamp
       }
       borrowedEvents(
@@ -326,7 +326,7 @@ export async function fetchUserData(userAddress) {
         first: 1
       ) {
         id
-        totalBorrowing  // This is the cumulative total
+        totalBorrowing
         blockTimestamp
       }
       repaidEvents(
@@ -352,7 +352,7 @@ export async function fetchUserData(userAddress) {
     const borrows = data.borrowedEvents || [];
     const repayments = data.repaidEvents || [];
 
-    // ✅ Use the cumulative totals directly from the most recent events
+    // Use the cumulative totals directly from the most recent events
     const totalDonated = donations.length > 0 ? donations[0].totalDonation : "0";
     const totalBorrowed = borrows.length > 0 ? borrows[0].totalBorrowing : "0";
     
@@ -371,7 +371,7 @@ export async function fetchUserData(userAddress) {
       totalBorrowed,
     };
   } catch (error) {
-    //console.error("Error fetching user data:", error);
+    console.error("Error fetching user data:", error);
     throw error;
   }
 }
