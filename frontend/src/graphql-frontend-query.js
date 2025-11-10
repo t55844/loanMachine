@@ -49,7 +49,7 @@ export async function fetchDonationsAndBorrows() {
     }));
     return [donations, borrows];
   } catch (error) {
-    //console.error("Error fetching donations and borrows:", error);
+    console.error("Error fetching donations and borrows:", error.response?.errors || error.message);
     return [[], []];
   }
 }
@@ -85,7 +85,7 @@ export async function fetchContractStats() {
       contractBalance: availableBalance,
     };
   } catch (error) {
-    //console.error("Error fetching contract stats:", error);
+    console.error("Error fetching contract stats:", error.response?.errors || error.message);
     throw error;
   }
 }
@@ -163,7 +163,7 @@ export async function fetchLastTransactions({ limit = 5 } = {}) {
 
     return allTransactions;
   } catch (error) {
-    //console.error("Error fetching last transactions:", error);
+    console.error("Error fetching last transactions:", error.response?.errors || error.message);
     throw error;
   }
 }
@@ -208,7 +208,7 @@ export async function fetchLoanRequisitions() {
       parcelsCount: event.parcelsCount
     }));
   } catch (error) {
-    //console.error("Error fetching loan requisitions:", error);
+    console.error("Error fetching loan requisitions:", error.response?.errors || error.message);
     return [];
   }
 }
@@ -272,7 +272,7 @@ export async function fetchUserRequisitions(userAddress) {
       fundedAt: event.status >= 2 ? event.blockTimestamp : null
     }));
   } catch (error) {
-    //console.error("Error fetching user requisitions:", error);
+    console.error("Error fetching user requisitions:", error.response?.errors || error.message);
     return [];
   }
 }
@@ -297,7 +297,7 @@ export async function fetchUserDonations(userAddress) {
     });
     return data.donatedEvents || [];
   } catch (error) {
-    //console.error("Error fetching user donations:", error);
+    console.error("Error fetching user donations:", error.response?.errors || error.message);
     return [];
   }
 }
@@ -359,7 +359,7 @@ export async function fetchUserData(userAddress) {
       totalBorrowed,
     };
   } catch (error) {
-    //console.error("Error fetching user data:", error);
+    console.error("Error fetching user data:", error.response?.errors || error.message);
     throw error;
   }
 }
@@ -396,7 +396,7 @@ export async function fetchWalletMember(walletAddress) {
       hasVinculation: true, // 🚨 THIS IS THE MISSING KEY
     };
   } catch (error) {
-    //console.error("Error fetching wallet member:", error);
+    console.error("Error fetching wallet member:", error.response?.errors || error.message);
     throw error; // Allow Web3Context to catch this as a network error
   }
 }
@@ -430,7 +430,7 @@ export async function fetchMemberReputation(memberId) {
     
     return 0; // Default reputation if no events found
   } catch (error) {
-    //console.error('Error fetching member reputation:', error);
+    console.error('Error fetching member reputation:', error.response?.errors || error.message);
     return 0; // Return 0 on error
   }
 }
@@ -466,7 +466,7 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
       
       targetMemberId = memberEvent.memberId;
     } catch (error) {
-      //console.error("Error fetching wallet member:", error);
+      console.error("Error fetching wallet member:", error.response?.errors || error.message);
       throw error;
     }
   }
@@ -546,7 +546,7 @@ export async function fetchCompleteMemberData(walletAddress, memberId = null) {
       requisitions: data.loanRequisitions || []
     };
   } catch (error) {
-    //console.error("Error fetching complete member data:", error);
+    console.error("Error fetching complete member data:", error.response?.errors || error.message);
     throw error;
   }
 }
@@ -577,7 +577,7 @@ export async function fetchLastElection() {
       blockTimestamp: lastElection.blockTimestamp
     };
   } catch (error) {
-    //console.error("Error fetching last election:", error);
+    console.error("Error fetching last election:", error.response?.errors || error.message);
     throw error;
   }
 }
@@ -614,7 +614,7 @@ export async function fetchBorrowerRequisitions(borrower) {
       coveringLendersCount: 0
     }));
   } catch (error) {
-    //console.error("Error fetching borrower requisitions:", error);
+    console.error("Error fetching borrower requisitions:", error.response?.errors || error.message);
     throw error;
   }
 }
@@ -683,7 +683,7 @@ export async function fetchEventHashes(selectedTypes, startTime, endTime) {
 
     return hashMap;
   } catch (error) {
-    //console.error('Error fetching event hashes from GraphQL:', error);
+    console.error('Error fetching event hashes from GraphQL:', error.response?.errors || error.message);
     return {}; // Return empty map on error
   }
 }
