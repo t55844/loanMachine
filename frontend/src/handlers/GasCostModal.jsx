@@ -31,18 +31,18 @@ function GasCostModal({
 
       const { method, params = [], value = "0" } = transactionData;
       
-      if (!contract[method]) {
+      if (!contract.estimateGas[method]) {
         throw new Error(`Método ${method} não encontrado no contrato`);
       }
 
-      // ✅ FIXED: Correct ethers v6 syntax for estimateGas
-      const gasEstimate = await contract[method].estimateGas(...params, {
-        value: ethers.parseEther(value) // v6: parseEther
+      // ✅ FIXED: Use ethers v5 syntax for estimateGas
+      const gasEstimate = await contract.estimateGas[method](...params, {
+        value: ethers.utils.parseEther(value) // v5: utils.parseEther
       });
 
       const gasPrice = await provider.getGasPrice();
-      const gasCostWei = gasEstimate * gasPrice;
-      const gasCostEth = ethers.formatEther(gasCostWei);
+      const gasCostWei = gasEstimate.mul(gasPrice); // v5: BigNumber mul
+      const gasCostEth = ethers.utils.formatEther(gasCostWei);
 
       setGasCost(gasCostEth);
     } catch (err) {
@@ -63,7 +63,7 @@ function GasCostModal({
   if (!isOpen) return null;
 
   const transactionValue = transactionData?.value ? 
-    parseFloat(ethers.formatEther(transactionData.value)) : 0;
+    parseFloat(ethers.utils.formatEther(transactionData.value)) : 0;
   const totalCost = (parseFloat(gasCost || 0) + transactionValue).toFixed(6);
 
   return (
