@@ -309,17 +309,32 @@ export async function fetchUserDonations(userAddress) {
 export async function fetchUserData(userAddress) {
   const query = `
     query GetUserData($userAddress: Bytes!) {
-      donatedEvents(where: { donor: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
+      donatedEvents(
+        where: { donor: $userAddress }
+        orderDirection: desc
+        orderBy: blockTimestamp
+        first: 1
+      ) {
         id
-        totalDonation
+        totalDonation  // This is the cumulative total
         blockTimestamp
       }
-      borrowedEvents(where: { borrower: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
+      borrowedEvents(
+        where: { borrower: $userAddress }
+        orderDirection: desc
+        orderBy: blockTimestamp
+        first: 1
+      ) {
         id
-        totalBorrowing
+        totalBorrowing  // This is the cumulative total
         blockTimestamp
       }
-      repaidEvents(where: { borrower: $userAddress },orderDirection: desc, orderBy: blockTimestamp, first: 1) {
+      repaidEvents(
+        where: { borrower: $userAddress }
+        orderDirection: desc
+        orderBy: blockTimestamp
+        first: 1
+      ) {
         id
         amount
         blockTimestamp
@@ -337,30 +352,26 @@ export async function fetchUserData(userAddress) {
     const borrows = data.borrowedEvents || [];
     const repayments = data.repaidEvents || [];
 
-    const totalDonated = donations.reduce((sum, d) => sum + Number(d.totalDonation), 0).toString();
-    const totalBorrowed = borrows.reduce((sum, b) => sum + Number(b.totalBorrowing), 0).toString();
-    const currentDebt = repayments.length > 0 ? repayments[repayments.length - 1].remainingDebt : totalBorrowed;
-    const lastActivity = Math.max(
-      ...[
-        ...donations.map(d => Number(d.blockTimestamp)),
-        ...borrows.map(b => Number(b.blockTimestamp)),
-        ...repayments.map(r => Number(r.blockTimestamp))
-      ],
-      0
-    ).toString();
+    // ✅ Use the cumulative totals directly from the most recent events
+    const totalDonated = donations.length > 0 ? donations[0].totalDonation : "0";
+    const totalBorrowed = borrows.length > 0 ? borrows[0].totalBorrowing : "0";
+    
+    // Current debt comes from the most recent repayment event
+    const currentDebt = repayments.length > 0 
+      ? repayments[0].remainingDebt 
+      : totalBorrowed; // If no repayments, debt = total borrowed
 
     return {
       id: userAddress,
-      borrows: borrows.map(b => ({ id: b.id, amount: b.amount, timestamp: b.blockTimestamp })),
-      donations: donations.map(d => ({ id: d.id, amount: d.amount, timestamp: d.blockTimestamp })),
-      repayments: repayments.map(r => ({ id: r.id, amount: r.amount, timestamp: r.blockTimestamp })),
+      borrows,
+      donations,
+      repayments,
       currentDebt,
-      lastActivity,
       totalDonated,
       totalBorrowed,
     };
   } catch (error) {
-    //console.error("Error fetching user data:", error.response?.errors || error.message);
+    //console.error("Error fetching user data:", error);
     throw error;
   }
 }

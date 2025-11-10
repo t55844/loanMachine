@@ -20,51 +20,40 @@ export default function UserStatus() {
   }, [account]);
 
   async function loadUserData() {
-    if (!account) return;
+  if (!account) return;
 
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    try {
-      const data = await fetchUserData(account);
-      
-      // FIXED: Sum all events for accurate totals (GraphQL first:1 was incomplete)
-      const totalDonatedWei = data.donations.reduce((sum, d) => sum + parseInt(d.amount || "0"), 0);
-      const totalBorrowedWei = data.borrows.reduce((sum, b) => sum + parseInt(b.amount || "0"), 0);
-      const currentDebtWei = parseInt(data.currentDebt || "0");
-      
-      // FIXED: Format with 6 decimals for USDT
-      const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
-      const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
-      const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
-      
-      const canBorrowNow = parseFloat(currentDebt) === 0;
-
-      setUserData({
-        donations: totalDonated,
-        borrowings: totalBorrowed,
-        currentDebt,
-        canBorrowNow,
-        borrowCount: data.borrows.length,
-      });
-    } catch (e) {
-      //console.error("Erro ao carregar dados do usuário:", e);
-      setError("Falha ao carregar dados do usuário");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadUSDTBalance() {
-    if (!account) return;
+  try {
+    const data = await fetchUserData(account);
     
-    try {
-      const balance = await getUSDTBalance();
-      setUsdtBalance(balance);
-    } catch (e) {
-      //console.error("Erro ao carregar saldo USDT:", e);
-    }
+    // ✅ Use the pre-calculated totals directly
+    const totalDonatedWei = parseInt(data.totalDonated || "0");
+    const totalBorrowedWei = parseInt(data.totalBorrowed || "0");
+    const currentDebtWei = parseInt(data.currentDebt || "0");
+    
+    // Format with 6 decimals for USDT
+    const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
+    const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
+    const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
+    
+    const canBorrowNow = parseFloat(currentDebt) === 0;
+
+    setUserData({
+      donations: totalDonated,
+      borrowings: totalBorrowed,
+      currentDebt,
+      canBorrowNow,
+      borrowCount: data.borrows.length,
+    });
+  } catch (e) {
+    console.error("Error loading user data:", e);
+    setError("Falha ao carregar dados do usuário");
+  } finally {
+    setLoading(false);
   }
+}
 
   const refreshAllData = async () => {
     await Promise.all([loadUserData(), loadUSDTBalance()]);
