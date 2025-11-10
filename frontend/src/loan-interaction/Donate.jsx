@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
 import { eventSystem } from "../handlers/EventSystem";
 
@@ -11,15 +10,13 @@ function Donate() {
   const [approving, setApproving] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { showTransactionModal, ModalWrapper } = useGasCostModal();
   const { 
     account, 
     contract, 
     getUSDTBalance, 
     approveUSDT,
     needsUSDTApproval,
-    member,
-    provider
+    member
   } = useWeb3();
 
   // Fetch USDT balance
@@ -70,7 +67,7 @@ function Donate() {
     }
   }
 
-  // Helper function to show errors
+  // Helper functions (unchanged)
   function showError(error) {
     eventSystem.emit('showToast', {
       message: error.message || error,
@@ -78,7 +75,6 @@ function Donate() {
     });
   }
 
-  // Helper function to show success
   function showSuccess(message) {
     eventSystem.emit('showToast', {
       message: message,
@@ -86,7 +82,6 @@ function Donate() {
     });
   }
 
-  // Helper function to show warning
   function showWarning(message) {
     eventSystem.emit('showToast', {
       message: message,
@@ -108,8 +103,6 @@ function Donate() {
       showSuccess(`${amount} USDT aprovados com sucesso!`);
       setNeedsApproval(false);
       
-      // FIXED: Re-check after approval to ensure state update
-      await checkApproval();
     } catch (err) {
       showError(err.message || "Falha na aprovação");
     } finally {
@@ -117,11 +110,8 @@ function Donate() {
     }
   }
 
-  async function confirmTransaction(transactionData) {
+  async function confirmTransaction(amountInWei, memberId) {
     try {
-      const amountInWei = ethers.utils.parseUnits(transactionData.params[0], 6); // FIXED: Use utils.parseUnits
-      const memberId = transactionData.params[1];
-      
       const tx = await contract.donate(amountInWei, memberId);
       const receipt = await tx.wait();
       
@@ -149,43 +139,36 @@ function Donate() {
       return;
     }
 
-    // Check balance
+    // Check balance (use parseFloat for consistency)
     if (parseFloat(usdtBalance) < parseFloat(amount)) {
       showError(`Saldo USDT insuficiente. Você tem ${parseFloat(usdtBalance).toFixed(2)} USDT`);
       return;
     }
 
-    // FIXED: Await final approval check - block modal if needed
+    // Final approval check
     try {
       const currentApprovalNeeded = await needsUSDTApproval(amount);
       if (currentApprovalNeeded) {
-        showWarning("Por favor, aprove USDT primeiro"); // Prompts user to approve
-        setNeedsApproval(true); // Shows approval button
-        return; // Don't show modal
+        showWarning("Por favor, aprove USDT primeiro");
+        setNeedsApproval(true);
+        return;
       }
     } catch (err) {
       showError("Erro ao verificar status de aprovação");
       return;
     }
 
-    const amountInWei = ethers.utils.parseUnits(amount, 6); // FIXED: Use utils.parseUnits
+    const amountInWei = ethers.utils.parseUnits(amount, 6);
     const memberId = member.id;
-    
-    // FIXED: Ensure params are strings for modal (prevents estimation parse errors)
-    showTransactionModal(
-      {
-        method: "donate",
-        params: [amountInWei.toString(), memberId.toString()], // NEW: .toString() for BigNumber/ID
-        value: "0"
-      },
-      {
-        type: 'donate',
-        amount: amount,
-        token: 'USDT',
-        from: account,
-        memberId: memberId
-      }
-    );
+
+    // FIXED: Direct tx—no modal to avoid revert. Show loading toast
+    eventSystem.emit('showToast', {
+      message: "Iniciando doação...",
+      type: 'info',
+      duration: 3000
+    });
+
+    await confirmTransaction(amountInWei, memberId);
   }
 
   const hasSufficientBalance = parseFloat(usdtBalance) >= parseFloat(amount);
@@ -209,7 +192,7 @@ function Donate() {
 
       <input
         type="number"
-        min={0}
+        min="0"
         step="0.01"
         placeholder="Quantidade em USDT"
         value={amount}
@@ -235,7 +218,7 @@ function Donate() {
         {!hasMemberData ? "Talvez a carteira não esteja vinculada" : "Doar USDT"}
       </button>
 
-      <ModalWrapper onConfirm={confirmTransaction} />
+      {/* FIXED: Removed ModalWrapper—no modal for Donate */}
     </div>
   );
 }

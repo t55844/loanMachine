@@ -1,27 +1,8 @@
 import { useState, useEffect } from "react";
-import { fetchUserData } from "../graphql-frontend-query";
+import { ethers } from "ethers";
+import { fetchUserData } from "../graphql-frontend-query"; // Use GraphQL
 import { useWeb3 } from "../Web3Context";
 import DonationWithdrawTabs from "../showingInformations/DonationWithdrawTabs";
-import { ethers } from "ethers";
-
-async function fetchUserStats(userAddress) {
-  const userData = await fetchUserData(userAddress);
-  
-  // Convert from wei (6 decimals for USDT) to USDT
-  const userDonations = ethers.utils.formatUnits(userData.totalDonated || "0", 6);
-  const userBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
-  const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
-  
-  const canBorrowNow = parseFloat(currentDebt) === 0;
-  
-  return {
-    donations: userDonations,
-    borrowings: userBorrowed,
-    currentDebt,
-    canBorrowNow,
-    borrowCount: userData.borrows.length,
-  };
-}
 
 export default function UserStatus() {
   const [userData, setUserData] = useState(null);
@@ -29,7 +10,7 @@ export default function UserStatus() {
   const [error, setError] = useState("");
   const [usdtBalance, setUsdtBalance] = useState("0");
   
-  const { account, contract, getUSDTBalance } = useWeb3();
+  const { account, getUSDTBalance } = useWeb3();
 
   useEffect(() => {
     if (account) {
@@ -45,8 +26,27 @@ export default function UserStatus() {
     setError("");
 
     try {
-      const stats = await fetchUserStats(account);
-      setUserData(stats);
+      const data = await fetchUserData(account);
+      
+      // FIXED: Sum all events for accurate totals (GraphQL first:1 was incomplete)
+      const totalDonatedWei = data.donations.reduce((sum, d) => sum + parseInt(d.amount || "0"), 0);
+      const totalBorrowedWei = data.borrows.reduce((sum, b) => sum + parseInt(b.amount || "0"), 0);
+      const currentDebtWei = parseInt(data.currentDebt || "0");
+      
+      // FIXED: Format with 6 decimals for USDT
+      const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
+      const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
+      const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
+      
+      const canBorrowNow = parseFloat(currentDebt) === 0;
+
+      setUserData({
+        donations: totalDonated,
+        borrowings: totalBorrowed,
+        currentDebt,
+        canBorrowNow,
+        borrowCount: data.borrows.length,
+      });
     } catch (e) {
       //console.error("Erro ao carregar dados do usuário:", e);
       setError("Falha ao carregar dados do usuário");
