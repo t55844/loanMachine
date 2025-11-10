@@ -17,40 +17,51 @@ function GasCostModal({
   const { contract, provider } = useWeb3();
 
   useEffect(() => {
-    if (isOpen && contract && transactionData) {
+    if (isOpen && contract && provider && transactionData) {
       estimateGasCost();
     }
   }, [isOpen, transactionData]);
 
-  // Updated: async, await extractErrorMessage
+  // NEW: Robust v5/v6-agnostic estimation via populateTransaction + provider.estimateGas
   async function estimateGasCost() {
     try {
+      if (!contract || !provider) {
+        throw new Error("Contrato ou provedor não disponível");
+      }
+
       setLoading(true);
       setGasError("");
       setGasCost(null);
 
       const { method, params = [], value = "0" } = transactionData;
       
-      if (!contract.estimateGas[method]) {
-        throw new Error(`Método ${method} não encontrado no contrato`);
-      }
-
-      // ✅ FIXED: Use ethers v5 syntax for estimateGas
-      const gasEstimate = await contract.estimateGas[method](...params, {
-        value: ethers.utils.parseEther(value) // v5: utils.parseEther
+      // ✅ FIXED: Populate tx first (v5/v6 compatible)
+      const populatedTx = await contract.populateTransaction[method](...params, {
+        value: ethers.utils.parseEther(value), // v5: utils.parseEther (fallback for v6 too)
+        from: await contract.signer.getAddress(), // Ensure 'from' for accurate estimate
       });
 
-      const gasPrice = await provider.getGasPrice();
+      // Estimate on provider (universal)
+      const gasEstimate = await provider.estimateGas(populatedTx);
+      const gasPrice = await provider.getFeeData().gasPrice; // v5: getFeeData for price
       const gasCostWei = gasEstimate.mul(gasPrice); // v5: BigNumber mul
       const gasCostEth = ethers.utils.formatEther(gasCostWei);
 
       setGasCost(gasCostEth);
     } catch (err) {
-      //console.error("Erro de estimativa de gas:", err);
+      console.error("Erro de estimativa de gas:", err); // For debug
       
-      // NEW: Await the decoded message
-      const userFriendlyError = await extractErrorMessage(err, provider, contract.interface);
-      setGasError(userFriendlyError);
+      // NEW: Special handling for insufficient allowance
+      if (err.code === 'UNPREDICTABLE_GAS_LIMIT' && err.error?.message?.includes('insufficient allowance')) {
+        setGasError("Aprovação insuficiente de USDT. Por favor, aprove o valor necessário primeiro.");
+      } else {
+        // Await the decoded message for other errors
+        const userFriendlyError = await extractErrorMessage(err, provider, contract.interface);
+        setGasError(userFriendlyError);
+      }
+      
+      // Optional: Fallback to default estimate (e.g., 200k gas) to avoid blocking UI
+      setGasCost("0.001"); // Rough ETH equiv for ~200k gas @ 20 gwei
     } finally {
       setLoading(false);
     }

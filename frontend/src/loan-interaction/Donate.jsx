@@ -41,7 +41,11 @@ function Donate() {
     } catch (err) {
       //console.error("❌ Erro ao buscar saldo USDT:", err);
       setUsdtBalance("0");
-      showError("Falha ao carregar saldo USDT");
+      // FIXED: Use existing eventSystem for toast (no new hook)
+      eventSystem.emit('showToast', {
+        message: "Falha ao carregar saldo USDT",
+        isError: true
+      });
     } finally {
       setLoading(false);
     }
@@ -166,11 +170,11 @@ function Donate() {
     const amountInWei = ethers.utils.parseUnits(amount, 6); // FIXED: Use utils.parseUnits
     const memberId = member.id;
     
-    // Show the gas cost modal with the confirmation function
+    // FIXED: Ensure params are strings/arrays for modal (prevents estimation parse errors)
     showTransactionModal(
       {
         method: "donate",
-        params: [amountInWei.toString(), memberId], // UPDATED: String for params if needed
+        params: [amountInWei.toString(), memberId.toString()], // NEW: .toString() for BigNumber/ID serialization
         value: "0"
       },
       {
