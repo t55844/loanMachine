@@ -38,16 +38,17 @@ export function Web3Provider({ children }) {
 
   // Fetch config from proxy on mount
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const response = await fetch(`${PROXY_URL}?type=config`);
-        if (!response.ok) throw new Error('Failed to fetch config');
-        const data = await response.json();
-        setConfig(data);
-      } catch (err) {
-        setError(`Config fetch failed: ${err.message}`);
-      }
-    };
+   const fetchConfig = async () => {
+  try {
+    const response = await fetch(`${PROXY_URL}?type=config`);
+    if (!response.ok) throw new Error('Failed to fetch config');
+    const data = await response.json();
+    if (!data.contractAddress) throw new Error('Invalid config from server');
+    setConfig(data);
+  } catch (err) {
+    setError(`Config fetch failed: ${err.message}`);
+  }
+};
     fetchConfig();
   }, []);
 
@@ -115,25 +116,26 @@ export function Web3Provider({ children }) {
 
   // Setup contracts
   const setupContracts = async (newProvider, newSigner, newAccount, newChainId, type) => {
-    if (!config) {
-      setError('Config not loaded yet');
-      setLoading(false);
-      return;
-    }
+  if (!config) {
+    setError('Configuration loading... Please wait and try again.');
+    setLoading(false);
+    return; // Early return - retry connection after config loads
+  }
 
-    const expectedChainId = process.env.EXPECTED_CHAIN_ID;
-    if (expectedChainId && parseInt(expectedChainId) !== parseInt(newChainId)) {
-      setError(`Wrong network. Please switch to chain ID ${expectedChainId}`);
-      setLoading(false);
-      return;
-    }
+  const expectedChainId = process.env.EXPECTED_CHAIN_ID; // Keep if needed
+  if (expectedChainId && parseInt(expectedChainId) !== parseInt(newChainId)) {
+    setError(`Wrong network. Please switch to chain ID ${expectedChainId}`);
+    setLoading(false);
+    return;
+  }
 
-    const loanContract = new ethers.Contract(config.contractAddress, LoanMachineABI.abi, newSigner);
-    const reputationSystemContract = new ethers.Contract(
-      config.reputationContractAddress, 
-      ReputationSystemABI.abi, 
-      newSigner
-    );
+  // Now safe - config exists
+  const loanContract = new ethers.Contract(config.contractAddress, LoanMachineABI.abi, newSigner);
+  const reputationSystemContract = new ethers.Contract(
+    config.reputationContractAddress, 
+    ReputationSystemABI.abi, 
+    newSigner
+  )
     
     // NEW: Create Interface for LoanMachine (for error decoding)
     const loanInterface = new ethers.utils.Interface(LoanMachineABI.abi);
