@@ -1,5 +1,4 @@
 import { useState } from "react";
-// 1. Destructure 'loading' and 'error' from useWeb3
 import { useWeb3 } from "../Web3Context"; 
 import LoanRequisitionForm from "../loan-interaction/LoanRequisitionForm";
 import LoanRequisitionMonitor from "./LoanRequisitionMonitor";

@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
-import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
-import { eventSystem } from "../handlers/EventSystem";
-
-const VITE_VALUE_TO_MINT  = import.meta.env.VITE_VALUE_TO_MINT;
+import { ethers } from "ethers";
 
 const WalletConnection = ({ onContinue }) => {
   const {  
@@ -17,11 +14,13 @@ const WalletConnection = ({ onContinue }) => {
     connectWithPrivateKey, 
     disconnect, 
     connectionType,
-    signer 
+    signer,
+    config // Added: From proxy-fetched config
   } = useWeb3();
   
   const { showError, showSuccess } = useToast(provider, usdtContract); // UPDATED: Pass provider/usdtContract
   
+  const valueToMint = config?.valueToMint || '1000'; // Fallback if not loaded
   const [usdtBalance, setUsdtBalance] = useState('0');
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [privateKeyInput, setPrivateKeyInput] = useState('');
@@ -68,14 +67,14 @@ const WalletConnection = ({ onContinue }) => {
     setFaucetLoading(true);
 
     try {
-      const amount = ethers.utils.parseUnits(VITE_VALUE_TO_MINT, 6); // FIXED: Use utils.parseUnits
+      const amount = ethers.utils.parseUnits(valueToMint, 6); // FIXED: Use utils.parseUnits
       const tx = await usdtContract.mint(account, amount);
       await tx.wait();
       
       const newBalance = await getUSDTBalance();
       setUsdtBalance(newBalance);
       
-      showSuccess(`Sucesso! ${VITE_VALUE_TO_MINT} USDT adicionados.`);
+      showSuccess(`Sucesso! ${valueToMint} USDT adicionados.`);
     } catch (err) {
       //console.error('Erro no faucet:', err);
       await showError(err); // UPDATED: Await
@@ -193,7 +192,7 @@ const WalletConnection = ({ onContinue }) => {
                 disabled={faucetLoading}
                 className={`faucet-button ${faucetLoading ? 'loading' : ''}`}
               >
-                {faucetLoading ? 'Mintando USDT...' : `🎯 Obter ${VITE_VALUE_TO_MINT} USDT de Teste`}
+                {faucetLoading ? 'Mintando USDT...' : `🎯 Obter ${valueToMint} USDT de Teste`}
               </button>
             </div>
           ) : (

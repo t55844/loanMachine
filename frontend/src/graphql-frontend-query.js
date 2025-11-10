@@ -1,10 +1,10 @@
-// Updated graphql-frontend-query.js - Fixed entity names with mapping in fetchEventHashes
+// graphql-frontend-query.js - Updated to use single client instance for all requests
 import { request, GraphQLClient } from "graphql-request";
 
-const GRAPHQL_URL = import.meta.env.VITE_SUBGRAPH_URL;
+const PROXY_URL = '/api/proxy?type=graphql'; // Proxy endpoint for GraphQL
 
-// Optional: use a single client instance for all queries
-const client = new GraphQLClient(GRAPHQL_URL, {
+// Single client instance for all queries
+const client = new GraphQLClient(PROXY_URL, {
   headers: { "Content-Type": "application/json" },
 });
 
@@ -422,7 +422,7 @@ export async function fetchMemberReputation(memberId) {
   const variables = { memberId };
   
   try {
-    const data = await request(GRAPHQL_URL, query, variables);
+    const data = await client.request(query, variables);
     
     if (data.reputationChangedEvents && data.reputationChangedEvents.length > 0) {
       return data.reputationChangedEvents[0].newReputation;

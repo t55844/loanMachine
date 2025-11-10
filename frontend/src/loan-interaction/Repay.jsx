@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
-import { eventSystem } from "../handlers/EventSystem";
 
 function Repay({ account, contract }) {
   const [amount, setAmount] = useState("");

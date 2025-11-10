@@ -1,12 +1,11 @@
+// Updated Web3Context.jsx - Fetch config from proxy, use proxy for RPC provider
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import LoanMachineABI from '../src/abi/LoanMachine.json';
 import ReputationSystemABI from '../src/abi/ReputationSystem.json';
 import { fetchWalletMember, fetchMemberReputation } from './graphql-frontend-query';
 
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
-const REPUTATION_CONTRACT_ADDRESS = import.meta.env.VITE_REPUTATION_CONTRACT_ADDRESS;
-const RPC_URL = import.meta.env.VITE_RPC_URL;
+const PROXY_URL = '/api/proxy'; // Single proxy endpoint
 
 const USDT_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -19,8 +18,6 @@ const USDT_ABI = [
   "function symbol() view returns (string)",
   "function mint(address to, uint256 amount) returns (bool)"
 ];
-
-const MOCK_USDT_ADDRESS = import.meta.env.VITE_MOCK_USDT_ADDRESS;
 
 const Web3Context = createContext();
 
@@ -37,6 +34,22 @@ export function Web3Provider({ children }) {
   const [chainId, setChainId] = useState(null);
   const [member, setMember] = useState(null);
   const [connectionType, setConnectionType] = useState(null); 
+  const [config, setConfig] = useState(null); // Store proxy-fetched config
+
+  // Fetch config from proxy on mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch(`${PROXY_URL}?type=config`);
+        if (!response.ok) throw new Error('Failed to fetch config');
+        const data = await response.json();
+        setConfig(data);
+      } catch (err) {
+        setError(`Config fetch failed: ${err.message}`);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   // Simple function to fetch and set member data
   const fetchAndSetMemberData = async (walletAddress) => {
@@ -102,16 +115,22 @@ export function Web3Provider({ children }) {
 
   // Setup contracts
   const setupContracts = async (newProvider, newSigner, newAccount, newChainId, type) => {
-    const expectedChainId = import.meta.env.VITE_EXPECTED_CHAIN_ID;
+    if (!config) {
+      setError('Config not loaded yet');
+      setLoading(false);
+      return;
+    }
+
+    const expectedChainId = process.env.EXPECTED_CHAIN_ID;
     if (expectedChainId && parseInt(expectedChainId) !== parseInt(newChainId)) {
       setError(`Wrong network. Please switch to chain ID ${expectedChainId}`);
       setLoading(false);
       return;
     }
 
-    const loanContract = new ethers.Contract(CONTRACT_ADDRESS, LoanMachineABI.abi, newSigner);
+    const loanContract = new ethers.Contract(config.contractAddress, LoanMachineABI.abi, newSigner);
     const reputationSystemContract = new ethers.Contract(
-      REPUTATION_CONTRACT_ADDRESS, 
+      config.reputationContractAddress, 
       ReputationSystemABI.abi, 
       newSigner
     );
@@ -119,9 +138,9 @@ export function Web3Provider({ children }) {
     // NEW: Create Interface for LoanMachine (for error decoding)
     const loanInterface = new ethers.utils.Interface(LoanMachineABI.abi);
     
-    const usdtAddress = MOCK_USDT_ADDRESS;
+    const usdtAddress = config.mockUsdtAddress;
     if (!usdtAddress) {
-      throw new Error('Mock USDT address not configured. Check VITE_MOCK_USDT_ADDRESS env variable');
+      throw new Error('Mock USDT address not configured');
     }
 
     const usdtTokenContract = new ethers.Contract(usdtAddress, USDT_ABI, newSigner);
@@ -151,14 +170,14 @@ export function Web3Provider({ children }) {
         }
 
         // Check if LoanMachine is already authorized
-        const isAuthorized = await reputationSystemContract.authorizedCallers(CONTRACT_ADDRESS);
+        const isAuthorized = await reputationSystemContract.authorizedCallers(config.contractAddress);
         if (isAuthorized) {
           //console.log('LoanMachine already authorized.');
           return;
         }
 
         //console.log('Authorizing LoanMachine as caller...');
-        const tx = await reputationSystemContract.setAuthorizedCaller(CONTRACT_ADDRESS, true);
+        const tx = await reputationSystemContract.setAuthorizedCaller(config.contractAddress, true);
         const receipt = await tx.wait();
         //console.log('Authorization successful. Tx hash:', receipt.transactionHash);
       } catch (err) {
@@ -198,7 +217,8 @@ export function Web3Provider({ children }) {
 
     try {
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const externalProvider = new ethers.providers.Web3Provider(window.ethereum);
+      const externalProvider = new ethers.providers.Web3Provider(window.ethereum, 'any'); // Allow any chain
+      await externalProvider.ready; // Wait for provider
       const signer = externalProvider.getSigner();
       const network = await externalProvider.getNetwork();
 
@@ -229,7 +249,7 @@ export function Web3Provider({ children }) {
     setLoading(true); 
     setError('');
     try {
-      const localProvider = new ethers.providers.JsonRpcProvider(RPC_URL);
+      const localProvider = new ethers.providers.JsonRpcProvider(`${PROXY_URL}?type=rpc`); // Use proxy for RPC
       const network = await localProvider.getNetwork();
       const accounts = await localProvider.listAccounts();
       
@@ -256,8 +276,7 @@ export function Web3Provider({ children }) {
     setError('');
 
     try {
-      const rpcUrl = RPC_URL; // 'https://rpc.sepolia.org'; // Public Sepolia RPC (or your Alchemy/Infura URL)
-      const demoProvider = new ethers.providers.JsonRpcProvider(rpcUrl); // FIXED: v5 syntax
+      const demoProvider = new ethers.providers.JsonRpcProvider(`${PROXY_URL}?type=rpc`); // Use proxy
 
       // Validate and create wallet from PK
       if (!privateKey.startsWith('0x')) privateKey = '0x' + privateKey;
@@ -366,7 +385,7 @@ export function Web3Provider({ children }) {
       return { name, symbol, decimals, address: usdtContract.address };
     } catch(err) {
       //console.warn("Could not fetch USDT info", err.message);
-      return { name: 'MockUSDT', symbol: 'mUSDT', decimals: 6, address: MOCK_USDT_ADDRESS };
+      return { name: 'MockUSDT', symbol: 'mUSDT', decimals: 6, address: config.mockUsdtAddress };
     }
   };
 
@@ -388,8 +407,9 @@ export function Web3Provider({ children }) {
     reputationContract, 
     usdtContract,
     provider,
-    signer, // ✅ Added to exports
-    loanInterface, // NEW: Export for error decoding
+    signer, 
+    loanInterface, 
+    config,
     loading,
     error,
     chainId,
@@ -397,7 +417,7 @@ export function Web3Provider({ children }) {
     connectionType, 
     connectToLocalNode,
     connectToExternalWallet, 
-    connectWithPrivateKey, // ✅ Added to exports
+    connectWithPrivateKey, 
     disconnect, 
     refreshMemberData,
     getUSDTBalance,

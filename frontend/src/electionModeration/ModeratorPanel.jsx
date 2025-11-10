@@ -1,6 +1,5 @@
 // Updated ModeratorPanel.jsx - Removed getHashesFromGraphQL, import fetchEventHashes from query file
 import React, { useState } from 'react';
-import { ethers } from 'ethers';
 import { useWeb3 } from '../Web3Context';
 import { fetchEventHashes } from '../graphql-frontend-query'; // Adjust path to your query file
 
