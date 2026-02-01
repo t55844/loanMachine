@@ -1,4 +1,3 @@
-// components/Toast.jsx
 import { useState, useEffect } from 'react';
 import { eventSystem } from '../handlers/EventSystem';
 import { extractErrorMessage, getErrorType } from '../handlers/errorMapping';

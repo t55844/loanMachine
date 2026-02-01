@@ -6,11 +6,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: LoanMachine
-    network: local
+    network: sepolia
     source:
-      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+      address: "0xE797948c05aa26369825bA03D2b5e0eBB4ed28C1"
       abi: LoanMachine
-      startBlock: 0
+      startBlock: 4564564
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -86,11 +86,11 @@ dataSources:
           handler: handleLoanUncovered
   - kind: ethereum/contract
     name: ReputationSystem
-    network: local
+    network: sepolia
     source:
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      address: "0xf9B64b3242DDFc7627cd764825617e6d9310Ce95"
       abi: ReputationSystem
-      startBlock: 0
+      startBlock: 4564564
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6

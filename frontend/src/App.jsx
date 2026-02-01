@@ -13,9 +13,9 @@ import Toast from "./handlers/Toast";
 import ElectionManagement from "./electionModeration/ElectionManagement";
 import ModeratorPanel from "./electionModeration/ModeratorPanel";
 import WalletConnection from "./loan-interaction/WalletConnection";
+import { useToast } from "./handlers/useToast"; // NEW: Import useToast
 
 export default function App() {
-  // ✅ Load initial state from localStorage
   const savedWallet = localStorage.getItem('connectedWalletAddress');
   const [enteredSite, setEnteredSite] = useState(!!savedWallet); // true if wallet exists
 
@@ -26,10 +26,13 @@ export default function App() {
     loading, 
     member,
     provider,
-    disconnect
+    disconnect,
+    loanInterface // NEW: Get loanInterface for error decoding
   } = useWeb3();
 
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
+
+  const { showError } = useToast(provider, contract); // NEW: Use toast with provider/contract
 
   const runDebtCheck = async () => {
     if (!contract) return;
@@ -37,8 +40,8 @@ export default function App() {
       method: 'performPeriodicDebtCheck',
       params: [10]
     }, {
-      action: 'Run Periodic Debt Check',
-      description: 'Check for overdue loans in batches'
+      action: 'Executar Verificação Periódica de Dívida',
+      description: 'Verificar empréstimos em atraso em lotes'
     });
   };
 
@@ -46,10 +49,9 @@ export default function App() {
     try {
       const tx = await contract.performPeriodicDebtCheck(10);
       await tx.wait();
-      console.log("Debt check completed successfully");
+      //console.log("Verificação de dívida concluída com sucesso");
     } catch (error) {
-      console.error('Debt check failed:', error);
-      throw error;
+      await showError(error); // UPDATED: Use showError for proper handling
     }
   };
 
@@ -62,9 +64,11 @@ export default function App() {
 
   if (!enteredSite) {
     return (
+      
       <div className="app-container">
+      <Toast />
         <div className="card">
-          <h1>Your DApp</h1>
+          <h1>Sua DApp</h1>
           <WalletConnection onContinue={() => setEnteredSite(true)} />
         </div>
       </div>
@@ -92,7 +96,7 @@ export default function App() {
               width: '100%'
             }}
           >
-            🛡️ Run Debt Check
+            🛡️ Executar Verificação de Dívida
           </button>
         </div>
         <div style={{ marginTop: '30px', padding: '10px' }}>
@@ -105,7 +109,7 @@ export default function App() {
               cursor: 'pointer',
               width: '100%'
             }}>
-            ❌ Disconnect
+            ❌ Desconectar
           </button>
         </div>
       </SideMenu>
@@ -117,7 +121,7 @@ export default function App() {
         <LoanRequisitionBlock />
         {member && !member.hasVinculation && (
           <div className="error-message" style={{ marginBottom: '20px' }}>
-            You need to vinculate your wallet to a member before you can vote in elections.
+            Você precisa vincular sua carteira a um membro antes de poder votar nas eleições.
           </div>
         )}
         <ElectionManagement 

@@ -1,19 +1,19 @@
-// Repay.jsx
-import { useState } from "react";
-import { ethers } from "ethers";
+import { useState, useEffect } from "react";
 import { useGasCostModal } from "../handlers/useGasCostModal";
+import { useWeb3 } from "../Web3Context";
 
 function Repay({ account, contract }) {
   const [amount, setAmount] = useState("");
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
+  const { provider } = useWeb3(); // NEW: Get provider
 
   async function handleRepay() {
-    if (!account || !contract || !amount) {
-      alert("Please connect and enter an amount");
+    if (!account || !amount) {
+      alert("Por favor, conecte e insira um valor");
       return;
     }
 
-    const value = ethers.utils.parseEther(amount);
+    const value = ethers.utils.parseEther(amount); // FIXED: Use utils.parseEther
     
     showTransactionModal(
       {
@@ -36,11 +36,11 @@ function Repay({ account, contract }) {
       });
       await tx.wait();
       
-      alert(`Repayment of ${amount} ETH successful!`);
+      alert(`Pagamento de ${amount} ETH bem-sucedido!`);
       setAmount("");
     } catch (err) {
-      console.error(err);
-      alert("Error processing repayment");
+      //console.error(err);
+      alert("Erro ao processar pagamento");
       throw err;
     }
   }
@@ -51,14 +51,14 @@ function Repay({ account, contract }) {
         type="number"
         min={0}
         step="0.01"
-        placeholder="Amount in ETH"
+        placeholder="Quantidade em ETH"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="repay-input"
       />
 
       <button onClick={handleRepay} className="repay-button" disabled={!account || !amount}>
-        Repay
+        Pagar
       </button>
 
       <ModalWrapper onConfirm={confirmTransaction} />

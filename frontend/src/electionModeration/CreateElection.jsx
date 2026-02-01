@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useWeb3 } from '../Web3Context'; // NEW: Import useWeb3
+import { useToast } from '../handlers/useToast'; // NEW: Import useToast
 
 const CreateElection = ({ contract, currentAccount, member, onElectionCreated }) => {
   const [candidateId, setCandidateId] = useState('');
@@ -6,18 +8,21 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showError, showSuccess } = useToast(provider, contract); // NEW: Use toast
+
   // Get memberId from member object with proper null checking
   const memberId = member?.memberId || 0;
   const hasVinculation = member?.hasVinculation || false;
 
   const handleCreateElection = async () => {
     if (!candidateId || !opponentId) {
-      setError('Please enter both candidate and opponent member IDs');
+      setError('Por favor, insira os IDs de membro do candidato e do oponente');
       return;
     }
 
     if (!hasVinculation) {
-      setError('You need to vinculate your wallet to a member before you can create elections.');
+      setError('Você precisa vincular sua carteira a um membro antes de poder criar eleições.');
       return;
     }
 
@@ -27,12 +32,13 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
     try {
       const tx = await contract.openElection(parseInt(candidateId), parseInt(opponentId));
       await tx.wait();
+      showSuccess('Eleição criada com sucesso!'); // UPDATED: Use showSuccess
       setCandidateId('');
       setOpponentId('');
       if (onElectionCreated) onElectionCreated();
     } catch (err) {
-      console.error('Error creating election:', err);
-      setError(err.reason || 'Failed to create election');
+      //console.error('Erro ao criar eleição:', err);
+      await showError(err); // UPDATED: Use showError
     } finally {
       setIsLoading(false);
     }
@@ -40,14 +46,14 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
 
   return (
     <div>
-      <h2>Create New Election</h2>
+      <h2>Criar Nova Eleição</h2>
       
       {/* Show member status */}
       {!hasVinculation && (
         <div className="error-message">
-          <strong>Wallet Not Vinculated</strong><br />
-          You need to vinculate your wallet to a member before you can create elections.
-          Please use the "Vinculate Member" section in the side menu.
+          <strong>Carteira Não Vinculada</strong><br />
+          Você precisa vincular sua carteira a um membro antes de poder criar eleições.
+          Por favor, use a seção "Vincular Membro" no menu lateral.
         </div>
       )}
 
@@ -59,7 +65,7 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
           marginBottom: '16px',
           border: '1px solid var(--border-color)'
         }}>
-          <strong>Member Status:</strong> Vinculated as Member #{memberId}
+          <strong>Status do Membro:</strong> Vinculado como Membro #{memberId}
         </div>
       )}
       
@@ -70,15 +76,15 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
       )}
 
       <div className="vinculate-section">
-        <h3>Start a Moderator Election</h3>
+        <h3>Iniciar uma Eleição de Moderador</h3>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', fontSize: '14px' }}>
-          Create a new election by providing both candidate and opponent member IDs.
+          Crie uma nova eleição fornecendo os IDs de membro do candidato e do oponente.
         </p>
         
         <div className="wallet-input-row">
           <input
             type="number"
-            placeholder="Candidate Member ID"
+            placeholder="ID do Membro Candidato"
             value={candidateId}
             onChange={(e) => setCandidateId(e.target.value)}
             className="member-id-input"
@@ -86,7 +92,7 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
           />
           <input
             type="number"
-            placeholder="Opponent Member ID"
+            placeholder="ID do Membro Oponente"
             value={opponentId}
             onChange={(e) => setOpponentId(e.target.value)}
             className="member-id-input"
@@ -97,13 +103,13 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
             disabled={isLoading || !candidateId || !opponentId || !hasVinculation}
             className="vinculate-button"
           >
-            {isLoading ? 'Creating...' : 'Create Election'}
+            {isLoading ? 'Criando...' : 'Criar Eleição'}
           </button>
         </div>
         
         <div className="vinculation-info">
-          <strong>Note:</strong> Only one active election can exist at a time. 
-          Elections run for 30 days unless a candidate reaches an unbeatable majority.
+          <strong>Nota:</strong> Apenas uma eleição ativa pode existir por vez. 
+          As eleições duram 30 dias, a menos que um candidato atinja uma maioria inatingível.
         </div>
       </div>
     </div>

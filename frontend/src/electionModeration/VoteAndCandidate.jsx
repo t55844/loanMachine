@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchLastElection } from '../graphql-frontend-query';
+import { useWeb3 } from '../Web3Context'; // NEW: Import useWeb3 for provider/contract
+import { useToast } from '../handlers/useToast'; // NEW: Import useToast
 
 const VoteAndCandidate = ({ contract, currentAccount, member }) => {
   const [electionInfo, setElectionInfo] = useState(null);
@@ -10,6 +12,9 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const { provider } = useWeb3(); // NEW: Get provider
+  const { showError, showSuccess } = useToast(provider, contract); // NEW: Use toast with provider/contract
 
   // Get memberId from member object with proper null checking
   const memberId = member?.memberId || 0;
@@ -43,7 +48,8 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         setElectionInfo(null);
       }
     } catch (err) {
-      console.error('Error loading election info:', err);
+      //console.error('Erro ao carregar informações da eleição:', err);
+      await showError(err); // UPDATED: Use showError
     }
   };
 
@@ -55,18 +61,19 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
       
       }
     } catch (err) {
-      console.error('Error loading last election:', err);
+      //console.error('Erro ao carregar última eleição:', err);
+      await showError(err); // UPDATED: Use showError
     }
   };
 
   const handleVote = async () => {
     if (!selectedCandidate) {
-      setError('Please select a candidate to vote for');
+      setError('Por favor, selecione um candidato para votar');
       return;
     }
 
     if (!hasVinculation || !memberId || memberId === 0) {
-      setError('You need to vinculate your wallet to a member before you can vote. Please use the "Vinculate Member" section in the side menu.');
+      setError('Você precisa vincular sua carteira a um membro antes de poder votar. Por favor, use a seção "Vincular Membro" no menu lateral.');
       return;
     }
 
@@ -85,12 +92,12 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         memberIdNum
       );
       await tx.wait();
-      setSuccess('Vote cast successfully!');
+      showSuccess('Voto emitido com sucesso!'); // UPDATED: Use showSuccess
       setSelectedCandidate('');
       loadElectionInfo();
     } catch (err) {
-      console.error('Error voting:', err);
-      setError(err.reason || 'Failed to cast vote');
+      //console.error('Erro ao votar:', err);
+      await showError(err); // UPDATED: Use showError
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +105,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
 
   const handleAddCandidate = async () => {
     if (!newCandidateId) {
-      setError('Please enter a candidate member ID');
+      setError('Por favor, insira um ID de membro candidato');
       return;
     }
 
@@ -112,12 +119,12 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         parseInt(newCandidateId)
       );
       await tx.wait();
-      setSuccess('Candidate added successfully!');
+      showSuccess('Candidato adicionado com sucesso!'); // UPDATED: Use showSuccess
       setNewCandidateId('');
       loadElectionInfo();
     } catch (err) {
-      console.error('Error adding candidate:', err);
-      setError(err.reason || 'Failed to add candidate');
+      //console.error('Erro ao adicionar candidato:', err);
+      await showError(err); // UPDATED: Use showError
     } finally {
       setIsAddingCandidate(false);
     }
@@ -136,14 +143,14 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
 
   return (
     <div>
-      <h2>Election Management</h2>
+      <h2>Gerenciamento de Eleição</h2>
 
       {/* Show member status */}
       {!hasVinculation && (
         <div className="error-message">
-          <strong>Wallet Not Vinculated</strong><br />
-          You need to vinculate your wallet to a member before you can participate in elections.
-          Please use the "Vinculate Member" section in the side menu.
+          <strong>Carteira Não Vinculada</strong><br />
+          Você precisa vincular sua carteira a um membro antes de poder participar das eleições.
+          Por favor, use a seção "Vincular Membro" no menu lateral.
         </div>
       )}
 
@@ -155,7 +162,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
           marginBottom: '16px',
           border: '1px solid var(--border-color)'
         }}>
-          <strong>Member Status:</strong> Vinculated as Member #{memberId}
+          <strong>Status do Membro:</strong> Vinculado como Membro #{memberId}
         </div>
       )}
 
@@ -184,7 +191,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
         <>
           {/* Election Info */}
           <div className="stats-box">
-            <h3>Active Election #{electionInfo.id.toString()}</h3>
+            <h3>Eleição Ativa #{electionInfo.id.toString()}</h3>
             <div className="stats-grid">
               <div>
                 <strong>Status:</strong> 
@@ -192,17 +199,17 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
                   color: 'var(--accent-green)',
                   marginLeft: '8px'
                 }}>
-                  Active
+                  Ativa
                 </span>
               </div>
               <div>
-                <strong>Total Votes Cast:</strong> {electionInfo.totalVotesCast.toString()}
+                <strong>Total de Votos:</strong> {electionInfo.totalVotesCast.toString()}
               </div>
               <div>
-                <strong>Start Time:</strong> {formatTime(electionInfo.startTime)}
+                <strong>Início:</strong> {formatTime(electionInfo.startTime)}
               </div>
               <div>
-                <strong>End Time:</strong> {formatTime(electionInfo.endTime)}
+                <strong>Término:</strong> {formatTime(electionInfo.endTime)}
               </div>
             </div>
           </div>
@@ -210,11 +217,11 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
           {/* Add Candidate Section */}
           {hasVinculation && (
             <div className="vinculate-section">
-              <h3>Add Candidate</h3>
+              <h3>Adicionar Candidato</h3>
               <div className="wallet-input-row">
                 <input
                   type="number"
-                  placeholder="New Candidate Member ID"
+                  placeholder="Novo ID de Membro Candidato"
                   value={newCandidateId}
                   onChange={(e) => setNewCandidateId(e.target.value)}
                   className="member-id-input"
@@ -225,7 +232,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
                   disabled={isAddingCandidate || !newCandidateId}
                   className="vinculate-button"
                 >
-                  {isAddingCandidate ? 'Adding...' : 'Add Candidate'}
+                  {isAddingCandidate ? 'Adicionando...' : 'Adicionar Candidato'}
                 </button>
               </div>
             </div>
@@ -234,10 +241,10 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
           {/* Voting Section */}
           {electionInfo.candidates && electionInfo.candidates.length > 0 && hasVinculation && (
             <div className="vinculate-section">
-              <h3>Cast Your Vote</h3>
+              <h3>Emitir Seu Voto</h3>
               
               <div style={{ marginBottom: '16px' }}>
-                <strong>Candidates:</strong>
+                <strong>Candidatos:</strong>
                 <div style={{ marginTop: '8px' }}>
                   {electionInfo.candidates.map((candidate, index) => (
                     <div key={index} style={{
@@ -257,7 +264,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
                           style={{ marginRight: '8px' }}
                           disabled={isLoading}
                         />
-                        Member #{candidate.toString()}
+                        Membro #{candidate.toString()}
                       </label>
                     </div>
                   ))}
@@ -271,13 +278,13 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
                   className="confirm-button"
                   style={{ width: '100%' }}
                 >
-                  {isLoading ? 'Voting...' : 'Cast Vote'}
+                  {isLoading ? 'Votando...' : 'Emitir Voto'}
                 </button>
               </div>
 
               <div className="vinculation-info">
-                <strong>Voting Power:</strong> Your vote weight equals your reputation score. 
-                Higher reputation means more influence in the election.
+                <strong>Poder de Voto:</strong> Seu peso de voto é igual à sua pontuação de reputação. 
+                Reputação mais alta significa mais influência na eleição.
               </div>
             </div>
           )}
@@ -298,43 +305,43 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
                   marginBottom: '20px'
                 }}>
                   <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: 'white' }}>
-                    🏆 LAST ELECTION WINNER
+                    🏆 VENCEDOR DA ÚLTIMA ELEIÇÃO
                   </div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
-                    Member #{lastElection.winnerId.toString()}
+                    Membro #{lastElection.winnerId.toString()}
                   </div>
                   <div style={{ fontSize: '16px', color: 'white' }}>
-                    with {lastElection.winningVotes.toString()} votes
+                    com {lastElection.winningVotes.toString()} votos
                   </div>
                   <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', marginTop: '8px' }}>
-                    Election #{lastElection.electionId.toString()} • {lastElection.blockTimestamp}
+                    Eleição #{lastElection.electionId.toString()} • {lastElection.blockTimestamp}
                   </div>
                 </div>
               )}
 
-              <h3>Election #{lastElection.electionId.toString()} Results</h3>
+              <h3>Resultados da Eleição #{lastElection.electionId.toString()}</h3>
               
               {/* Election Summary */}
               <div className="stats-grid">
                 <div>
-                  <strong>Winner:</strong> Member #{lastElection.winnerId.toString()}
+                  <strong>Vencedor:</strong> Membro #{lastElection.winnerId.toString()}
                 </div>
                 <div>
-                  <strong>Winning Votes:</strong> {lastElection.winningVotes.toString()}
+                  <strong>Votos Vencedores:</strong> {lastElection.winningVotes.toString()}
                 </div>
                 <div>
-                  <strong>Election ID:</strong> {lastElection.electionId.toString()}
+                  <strong>ID da Eleição:</strong> {lastElection.electionId.toString()}
                 </div>
                 <div>
-                  <strong>Closed On:</strong> {lastElection.blockTimestamp}
+                  <strong>Encerrada Em:</strong> {lastElection.blockTimestamp}
                 </div>
               </div>
             </div>
           ) : (
             <div className="vinculate-section">
-              <h3>No Election History</h3>
+              <h3>Nenhum Histórico de Eleição</h3>
               <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-                There are no past elections to display. Create a new election to start the voting process.
+                Não há eleições passadas para exibir. Crie uma nova eleição para iniciar o processo de votação.
               </p>
             </div>
           )}

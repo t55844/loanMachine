@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import CreateElection from './CreateElection';
 import VoteAndCandidate from './VoteAndCandidate';
+import { useWeb3 } from '../Web3Context'; // NEW: Import useWeb3
 
 const ElectionManagement = ({ contract, currentAccount, member }) => {
   const [activeTab, setActiveTab] = useState('vote');
+
+  const { provider } = useWeb3(); // NEW: Get provider if needed, but not used here
 
   // Show message if contract is not available
   if (!contract) {
     return (
       <div className="card">
-        <h2>Election Management</h2>
+        <h2>Gerenciamento de Eleição</h2>
         <div className="error-message">
-          Reputation contract not available. Please check your configuration.
+          Contrato de reputação não disponível. Por favor, verifique sua configuração.
         </div>
       </div>
     );
@@ -24,13 +27,13 @@ const ElectionManagement = ({ contract, currentAccount, member }) => {
           className={`tab-button ${activeTab === 'vote' ? 'active' : ''}`}
           onClick={() => setActiveTab('vote')}
         >
-          Vote & Candidates
+          Votar & Candidatos
         </button>
         <button 
           className={`tab-button ${activeTab === 'create' ? 'active' : ''}`}
           onClick={() => setActiveTab('create')}
         >
-          Create Election
+          Criar Eleição
         </button>
       </div>
       

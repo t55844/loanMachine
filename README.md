@@ -1,3 +1,7 @@
+
+to com preguiça de mexer e traduzir, mas como tudo ta em docker e tem um .bat que roda tudo automatico, só ignore o texto abaixo
+
+========================================================================================================================
 1. Blockchain Sector (Your Business Logic)
 
 This is your smart contract running on Ethereum (or local Hardhat/Anvil/Ganache).
@@ -12,6 +16,13 @@ Emitting events whenever something important happens.
 Example: Donated(donor, amount).
 
 Think of this as the official record keeper. It’s expensive and slow because it’s decentralized and permanent.
+
+https://etherscan.io/apidashboard
+
+https://www.alchemy.com/faucets/ethereum-sepolia
+https://faucet.triangleplatform.com/ethereum/sepolia
+
+https://thegraph.com/studio/subgraph/
 
 2. The Graph Node Sector (Your Data Indexer)
 

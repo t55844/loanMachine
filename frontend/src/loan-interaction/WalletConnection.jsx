@@ -1,144 +1,171 @@
-// components/WalletConnection.jsx
-import { useState, useEffect } from 'react';
-import { useWeb3 } from '../Web3Context'; 
-import { ethers } from 'ethers'; 
+import { useState, useEffect } from "react";
+import { useWeb3 } from "../Web3Context";
+import { ethers } from "ethers";
+import { useToast } from "../handlers/useToast";
+import Toast from "../handlers/Toast";
 
 const WalletConnection = ({ onContinue }) => {
-  const {  
-    account,  
-    provider,  
-    loading,  
-    error,  
-    switchAccount,  
+  const {
+    account,
+    provider,
+    loading,
+    error: web3Error,
     getUSDTBalance,
     usdtContract,
-    connectToLocalNode,
-    connectToExternalWallet, 
-    disconnect, 
-    connectionType 
+    connectToExternalWallet,
+    connectWithPrivateKey,
+    disconnect,
+    connectionType,
+    signer,
+    config // Added: From proxy-fetched config
   } = useWeb3();
-  
+  const { showError, showSuccess } = useToast(provider, usdtContract); // UPDATED: Pass provider/usdtContract
+
+  const valueToMint = config?.valueToMint || '1000'; // Fallback if not loaded
   const [usdtBalance, setUsdtBalance] = useState('0');
   const [faucetLoading, setFaucetLoading] = useState(false);
-  const [faucetError, setFaucetError] = useState('');
-  const [faucetSuccess, setFaucetSuccess] = useState(false);
-  const [availableAccounts, setAvailableAccounts] = useState([]);
-  const [showAccountSelector, setShowAccountSelector] = useState(false);
+  const [privateKeyInput, setPrivateKeyInput] = useState('');
+  const [showDemoInput, setShowDemoInput] = useState(false);
 
-  // ✅ Load saved connection type
+  // ✅ Enhanced auto-reconnect handling: Clear invalid local connections on failure
   useEffect(() => {
-  const savedType = localStorage.getItem('connectedWalletType');
-  const savedAccount = localStorage.getItem('connectedWalletAddress');
-
-  if (!account && savedType) {
-    if (savedType === 'local') {
-      connectToLocalNode(savedAccount);
-    } else if (savedType === 'external') {
-      connectToExternalWallet(savedAccount);
+    if (web3Error && web3Error.includes('local node') && !account) {
+      // Clear invalid local storage on local node failure
+      localStorage.removeItem('connectedWalletType');
+      localStorage.removeItem('connectedWalletAddress');
+      localStorage.removeItem('demoPrivateKey');
+      setLoading(false); // Ensure loading stops
     }
-  }
-}, []);
+  }, [web3Error, account]);
 
-  // ✅ Update balance and accounts when connected
+  // ✅ Load saved connection (external and demo only) - skip local here since UI doesn't support it
+  useEffect(() => {
+    const savedType = localStorage.getItem('connectedWalletType');
+    const savedAccount = localStorage.getItem('connectedWalletAddress');
+    const savedPK = localStorage.getItem('demoPrivateKey');
+    if (!account && savedType) {
+      if (savedType === 'external') {
+        connectToExternalWallet(savedAccount);
+      } else if (savedType === 'demo' && savedPK) {
+        connectWithPrivateKey(savedPK);
+      }
+      // Skip 'local' here - let context handle, but clear on failure via above effect
+    }
+  }, [account, connectToExternalWallet, connectWithPrivateKey]);
+
+  // ✅ Update balance when connected (no local accounts)
   useEffect(() => {
     const fetchData = async () => {
       if (account && provider) {
         try {
-          if (connectionType === 'local') {
-            const accounts = await provider.listAccounts();
-            setAvailableAccounts(accounts);
-          } else {
-            setAvailableAccounts([]);
-          }
           const balance = await getUSDTBalance();
           setUsdtBalance(balance);
         } catch (err) {
-          console.error('Error fetching data:', err);
+          //console.error('Erro ao buscar dados:', err);
+          await showError(err); // UPDATED: Await showError
         }
       }
     };
     fetchData();
-  }, [account, provider, getUSDTBalance, connectionType]); 
+  }, [account, provider, getUSDTBalance, connectionType, showError]);
 
-  // ✅ Request faucet
+  // ✅ Request faucet (enabled for demo)
   const requestFaucet = async () => {
     if (!usdtContract || !account) {
-      setFaucetError('Wallet not connected or USDT contract not found');
+      showError('Carteira não conectada ou contrato USDT não encontrado');
       return;
     }
-
     setFaucetLoading(true);
-    setFaucetError('');
-    setFaucetSuccess(false);
-
     try {
-      const amount = ethers.utils.parseUnits('1000', 6); 
+      const amount = ethers.utils.parseUnits(valueToMint, 6); // FIXED: Use utils.parseUnits
       const tx = await usdtContract.mint(account, amount);
       await tx.wait();
-      
       const newBalance = await getUSDTBalance();
       setUsdtBalance(newBalance);
-      
-      setFaucetSuccess(true);
-      setTimeout(() => setFaucetSuccess(false), 3000);
+      showSuccess(`Sucesso! ${valueToMint} USDT adicionados.`);
     } catch (err) {
-      console.error('Faucet error:', err);
-      setFaucetError(err.data?.message || err.message || 'Failed to get USDT from faucet');
+      //console.error('Erro no faucet:', err);
+      await showError(err); // UPDATED: Await
     } finally {
       setFaucetLoading(false);
     }
   };
 
-  // ✅ Handle connect buttons (save to localStorage)
-  const handleConnectLocal = async () => {
-    await connectToLocalNode();
-    localStorage.setItem('connectedWalletType', 'local');
-  };
-
+  // ✅ Handle connect buttons (external and demo only)
   const handleConnectExternal = async () => {
-    await connectToExternalWallet();
-    localStorage.setItem('connectedWalletType', 'external');
+    try {
+      await connectToExternalWallet();
+      localStorage.setItem('connectedWalletType', 'external');
+    } catch (err) {
+      await showError(err); // UPDATED: Await
+    }
   };
 
-  // ✅ Handle disconnect (clear localStorage)
+  const handleConnectDemoWithKey = async () => {
+    if (!privateKeyInput) {
+      showError('Insira uma chave privada válida.');
+      return;
+    }
+    try {
+      await connectWithPrivateKey(privateKeyInput);
+      localStorage.setItem('connectedWalletType', 'demo');
+    } catch (err) {
+      await showError(err); // UPDATED: Await
+    }
+  };
+
+  // ✅ Handle disconnect (clear demo PK too)
   const handleDisconnect = () => {
     disconnect();
     localStorage.removeItem('connectedWalletType');
-    window.location.reload(); // force back to initial screen
+    localStorage.removeItem('connectedWalletAddress');
+    localStorage.removeItem('demoPrivateKey');
+    window.location.reload();
   };
 
-  const handleAccountSwitch = async (accountIndex) => {
-    if (connectionType !== 'local') return; 
-    await switchAccount(accountIndex);
-    setShowAccountSelector(false);
-    
-    const balance = await getUSDTBalance();
-    setUsdtBalance(balance);
-  };
+  // Show error if web3 error (e.g., local node failure)
+  if (web3Error && !account) {
+    return (
+      <div className="wallet-connection-block error-state">
+        <h3>❌ Erro na Conexão</h3>
+        <p>{web3Error}</p>
+        <p>Por favor, tente conectar novamente ou verifique se o nó local está rodando (se aplicável).</p>
+        <button onClick={() => window.location.reload()} className="faucet-button primary">
+          🔄 Tentar Novamente
+        </button>
+      </div>
+    );
+  }
 
-  // INITIAL CONNECTION SCREEN
+  // INITIAL CONNECTION SCREEN (external and demo only)
   if (!account && !loading) {
     return (
       <div className="wallet-connection-block initial-state">
-        <h3>🔌 Connect Your Wallet</h3>
-        <p>Choose how you want to connect for testing.</p>
+        <h3>🔌 Conecte Sua Carteira</h3>
+        <p>Escolha como deseja conectar para teste.</p>
         <div className="connection-options" style={{display: 'flex', flexDirection:'row', justifyContent: 'space-around'}}>
-          <button 
-            onClick={handleConnectExternal} 
-            className="faucet-button primary"
-          >
-             Connect External Wallet
+          <button onClick={handleConnectExternal} className="faucet-button primary" >
+            Conectar Carteira Externa
           </button>
-          <button 
-            onClick={handleConnectLocal} 
-            className="faucet-button secondary"
-          >
-             Connect to Local Node
+          <button onClick={() => setShowDemoInput(!showDemoInput)} className="faucet-button demo" >
+            Conectar com Chave Privada Demo {showDemoInput ? '▲' : '▼'}
           </button>
         </div>
-        {error && (
-          <div className="error-message" style={{marginTop: '1rem'}}>
-            Error: {error}
+        {showDemoInput && (
+          <div className="demo-input-section" style={{marginTop: '1rem'}}>
+            <input
+              type="text"
+              placeholder="Cole sua chave privada demo (0x...)"
+              value={privateKeyInput}
+              onChange={(e) => setPrivateKeyInput(e.target.value)}
+              style={{width: '100%', padding: '8px', marginBottom: '8px'}}
+            />
+            <button onClick={handleConnectDemoWithKey} className="faucet-button primary" >
+              Conectar Demo
+            </button>
+            <p style={{fontSize: '12px', color: 'gray', marginTop: '8px'}}>
+              ⚠️ Testnet apenas. Funde o endereço com ETH de teste.
+            </p>
           </div>
         )}
       </div>
@@ -148,112 +175,62 @@ const WalletConnection = ({ onContinue }) => {
   if (loading) {
     return (
       <div className="wallet-connection loading">
-        <div className="loading-spinner">Connecting to wallet...</div>
+        <div className="loading-spinner">Conectando à carteira...</div>
       </div>
     );
   }
 
-  if (error && !account) {
-    return (
-      <div className="wallet-connection error">
-        <p>Error: {error}</p>
-        <button onClick={handleDisconnect} className="retry-button">
-          Go Back
-        </button>
-      </div>
-    );
-  }
-
-  // CONNECTED VIEW
+  // CONNECTED VIEW (removed local-specific account selector)
   return (
-    <div className="wallet-connection-block">
-      <div className="wallet-info">
-        <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>💰 Wallet Connected</span>
+    <>
+      <Toast /> {/* ✅ Render Toast component here to ensure it's mounted */}
+      <div className="wallet-connection-block">
+        <div className="wallet-info">
+          <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>💰 Carteira Conectada</span>
             <span className={`connection-badge ${connectionType}`}>
-                {connectionType === 'local' ? 'LOCAL' : 'EXTERNAL'}
+              {connectionType === 'external' ? 'EXTERNA' : 'DEMO'}
             </span>
-        </h3>
-        
-        <div className="user-address">
-          <strong>Address:</strong> {account}
-        </div>
-        <div className="balance-info">
-          <strong>USDT Balance:</strong> {parseFloat(usdtBalance).toLocaleString()} USDT
-        </div>
-
-        {error && (
-          <div className="error-message" style={{ margin: '10px 0' }}>
-            {error}
+          </h3>
+          <div className="user-address">
+            <strong>Endereço:</strong> {account}
           </div>
-        )}
-
-        {connectionType === 'local' ? (
-          <div className="faucet-section">
-            <button 
-              onClick={requestFaucet}
-              disabled={faucetLoading}
-              className={`faucet-button ${faucetLoading ? 'loading' : ''}`}
-            >
-              {faucetLoading ? 'Minting USDT...' : '🎯 Get 1000 Test USDT'}
-            </button>
-            
-            {faucetError && (
-              <div className="error-message">{faucetError}</div>
-            )}
-            
-            {faucetSuccess && (
-              <div className="success-message">✅ Success! 1000 USDT added.</div>
-            )}
+          <div className="balance-info">
+            <strong>Saldo USDT:</strong> {parseFloat(usdtBalance).toLocaleString()} USDT
           </div>
-        ) : (
-            <div className="faucet-section external-note">
-                <p>ℹ️ Faucet is only available on Local Node connections.</p>
+          {connectionType === 'demo' ? (
+            <div className="faucet-section">
+              <button
+                onClick={requestFaucet}
+                disabled={faucetLoading}
+                className={`faucet-button ${faucetLoading ? 'loading' : ''}`}
+              >
+                {faucetLoading ? 'Mintando USDT...' : `🎯 Obter ${valueToMint} USDT de Teste`}
+              </button>
             </div>
-        )}
-
-        {connectionType === 'local' && availableAccounts.length > 1 && (
-          <div className="account-selector">
-            <button 
-              onClick={() => setShowAccountSelector(!showAccountSelector)}
-              className="toggle-selector"
-            >
-              🔄 Switch Test Account {showAccountSelector ? '▲' : '▼'}
-            </button>
-            
-            {showAccountSelector && (
-              <div className="accounts-list">
-                {availableAccounts.map((acc, index) => (
-                  <div 
-                    key={acc}
-                    className={`account-option ${acc === account ? 'active' : ''}`}
-                    onClick={() => handleAccountSwitch(index)}
-                  >
-                    <span>Account {index}: {acc.slice(0, 8)}...{acc.slice(-6)}</span>
-                    {acc === account && <span> ✅ Current</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <button onClick={() => {
-          if (account && connectionType) {
-            localStorage.setItem('connectedWalletType', connectionType);
-            localStorage.setItem('connectedWalletAddress', account); // save selected wallet
-          }
-          onContinue?.();
-        }} className="faucet-button primary">
-          🚀 Continue to DApp
-        </button>
-
-        {/* ✅ Disconnect button */}
-        <button onClick={handleDisconnect} className="faucet-button danger">
-          ❌ Disconnect Wallet
-        </button>
+          ) : (
+            <div className="faucet-section external-note">
+              <p>ℹ️ O faucet está disponível apenas para conexões demo.</p>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (account && connectionType) {
+                localStorage.setItem('connectedWalletType', connectionType);
+                localStorage.setItem('connectedWalletAddress', account);
+              }
+              onContinue?.();
+            }}
+            className="faucet-button primary"
+          >
+            🚀 Continuar para DApp
+          </button>
+          <button onClick={handleDisconnect} className="faucet-button danger">
+            ❌ Desconectar Carteira
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

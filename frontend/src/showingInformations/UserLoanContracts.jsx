@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useToast } from "../handlers/useToast";
-import Toast from "../handlers/Toast";
+// import Toast from "../handlers/Toast"; // REMOVED: No local Toast needed (use global)
 import { useWeb3 } from "../Web3Context";
 import { useGasCostModal } from "../handlers/useGasCostModal";
 
@@ -13,7 +13,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
   const [approving, setApproving] = useState(false);
   const [needsApproval, setNeedsApproval] = useState({});
 
-  const { toast, showToast, hideToast, handleContractError } = useToast();
+  const { provider, loanInterface } = useWeb3(); // NEW: Get provider and loanInterface
+  const { showToast, showSuccess, showError, handleContractError } = useToast(provider, contract); // UPDATED: Pass provider/contract
   const { needsUSDTApproval, approveUSDT, member } = useWeb3();
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
@@ -63,8 +64,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
       setActiveLoans(formattedLoans);
     } catch (err) {
-      console.error("Error loading user loans:", err);
-      handleContractError(err, "loadUserActiveLoans");
+      //console.error("Erro ao carregar empréstimos do usuário:", err);
+      await handleContractError(err, "loadUserActiveLoans"); // UPDATED: Await handleContractError
     } finally {
       setLoading(false);
     }
@@ -81,7 +82,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         [requisitionId]: approvalNeeded
       }));
     } catch (err) {
-      console.error("Error checking approval:", err);
+      //console.error("Erro ao verificar aprovação:", err);
     }
   };
 
@@ -95,7 +96,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const amountForDisplay = ethers.utils.formatUnits(amountInWei, 6);
       
       await approveUSDT(amountForDisplay);
-      showToast("USDT approved successfully!", "success");
+      showSuccess("USDT aprovado com sucesso!");
       
       // Update approval status immediately
       setNeedsApproval(prev => ({
@@ -109,8 +110,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       }, 2000);
       
     } catch (err) {
-      console.error("Error approving USDT:", err);
-      handleContractError(err, "approveUSDT");
+      //console.error("Erro ao aprovar USDT:", err);
+      await handleContractError(err, "approveUSDT"); // UPDATED: Await
       
       // Re-check approval status in case of error
       await checkApprovalForLoan(loan.requisitionId);
@@ -121,13 +122,13 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
   const handlePayInstallment = async (loan) => {
     if (!contract || !account) {
-      showToast("Please connect your wallet first");
+      showToast("Por favor, conecte sua carteira primeiro");
       return;
     }
 
     // Check if member data is available
     if (!member || !member.id) {
-      showToast("Member data not available. Please check your wallet connection.", "error");
+      showToast("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.", "error");
       return;
     }
 
@@ -136,12 +137,12 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
     try {
       canPay = await contract.canPayRequisition(loan.requisitionId, account);
       if (!canPay) {
-        showToast("Payment is not available at this time", "warning");
+        showToast("Pagamento não disponível neste momento", "warning");
         return;
       }
     } catch (err) {
-      console.error("Error checking payment availability:", err);
-      showToast("Error checking payment availability", "error");
+      //console.error("Erro ao verificar disponibilidade de pagamento:", err);
+      showToast("Erro ao verificar disponibilidade de pagamento", "error");
       return;
     }
 
@@ -150,7 +151,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const currentApprovalNeeded = await needsUSDTApproval(loan.nextPaymentAmount);
       
       if (currentApprovalNeeded) {
-        showToast("Please approve USDT first before making payment", "error");
+        showToast("Por favor, aprove USDT primeiro antes de fazer o pagamento", "error");
         setNeedsApproval(prev => ({
           ...prev,
           [loan.requisitionId]: true
@@ -158,10 +159,10 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         return;
       }
     } catch (err) {
-      console.error("Error in final approval check:", err);
+      //console.error("Erro na verificação final de aprovação:", err);
       
       // If there's an error checking approval, assume approval is needed
-      showToast("Error checking USDT approval. Please try approving again.", "error");
+      showToast("Erro ao verificar aprovação de USDT. Por favor, tente aprovar novamente.", "error");
       setNeedsApproval(prev => ({
         ...prev,
         [loan.requisitionId]: true
@@ -195,7 +196,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const tx = await contract.repay(requisitionId, amount, memberId);
       await tx.wait();
 
-      showToast(`Payment successful for loan #${requisitionId}`, "success");
+      showSuccess(`Pagamento bem-sucedido para empréstimo #${requisitionId}`);
       await loadUserActiveLoans();
       setExpandedLoan(null);
       
@@ -203,16 +204,16 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         onLoanUpdate();
       }
     } catch (err) {
-      console.error("Transaction failed:", err);
+      //console.error("Transação falhou:", err);
       
       if (err.message?.includes('insufficient allowance') || err.reason?.includes('ERC20: insufficient allowance')) {
         setNeedsApproval(prev => ({
           ...prev,
           [requisitionId]: true
         }));
-        showToast("USDT approval required. Please approve USDT first.", "error");
+        showToast("Aprovação de USDT necessária. Por favor, aprove USDT primeiro.", "error");
       } else {
-        handleContractError(err, "payInstallment");
+        await handleContractError(err, "payInstallment"); // UPDATED: Await for consistency
       }
       throw err;
     } finally {
@@ -222,10 +223,10 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
   const getStatusText = (status) => {
     switch (status) {
-      case 0: return "Active";
-      case 1: return "Completed";
-      case 2: return "Defaulted";
-      default: return "Unknown";
+      case 0: return "Ativo";
+      case 1: return "Concluído";
+      case 2: return "Inadimplente";
+      default: return "Desconhecido";
     }
   };
 
@@ -251,218 +252,214 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
   };
 
   return (
-    <>
-      <Toast toast={toast} onClose={hideToast} />
-      
-      <div style={{
-        background: 'var(--bg-tertiary)',
-        padding: '24px',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        marginTop: '16px'
-      }}>
-        <h2>My Loan Contracts</h2>
+    <div style={{
+      background: 'var(--bg-tertiary)',
+      padding: '24px',
+      borderRadius: '12px',
+      border: '1px solid var(--border-color)',
+      marginTop: '16px'
+    }}>
+      <h2>Meus Contratos de Empréstimo</h2>
 
-        {/* Member Info Display */}
-        {member && (
-          <div className="member-info-section" style={{
-            marginBottom: '16px',
-            padding: '12px',
-            backgroundColor: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)'
-          }}>
-            <p style={{ margin: 0, fontSize: '0.9em' }}>
-              <strong>Member ID:</strong> {member.id} 
-              {member.name && ` - ${member.name}`}
+      {/* Member Info Display */}
+      {member && (
+        <div className="member-info-section" style={{
+          marginBottom: '16px',
+          padding: '12px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.9em' }}>
+            <strong>ID do Membro:</strong> {member.id} 
+            {member.name && ` - ${member.name}`}
+          </p>
+          {!member.hasVinculation && (
+            <p style={{ 
+              margin: '4px 0 0 0', 
+              fontSize: '0.8em', 
+              color: 'var(--accent-orange)' 
+            }}>
+              ⚠️ Carteira não vinculada a nenhum membro
             </p>
-            {!member.hasVinculation && (
-              <p style={{ 
-                margin: '4px 0 0 0', 
-                fontSize: '0.8em', 
-                color: 'var(--accent-orange)' 
-              }}>
-                ⚠️ Wallet not vinculated to any member
-              </p>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {loading ? (
-          <p>Loading your active loans...</p>
-        ) : activeLoans.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
-            <p>No active loan contracts found.</p>
-            <p style={{ fontSize: '0.9em', marginTop: '8px' }}>
-              Your active loan contracts will appear here once your requisitions are fully covered.
-            </p>
-          </div>
-        ) : (
-          <div className="requisitions-list">
-            {activeLoans.map((loan) => (
-              <div 
-                key={loan.requisitionId} 
-                className="requisition-item"
-                onClick={() => setExpandedLoan(expandedLoan === loan.requisitionId ? null : loan.requisitionId)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="requisition-header">
-                  <h3>Loan Contract #{loan.requisitionId}</h3>
-                  <span 
-                    className="status-badge"
-                    style={{ color: getStatusColor(loan.status) }}
-                  >
-                    {getStatusText(loan.status)}
-                  </span>
-                </div>
+      {loading ? (
+        <p>Carregando seus empréstimos ativos...</p>
+      ) : activeLoans.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+          <p>Nenhum contrato de empréstimo ativo encontrado.</p>
+          <p style={{ fontSize: '0.9em', marginTop: '8px' }}>
+            Seus contratos de empréstimo ativos aparecerão aqui assim que suas requisições estiverem totalmente cobertas.
+          </p>
+        </div>
+      ) : (
+        <div className="requisitions-list">
+          {activeLoans.map((loan) => (
+            <div 
+              key={loan.requisitionId} 
+              className="requisition-item"
+              onClick={() => setExpandedLoan(expandedLoan === loan.requisitionId ? null : loan.requisitionId)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="requisition-header">
+                <h3>Contrato de Empréstimo #{loan.requisitionId}</h3>
+                <span 
+                  className="status-badge"
+                  style={{ color: getStatusColor(loan.status) }}
+                >
+                  {getStatusText(loan.status)}
+                </span>
+              </div>
 
-                <div className="requisition-details">
-                  <div><strong>Remaining Debt:</strong> {formatUSDT(loan.totalRemainingDebt)} USDT</div>
-                  <div><strong>Next Payment:</strong> {formatUSDT(loan.nextPaymentAmount)} USDT</div>
-                  <div><strong>Progress:</strong> {loan.totalParcels - loan.parcelsRemaining}/{loan.totalParcels} parcels paid</div>
-                </div>
+              <div className="requisition-details">
+                <div><strong>Dívida Restante:</strong> {formatUSDT(loan.totalRemainingDebt)} USDT</div>
+                <div><strong>Próximo Pagamento:</strong> {formatUSDT(loan.nextPaymentAmount)} USDT</div>
+                <div><strong>Progresso:</strong> {loan.totalParcels - loan.parcelsRemaining}/{loan.totalParcels} parcelas pagas</div>
+              </div>
 
-                {expandedLoan === loan.requisitionId && (
-                  <div className="cover-loan-section">
-                    <h4>Contract Details</h4>
-                    
-                    <div className="requisition-details" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                      <div><strong>Contract Address:</strong> {formatAddress(loan.walletAddress)}</div>
-                      <div><strong>Parcel Value:</strong> {formatUSDT(loan.parcelsValues)} USDT</div>
-                      <div><strong>Total Paid:</strong> 
-                        {formatUSDT(((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)))} USDT
-                      </div>
-                      <div><strong>Completion:</strong> 
-                        {Math.round((loan.totalParcels - loan.parcelsRemaining) / loan.totalParcels * 100)}%
-                      </div>
+              {expandedLoan === loan.requisitionId && (
+                <div className="cover-loan-section">
+                  <h4>Detalhes do Contrato</h4>
+                  
+                  <div className="requisition-details" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <div><strong>Endereço do Contrato:</strong> {formatAddress(loan.walletAddress)}</div>
+                    <div><strong>Valor da Parcela:</strong> {formatUSDT(loan.parcelsValues)} USDT</div>
+                    <div><strong>Total Pago:</strong> 
+                      {formatUSDT(((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)))} USDT
                     </div>
+                    <div><strong>Conclusão:</strong> 
+                      {Math.round((loan.totalParcels - loan.parcelsRemaining) / loan.totalParcels * 100)}%
+                    </div>
+                  </div>
 
+                  <div style={{ marginTop: '16px' }}>
+                    <strong>Cronograma de Pagamentos:</strong>
+                    <div style={{ 
+                      maxHeight: '150px', 
+                      overflowY: 'auto', 
+                      marginTop: '8px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '4px',
+                      padding: '8px'
+                    }}>
+                      {loan.paymentDates.map((date, index) => (
+                        <div 
+                          key={index} 
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            padding: '4px 0',
+                            fontSize: '0.9em',
+                            color: index < loan.totalParcels - loan.parcelsRemaining ? 'var(--accent-green)' : 'var(--text-secondary)'
+                          }}
+                        >
+                          <span>Parcela {index + 1}:</span>
+                          <span>{formatDate(date)}</span>
+                          <span>
+                            {index < loan.totalParcels - loan.parcelsRemaining ? '✅ Pago' : '⏳ Pendente'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {loan.canPay && loan.status === 0 && (
                     <div style={{ marginTop: '16px' }}>
-                      <strong>Payment Schedule:</strong>
-                      <div style={{ 
-                        maxHeight: '150px', 
-                        overflowY: 'auto', 
-                        marginTop: '8px',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '4px',
-                        padding: '8px'
-                      }}>
-                        {loan.paymentDates.map((date, index) => (
-                          <div 
-                            key={index} 
-                            style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between',
-                              padding: '4px 0',
-                              fontSize: '0.9em',
-                              color: index < loan.totalParcels - loan.parcelsRemaining ? 'var(--accent-green)' : 'var(--text-secondary)'
-                            }}
-                          >
-                            <span>Parcel {index + 1}:</span>
-                            <span>{formatDate(date)}</span>
-                            <span>
-                              {index < loan.totalParcels - loan.parcelsRemaining ? '✅ Paid' : '⏳ Pending'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                      {/* Member validation check */}
+                      {(!member || !member.id) && (
+                        <div style={{ 
+                          padding: '12px',
+                          backgroundColor: 'rgba(242, 54, 69, 0.1)',
+                          borderRadius: '6px',
+                          color: 'var(--accent-red)',
+                          marginBottom: '12px',
+                          textAlign: 'center'
+                        }}>
+                          ⚠️ Dados do membro não disponíveis. Não é possível processar o pagamento.
+                        </div>
+                      )}
 
-                    {loan.canPay && loan.status === 0 && (
-                      <div style={{ marginTop: '16px' }}>
-                        {/* Member validation check */}
-                        {(!member || !member.id) && (
-                          <div style={{ 
-                            padding: '12px',
-                            backgroundColor: 'rgba(242, 54, 69, 0.1)',
-                            borderRadius: '6px',
-                            color: 'var(--accent-red)',
-                            marginBottom: '12px',
-                            textAlign: 'center'
-                          }}>
-                            ⚠️ Member data not available. Cannot process payment.
-                          </div>
-                        )}
-
-                        {/* Approval button - shown when approval is needed */}
-                        {needsApproval[loan.requisitionId] && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApprove(loan);
-                            }}
-                            disabled={approving || !member?.id}
-                            className="approve-button"
-                            style={{ 
-                              width: '100%', 
-                              marginBottom: '12px',
-                              background: 'var(--accent-orange)'
-                            }}
-                          >
-                            {approving ? "Approving..." : `Approve USDT (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
-                          </button>
-                        )}
-
-                        {/* Pay button - only enabled when no approval needed and not currently paying */}
+                      {/* Approval button - shown when approval is needed */}
+                      {needsApproval[loan.requisitionId] && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handlePayInstallment(loan);
+                            handleApprove(loan);
                           }}
-                          disabled={paying || needsApproval[loan.requisitionId] || !member?.id}
-                          className="repay-button"
-                          style={{ width: '100%' }}
+                          disabled={approving || !member?.id}
+                          className="approve-button"
+                          style={{ 
+                            width: '100%', 
+                            marginBottom: '12px',
+                            background: 'var(--accent-orange)'
+                          }}
                         >
-                          {paying ? "Processing Payment..." : `Pay Installment (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
+                          {approving ? "Aprovando..." : `Aprovar USDT (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
                         </button>
-                      </div>
-                    )}
+                      )}
 
-                    {!loan.canPay && loan.status === 0 && (
-                      <div style={{ 
-                        textAlign: 'center', 
-                        padding: '12px',
-                        backgroundColor: 'rgba(158, 158, 158, 0.1)',
-                        borderRadius: '6px',
-                        color: 'var(--text-secondary)',
-                        marginTop: '16px'
-                      }}>
-                        Next payment will be available on the scheduled date
-                      </div>
-                    )}
+                      {/* Pay button - only enabled when no approval needed and not currently paying */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePayInstallment(loan);
+                        }}
+                        disabled={paying || needsApproval[loan.requisitionId] || !member?.id}
+                        className="repay-button"
+                        style={{ width: '100%' }}
+                      >
+                        {paying ? "Processando Pagamento..." : `Pagar Parcela (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
+                      </button>
+                    </div>
+                  )}
 
-                    {loan.status === 1 && (
-                      <div style={{ 
-                        textAlign: 'center', 
-                        padding: '12px',
-                        backgroundColor: 'rgba(0, 192, 135, 0.1)',
-                        borderRadius: '6px',
-                        color: 'var(--accent-green)',
-                        marginTop: '16px'
-                      }}>
-                        ✅ Loan fully repaid
-                      </div>
-                    )}
+                  {!loan.canPay && loan.status === 0 && (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '12px',
+                      backgroundColor: 'rgba(158, 158, 158, 0.1)',
+                      borderRadius: '6px',
+                      color: 'var(--text-secondary)',
+                      marginTop: '16px'
+                    }}>
+                      Próximo pagamento estará disponível na data agendada
+                    </div>
+                  )}
 
-                    {loan.status === 2 && (
-                      <div style={{ 
-                        textAlign: 'center', 
-                        padding: '12px',
-                        backgroundColor: 'rgba(242, 54, 69, 0.1)',
-                        borderRadius: '6px',
-                        color: 'var(--accent-red)',
-                        marginTop: '16px'
-                      }}>
-                        ⚠️ Loan defaulted
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  {loan.status === 1 && (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '12px',
+                      backgroundColor: 'rgba(0, 192, 135, 0.1)',
+                      borderRadius: '6px',
+                      color: 'var(--accent-green)',
+                      marginTop: '16px'
+                    }}>
+                      ✅ Empréstimo totalmente quitado
+                    </div>
+                  )}
+
+                  {loan.status === 2 && (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '12px',
+                      backgroundColor: 'rgba(242, 54, 69, 0.1)',
+                      borderRadius: '6px',
+                      color: 'var(--accent-red)',
+                      marginTop: '16px'
+                    }}>
+                      ⚠️ Empréstimo inadimplente
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Gas Cost Modal for repayment */}
       <ModalWrapper onConfirm={confirmRepayTransaction} />
@@ -505,6 +502,6 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
           cursor: not-allowed;
         }
       `}</style>
-    </>
+    </div>
   );
 }

@@ -26,7 +26,6 @@ dist-ssr
 data/ipfs
 data/postgres
 
-
 .env
 env
 .env/hardhat
@@ -67,3 +66,4 @@ env/frontend*
 *env*
 *.env/frontend*
 *env/frontend*
+

@@ -1,27 +1,8 @@
 import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 import { fetchUserData } from "../graphql-frontend-query";
 import { useWeb3 } from "../Web3Context";
 import DonationWithdrawTabs from "../showingInformations/DonationWithdrawTabs";
-import { ethers } from "ethers";
-
-async function fetchUserStats(userAddress) {
-  const userData = await fetchUserData(userAddress);
-  
-  // Convert from wei (6 decimals for USDT) to USDT
-  const userDonations = ethers.utils.formatUnits(userData.totalDonated || "0", 6);
-  const userBorrowed = ethers.utils.formatUnits(userData.totalBorrowed || "0", 6);
-  const currentDebt = ethers.utils.formatUnits(userData.currentDebt || "0", 6);
-  
-  const canBorrowNow = parseFloat(currentDebt) === 0;
-  
-  return {
-    donations: userDonations,
-    borrowings: userBorrowed,
-    currentDebt,
-    canBorrowNow,
-    borrowCount: userData.borrows.length,
-  };
-}
 
 export default function UserStatus() {
   const [userData, setUserData] = useState(null);
@@ -29,7 +10,55 @@ export default function UserStatus() {
   const [error, setError] = useState("");
   const [usdtBalance, setUsdtBalance] = useState("0");
   
-  const { account, contract, getUSDTBalance } = useWeb3();
+  const { account, getUSDTBalance } = useWeb3();
+
+  // Fixed: Use const arrow functions to avoid hoisting issues
+  const loadUserData = async () => {
+    if (!account) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await fetchUserData(account);
+      
+      // Use the pre-calculated totals directly
+      const totalDonatedWei = parseInt(data.totalDonated || "0");
+      const totalBorrowedWei = parseInt(data.totalBorrowed || "0");
+      const currentDebtWei = parseInt(data.currentDebt || "0");
+      
+      // Format with 6 decimals for USDT
+      const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
+      const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
+      const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
+      
+      const canBorrowNow = parseFloat(currentDebt) === 0;
+
+      setUserData({
+        donations: totalDonated,
+        borrowings: totalBorrowed,
+        currentDebt,
+        canBorrowNow,
+        borrowCount: data.borrows.length,
+      });
+    } catch (e) {
+      //console.error("Error loading user data:", e);
+      setError("Falha ao carregar dados do usuário");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUSDTBalance = async () => {
+    if (!account) return;
+    
+    try {
+      const balance = await getUSDTBalance();
+      setUsdtBalance(balance);
+    } catch (e) {
+      //console.error("Erro ao carregar saldo USDT:", e);
+    }
+  };
 
   useEffect(() => {
     if (account) {
@@ -37,34 +66,6 @@ export default function UserStatus() {
       loadUSDTBalance();
     }
   }, [account]);
-
-  async function loadUserData() {
-    if (!account) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const stats = await fetchUserStats(account);
-      setUserData(stats);
-    } catch (e) {
-      console.error("Error loading user data:", e);
-      setError("Failed to load user data");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadUSDTBalance() {
-    if (!account) return;
-    
-    try {
-      const balance = await getUSDTBalance();
-      setUsdtBalance(balance);
-    } catch (e) {
-      console.error("Error loading USDT balance:", e);
-    }
-  }
 
   const refreshAllData = async () => {
     await Promise.all([loadUserData(), loadUSDTBalance()]);
@@ -78,62 +79,62 @@ export default function UserStatus() {
   if (!account) {
     return (
       <div className="stats-box">
-        <h2>User Status</h2>
-        <p>Connect your wallet to view status</p>
+        <h2>Status do Usuário</h2>
+        <p>Conecte sua carteira para ver o status</p>
       </div>
     );
   }
 
   return (
     <div className="stats-box">
-      <h2>User Status</h2>
+      <h2>Status do Usuário</h2>
       
       <div className="user-address">
-        <strong>Connected:</strong> {account}
+        <strong>Conectado:</strong> {account}
       </div>
 
       {/* USDT Balance Display */}
       <div className="usdt-balance-section">
         <div className="balance-card">
-          <strong>Your USDT Balance:</strong> 
+          <strong>Seu Saldo USDT:</strong> 
           <span className="balance-amount">{formatUSDT(usdtBalance)} USDT</span>
         </div>
       </div>
 
-      {loading && <p>Loading user data...</p>}
+      {loading && <p>Carregando dados do usuário...</p>}
       {error && <p className="error">{error}</p>}
 
       {userData && (
         <div className="stats-grid">
           <div className="stat-item">
-            <strong>User Donations:</strong> 
+            <strong>Doações do Usuário:</strong> 
             <span>{formatUSDT(userData.donations)} USDT</span>
           </div>
           <div className="stat-item">
-            <strong>User Borrowed:</strong> 
+            <strong>Valor Emprestado:</strong> 
             <span>{formatUSDT(userData.borrowings)} USDT</span>
           </div>
           <div className="stat-item">
-            <strong>Current Debt:</strong> 
+            <strong>Dívida Atual:</strong> 
             <span className={parseFloat(userData.currentDebt) > 0 ? "debt-amount" : ""}>
               {formatUSDT(userData.currentDebt)} USDT
             </span>
           </div>
           <div className="stat-item">
-            <strong>Can Borrow:</strong> 
+            <strong>Pode Pegar Empréstimo:</strong> 
             <span className={userData.canBorrowNow ? "can-borrow-yes" : "can-borrow-no"}>
-              {userData.canBorrowNow ? "Yes" : "No"}
+              {userData.canBorrowNow ? "Sim" : "Não"}
             </span>
           </div>
           <div className="stat-item">
-            <strong>User Loans Taken:</strong> 
+            <strong>Empréstimos Realizados:</strong> 
             <span>{userData.borrowCount}</span>
           </div>
         </div>
       )}
 
       <button onClick={refreshAllData} className="refresh-button" disabled={loading}>
-        {loading ? "Refreshing..." : "Refresh Data"}
+        {loading ? "Atualizando..." : "Atualizar Dados"}
       </button>
 
       {/* Replace Donate with Tabbed Interface */}

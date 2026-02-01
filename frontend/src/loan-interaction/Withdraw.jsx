@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { useGasCostModal } from "../handlers/useGasCostModal";
 import { useWeb3 } from "../Web3Context";
 import { eventSystem } from "../handlers/EventSystem";
 
@@ -9,8 +8,8 @@ function Withdraw() {
   const [usdtBalance, setUsdtBalance] = useState("0");
   const [withdrawableBalance, setWithdrawableBalance] = useState("0");
   const [loading, setLoading] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   
-  const { showTransactionModal, ModalWrapper } = useGasCostModal();
   const { 
     account, 
     contract, 
@@ -41,10 +40,9 @@ function Withdraw() {
       setUsdtBalance(balance || "0");
       setWithdrawableBalance(withdrawable || "0");
     } catch (err) {
-      console.error("❌ Error fetching balances:", err);
       setUsdtBalance("0");
       setWithdrawableBalance("0");
-      showError("Failed to load balances");
+      showError("Falha ao carregar saldos");
     } finally {
       setLoading(false);
     }
@@ -55,9 +53,9 @@ function Withdraw() {
     
     try {
       const balance = await contract.getWithdrawableBalance(account);
-      return ethers.utils.formatUnits(balance, 6); // USDT has 6 decimals
+      const formatted = ethers.utils.formatUnits(balance, 6);
+      return formatted;
     } catch (err) {
-      console.error("Error fetching withdrawable balance:", err);
       return "0";
     }
   }
@@ -86,89 +84,111 @@ function Withdraw() {
     });
   }
 
-  async function confirmTransaction(transactionData) {
-    try {
-      const amountInWei = ethers.BigNumber.from(transactionData.params[0]);
-      const memberId = transactionData.params[1];
-      
-      const tx = await contract.withdraw(amountInWei, memberId);
-      const receipt = await tx.wait();
-      
-      if (receipt.status === 1) {
-        showSuccess(`Successfully withdrawn ${amount} USDT!`);
-        setAmount("");
-        fetchBalances(); // Refresh balances after withdrawal
-      } else {
-        throw new Error("Transaction failed");
-      }
-    } catch (err) {
-      showError(err.message || "Withdrawal failed");
-      throw err;
-    }
-  }
+  // ✅ FIXED: Safe display formatting
+  const formatDisplayAmount = (amount) => {
+    const num = Number(amount);
+    if (isNaN(num)) return "0.00";
+    return num.toFixed(2);
+  };
+
+  // ✅ FIXED: Safe parse for user input
+  const parseUserAmount = (input) => {
+    const num = Number(input);
+    return isNaN(num) ? 0 : num;
+  };
 
   async function handleWithdraw() {
     if (!account || !amount) {
-      showWarning("Please connect wallet and enter amount");
+      showWarning("Por favor, conecte a carteira e insira o valor");
       return;
     }
 
     if (!member || !member.id) {
-      showError("Member data not available. Please check your wallet connection.");
+      showError("Dados do membro não disponíveis. Por favor, verifique sua conexão com a carteira.");
       return;
     }
 
+    const userAmount = parseUserAmount(amount);
+    const availableAmount = Number(withdrawableBalance);
+
     // Check withdrawable balance
-    if (parseFloat(amount) > parseFloat(withdrawableBalance)) {
-      showError(`Insufficient withdrawable balance. You can withdraw up to ${parseFloat(withdrawableBalance).toFixed(2)} USDT`);
+    if (userAmount > availableAmount) {
+      showError(`Saldo sacável insuficiente. Você pode sacar até ${formatDisplayAmount(withdrawableBalance)} USDT`);
       return;
     }
 
     // Check if amount is positive
-    if (parseFloat(amount) <= 0) {
-      showError("Please enter a valid amount");
+    if (userAmount <= 0) {
+      showError("Por favor, insira um valor válido");
       return;
     }
 
     const amountInWei = ethers.utils.parseUnits(amount, 6);
     const memberId = member.id;
+
+    // ✅ FIXED: Direct transaction - no gas estimation modal
+    setWithdrawing(true);
     
-    // Show the gas cost modal with the confirmation function
-    showTransactionModal(
-      {
-        method: "withdraw",
-        params: [amountInWei, memberId],
-        value: "0"
-      },
-      {
-        type: 'withdraw',
-        amount: amount,
-        token: 'USDT',
-        from: account,
-        memberId: memberId
+    eventSystem.emit('showToast', {
+      message: "Iniciando saque...",
+      type: 'info',
+      duration: 3000
+    });
+
+    try {
+      const tx = await contract.withdraw(amountInWei, memberId);
+      
+      eventSystem.emit('showToast', {
+        message: "Transação de saque enviada. Aguardando confirmação...",
+        type: 'info',
+        duration: 5000
+      });
+
+      const receipt = await tx.wait();
+      
+      if (receipt.status === 1) {
+        showSuccess(`Saque de ${amount} USDT bem-sucedido!`);
+        setAmount("");
+        fetchBalances(); // Refresh balances after withdrawal
+      } else {
+        throw new Error("Transação falhou");
       }
-    );
+    } catch (err) {
+      // Handle specific error cases
+      if (err.message.includes("user rejected transaction")) {
+        showError("Transação rejeitada pelo usuário");
+      } else if (err.message.includes("execution reverted")) {
+        showError("Transação revertida. Verifique se você tem saldo suficiente e permissões adequadas.");
+      } else {
+        showError(err.message || "Falha no saque");
+      }
+    } finally {
+      setWithdrawing(false);
+    }
   }
 
-  const hasSufficientWithdrawable = parseFloat(amount) <= parseFloat(withdrawableBalance);
+  // ✅ FIXED: Use safe comparison and parsing
+  const userAmount = parseUserAmount(amount);
+  const availableAmount = Number(withdrawableBalance);
+  const hasSufficientWithdrawable = userAmount <= availableAmount;
   const hasMemberData = member && member.id;
-  const canWithdraw = account && amount && hasSufficientWithdrawable && hasMemberData && parseFloat(amount) > 0;
+  const canWithdraw = account && amount && hasSufficientWithdrawable && hasMemberData && userAmount > 0 && !withdrawing;
 
   return (
     <div className="donate-block withdraw-block">
       <div className="balance-info">
-        <p>Your USDT Balance: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
+        <p>Seu Saldo USDT: {formatDisplayAmount(usdtBalance)} USDT</p>
         <p className="withdrawable-info">
-          Withdrawable Balance: <strong>{parseFloat(withdrawableBalance).toFixed(2)} USDT</strong>
+          Saldo Disponível para Saque: <strong>{formatDisplayAmount(withdrawableBalance)} USDT</strong>
         </p>
-        {loading && <p>Loading balances...</p>}
+        {loading && <p>Carregando saldos...</p>}
         {member && (
           <p className="member-info">
-            Member ID: {member.id} {member.name && `- ${member.name}`}
+            ID do Membro: {member.id} {member.name && `- ${member.name}`}
           </p>
         )}
         {!member && account && (
-          <p className="warning-text">⚠️ Member data not loaded</p>
+          <p className="warning-text">⚠️ Dados do membro não carregados</p>
         )}
       </div>
 
@@ -176,15 +196,16 @@ function Withdraw() {
         type="number"
         min={0}
         step="0.01"
-        placeholder="Amount in USDT to withdraw"
+        placeholder="Quantidade em USDT para sacar"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="donate-input withdraw-input"
+        disabled={withdrawing}
       />
 
       {!hasSufficientWithdrawable && amount && (
         <p className="error-text">
-          ❌ You can only withdraw up to {parseFloat(withdrawableBalance).toFixed(2)} USDT
+          ❌ Você só pode sacar até {formatDisplayAmount(withdrawableBalance)} USDT
         </p>
       )}
 
@@ -193,10 +214,11 @@ function Withdraw() {
         className="donate-button withdraw-button" 
         disabled={!canWithdraw}
       >
-        {!hasMemberData ? "Wallet not vinculated" : "Withdraw USDT"}
+        {withdrawing ? "Processando Saque..." : 
+         !hasMemberData ? "Carteira não vinculada" : "Sacar USDT"}
       </button>
 
-      <ModalWrapper onConfirm={confirmTransaction} />
+      {/* ✅ FIXED: Removed ModalWrapper - no modal for Withdraw */}
     </div>
   );
 }

@@ -1,9 +1,9 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@nomicfoundation/hardhat-ethers");
+// hardhat.config.js
+require('@nomicfoundation/hardhat-toolbox');
+require('dotenv').config();
 
-/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: {
+    solidity: {
     version: "0.8.19",
     settings: {
       viaIR: true,
@@ -20,13 +20,14 @@ module.exports = {
     artifacts: "./artifacts"
   },
   networks: {
-    localhost: {
-      url: "http://127.0.0.1:8545",
-      chainId: 31337,
-       mining: {
-        auto: true,
-        interval: 5000 // Mine block every 5 seconds instead of instantly
-      }
+    sepolia: {
+      url: process.env.ALCHEMY_API_URL,
+      accounts: [process.env.PRIVATE_KEY]
+    }
+  },
+   etherscan: {
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API_KEY 
     }
   }
 };
