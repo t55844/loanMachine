@@ -42,6 +42,8 @@ npx vite --port 3000 --host 127.0.0.1
 http://127.0.0.1:3000/  http://localhost:5173/ caso o site não abra por não conseguir conetar
 
 
+Get-ChildItem -Recurse -Include *.js, *.ts, *.json |  Where-Object { $_.Name -match "package|vercel|next|proxy|server" } |  Select-Object -First 20 |  ForEach-Object { $_.FullName }
+
 proximos possos:
 
 Faucet Integration

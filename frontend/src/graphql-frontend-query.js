@@ -6,7 +6,7 @@ const getProxyUrl = () => {
   if (typeof window === 'undefined') {
     throw new Error('GraphQL queries can only be executed client-side');
   }
-  return `${window.location.origin}/api/proxy?type=graphql`;
+  return 'https://api.studio.thegraph.com/query/1714606/thiago-first-project/v0.3.6' //`${window.location.origin}/api/proxy?type=graphql`;
 };
 
 /* -----------------------------------------------------------
@@ -78,7 +78,7 @@ export async function fetchContractStats() {
     const totalDonations = data?.totalDonationsUpdatedEvents?.[0]?.total || "0";
     const totalBorrowed = data?.totalBorrowedUpdatedEvents?.[0]?.total || "0";
     const availableBalance = data?.availableBalanceUpdatedEvents?.[0]?.total || "0";
-
+console.log("Fetched Contract Stats:", { totalDonations, totalBorrowed, availableBalance },getProxyUrl());
     return {
       totalDonations,
       totalBorrowed,

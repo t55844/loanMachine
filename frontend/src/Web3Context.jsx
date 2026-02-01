@@ -5,7 +5,7 @@ import LoanMachineABI from '../src/abi/LoanMachine.json';
 import ReputationSystemABI from '../src/abi/ReputationSystem.json'; 
 import { fetchWalletMember, fetchMemberReputation } from './graphql-frontend-query'; 
 
-const PROXY_URL = '/api/proxy'; // Single proxy endpoint 
+const PROXY_URL = 'http://localhost:3001/api/proxy' //'/api/proxy'; // Single proxy endpoint 
 
 const USDT_ABI = [ 
   "function balanceOf(address) view returns (uint256)", 
@@ -129,13 +129,16 @@ export function Web3Provider({ children }) {
       return; 
     } 
 
-    const expectedChainId = process.env.EXPECTED_CHAIN_ID; // Keep if needed 
+   /* const expectedChainId = process.env.EXPECTED_CHAIN_ID; // Keep if needed 
+console.log('Setting up contracts with config:', config.reputationContractAddress);
+console.log('Setting up contracts with config:', expectedChainId);
+
     if (expectedChainId && parseInt(expectedChainId) !== parseInt(newChainId)) { 
+
       setError(`Wrong network. Please switch to chain ID ${expectedChainId}`); 
       setLoading(false); 
       return; 
-    } 
-
+    } */
     // Now safe - config exists and addresses are present 
     const loanContract = new ethers.Contract(config.contractAddress, LoanMachineABI.abi, newSigner); 
     const reputationSystemContract = new ethers.Contract( 
