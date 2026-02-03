@@ -1,12 +1,11 @@
 // graphql-frontend-query.js - Updated to use dynamic absolute URL for client-side only
-import { request } from "graphql-request"; // Only import request, no client
+import { request } from "graphql-request";
 
-// Dynamic absolute proxy URL (client-side only)
 const getProxyUrl = () => {
   if (typeof window === 'undefined') {
     throw new Error('GraphQL queries can only be executed client-side');
   }
-  return 'https://api.studio.thegraph.com/query/1714606/thiago-first-project/v0.3.6' //`${window.location.origin}/api/proxy?type=graphql`;
+  return `${import.meta.env.VITE_PROXY_URL}?type=graphql`;  // Always proxy
 };
 
 /* -----------------------------------------------------------
@@ -78,7 +77,7 @@ export async function fetchContractStats() {
     const totalDonations = data?.totalDonationsUpdatedEvents?.[0]?.total || "0";
     const totalBorrowed = data?.totalBorrowedUpdatedEvents?.[0]?.total || "0";
     const availableBalance = data?.availableBalanceUpdatedEvents?.[0]?.total || "0";
-console.log("Fetched Contract Stats:", { totalDonations, totalBorrowed, availableBalance },getProxyUrl());
+    console.log( ' safaasgads',{ totalDonations, totalBorrowed, availableBalance } );
     return {
       totalDonations,
       totalBorrowed,

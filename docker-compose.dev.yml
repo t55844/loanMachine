@@ -12,22 +12,41 @@ services:
       - ./hardhat/scripts:/app/scripts
       - ./hardhat/deployment-addresses.json:/app/deployment-addresses.json
 
-  # --- 2. FRONTEND (MODIFIED FOR DEV) ---
+# --- 2. PROXY (NEW) ---
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      - RPC_URL=http://hardhat-node:8545
+      - SUBGRAPH_URL=http://graph-node:8000/subgraphs/name/loan-machine
+      - CONTRACT_ADDRESS=0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0  # Or dynamic from deployment
+      - MOCK_USDT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+      - REPUTATION_CONTRACT_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+      - VALUE_TO_MINT=10
+    depends_on:
+      - hardhat-node
+      - graph-node
+
+  # --- 3. FRONTEND (MODIFIED FOR DEV) ---
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev  # <-- USES NEW DOCKERFILE
+      dockerfile: Dockerfile.dev
     ports:
-      - '5173:5173' # <-- EXPOSES VITE DEV PORT
+      - '5173:5173'
     volumes:
-      # This syncs your local code for hot-reloading
       - ./frontend:/app
-      # This prevents your local node_modules from overwriting the container's
       - /app/node_modules
+    environment:
+      - VITE_PROXY_URL=http://localhost:3001/api/proxy  # Client-side var for proxy
     depends_on:
+      - proxy
       - graph-node
 
-  # --- 3. GRAPHQL (UNCHANGED) ---
+  # --- 4. GRAPHQL (UNCHANGED) ---
   ipfs:
     image: ipfs/go-ipfs:v0.10.0
     ports:

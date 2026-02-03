@@ -1,11 +1,12 @@
 // api/proxy.js - Single serverless proxy for all sensitive vars and requests
+
 export default async function handler(req, res) {
   const { type } = req.query; // Route based on ?type= (e.g., /api/proxy?type=rpc)
 
   if (req.method !== 'POST' && type !== 'config') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+console.log('Proxy request type:', type);
   try {
     switch (type) {
       case 'config':

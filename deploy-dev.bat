@@ -1,5 +1,5 @@
 @echo off
-
+rem deploy-dev.bat - Script to deploy the full stack in DEV mode
 echo --- 0. Resetting GraphQL data... ---
 rmdir /s /q .\data\postgres 2>nul
 rmdir /s /q .\data\ipfs 2>nul
@@ -11,8 +11,8 @@ rem Use -f to specify your new dev-compose file
 docker-compose -f docker-compose.dev.yml up -d --build
 
 echo.
-echo --- 2. Waiting for blockchain node to be ready... ---
-timeout /t 10 /nobreak > NUL
+echo --- 2. Waiting for blockchain node and proxy to be ready... ---
+timeout /t 15 > NUL # Longer for proxy
 
 echo.
 echo --- 3. Deploying smart contracts... ---
@@ -45,6 +45,7 @@ echo --- DEV SETUP COMPLETE! ---
 echo Your full stack is running in DEV mode:
 echo ----------------------------------------
 echo ^> Frontend (HOT-RELOAD): http://localhost:5173
+echo ^> Proxy: http://localhost:3001/api/proxy
 echo ^> GraphQL API (Query Endpoint): http://localhost:8000/subgraphs/name/loan-machine
 echo ^> Blockchain Node:     http://localhost:8545
 echo ^> Deployed Contracts:  ./hardhat/deployment-addresses.json
