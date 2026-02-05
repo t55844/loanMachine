@@ -1,11 +1,30 @@
 // graphql-frontend-query.js - Updated to use dynamic absolute URL for client-side only
 import { request } from "graphql-request";
 
+let PROXY_URL = import.meta.env.VITE_PROXY_URL;
+const hostname = window.location.hostname.trim().toLowerCase(); 
+console.log('Normalized hostname:', hostname, hostname === 'localhost',typeof hostname ); // Extra debug
+
+
+if (typeof hostname !== 'undefined') {
+    const isLocal = hostname === 'localhost' 
+
+    PROXY_URL = isLocal 
+      ? 'http://localhost:3001/api/proxy' 
+      : 'http://proxy:3001/api/proxy';
+  } else {
+    // SSR/build fallback
+    PROXY_URL = 'http://localhost:3001/api/proxy';
+  }
+
+console.log('Final PROXY_URL:', PROXY_URL);
+
+
 const getProxyUrl = () => {
   if (typeof window === 'undefined') {
     throw new Error('GraphQL queries can only be executed client-side');
   }
-  return `${import.meta.env.VITE_PROXY_URL}?type=graphql`;  // Always proxy
+  return `${PROXY_URL}?type=graphql`;  // Always proxy
 };
 
 /* -----------------------------------------------------------

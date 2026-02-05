@@ -5,7 +5,23 @@ import LoanMachineABI from '../src/abi/LoanMachine.json';
 import ReputationSystemABI from '../src/abi/ReputationSystem.json';
 import { fetchWalletMember, fetchMemberReputation } from './graphql-frontend-query';
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL;
+let PROXY_URL = import.meta.env.VITE_PROXY_URL;
+const hostname = window.location.hostname.trim().toLowerCase(); 
+console.log('Normalized hostname:', hostname, hostname === 'localhost',typeof hostname ); // Extra debug
+
+
+if (typeof hostname !== 'undefined') {
+    const isLocal = hostname === 'localhost' 
+
+    PROXY_URL = isLocal 
+      ? 'http://localhost:3001/api/proxy' 
+      : 'http://proxy:3001/api/proxy';
+  } else {
+    // SSR/build fallback
+    PROXY_URL = 'http://localhost:3001/api/proxy';
+  }
+
+console.log('Final PROXY_URL:', PROXY_URL);
 
 const USDT_ABI = [
   "function balanceOf(address) view returns (uint256)",

@@ -1,7 +1,10 @@
+# docker-compose.dev.yml
 # This file is for DEVELOPMENT with HOT-RELOADING
 
+version: '3.8'  # Add this to fix validation – specifies schema, allows custom services like 'cypress'
+
 services:
-  # --- 1. BLOCKCHAIN (UNCHANGED) ---
+  # --- BLOCKCHAIN (UNCHANGED) ---
   hardhat-node:
     build:
       context: ./hardhat
@@ -12,7 +15,7 @@ services:
       - ./hardhat/scripts:/app/scripts
       - ./hardhat/deployment-addresses.json:/app/deployment-addresses.json
 
-# --- 2. PROXY (NEW) ---
+  # --- PROXY FOR ENVIRONMENT ---
   proxy:
     build:
       context: ./proxy
@@ -30,7 +33,7 @@ services:
       - hardhat-node
       - graph-node
 
-  # --- 3. FRONTEND (MODIFIED FOR DEV) ---
+  # --- FRONTEND ---
   frontend:
     build:
       context: ./frontend
@@ -41,12 +44,12 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_PROXY_URL=http://localhost:3001/api/proxy  # Client-side var for proxy
+      - VITE_PROXY_URL=http://proxy:3001/api/proxy  # Client-side var for proxy
     depends_on:
       - proxy
       - graph-node
 
-  # --- 4. GRAPHQL (UNCHANGED) ---
+  # --- GRAPHQL TO GET AND STORE EVENTS FROM ON-CHAIN AND SEND IT TO THE FRONT ---
   ipfs:
     image: ipfs/go-ipfs:v0.10.0
     ports:
@@ -93,3 +96,18 @@ services:
       - postgres
       - ipfs
       - hardhat-node
+
+  # --- CYPRESS TEST FRONTEND ---
+  cypress:
+    image: cypress/included:13.6.0  # Includes Cypress + browsers
+    depends_on:
+      - frontend
+      - proxy
+      - graph-node
+      - hardhat-node  # Ensures full stack is up
+    volumes:
+      - ./frontend:/app  # Mount frontend code (including cypress folder)
+    working_dir: /app
+    environment:
+      - CYPRESS_BASE_URL=http://frontend:5173  # Internal Docker URL for tests
+    command: npx cypress run --browser electron

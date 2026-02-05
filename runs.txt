@@ -15,7 +15,7 @@ graph remove --node http://localhost:8020/ loan-machine
 graph create --node http://localhost:8020/ loan-machine
 graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 loan-machine 
 
-docker compose down -v
+docker compose down -v  or docker-compose -f docker-compose.dev.yml down
 docker-compose up --build
 
 
