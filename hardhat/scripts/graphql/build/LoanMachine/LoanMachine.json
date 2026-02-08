@@ -47,6 +47,11 @@
   },
   {
     "inputs": [],
+    "name": "LoanMachine_IntervalOfPaymentAboveLimit",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "LoanMachine_InvalidAmount",
     "type": "error"
   },
@@ -744,6 +749,11 @@
       {
         "internalType": "uint32",
         "name": "memberId",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "daysIntervalOfPayment",
         "type": "uint32"
       }
     ],

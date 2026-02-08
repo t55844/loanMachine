@@ -135,6 +135,7 @@ function VinculateMember() {
         <h3>Insira o ID do Membro</h3>
         <div className="wallet-input-row">
           <input
+            data-cy="member-id-input"
             type="number"
             min="1"
             step="1"

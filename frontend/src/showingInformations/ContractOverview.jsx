@@ -35,7 +35,7 @@ export default function ContractOverview() {
                   "unknown",
           amount: ethers.utils.formatUnits(tx.amount ?? "0", 6),
           time: tx.timestamp,
-          type: tx.type
+          type: (tx.type === "donation") ? "Doação" : (tx.type === "withdrawn") ? "Retirada" : (tx.type === "borrow") ? "Empréstimo" : (tx.type === "repayment") ? "Quitação" : "Outro"
         }));
 
         setLastTxs(mapped);
@@ -90,7 +90,7 @@ export default function ContractOverview() {
       <div className="transactions-box" style={{ marginTop: 12 }}>
         {lastTxs.length > 0 ? (
           lastTxs.map((tx, i) => (
-            <div key={i} className="transaction-row">
+            <div data-cy={"transaction-row-"+i} key={i} className="transaction-row">
               <div><strong>Carteira:</strong> {tx.wallet?.slice(0, 6)}...{tx.wallet?.slice(-4)}</div>
               <div><strong>Valor:</strong> {formatUSDT(tx.amount)} USDT</div>
               <div><strong>Horário:</strong> {tx.time}</div>

@@ -97,17 +97,17 @@ services:
       - ipfs
       - hardhat-node
 
-  # --- CYPRESS TEST FRONTEND ---
-  cypress:
-    image: cypress/included:13.6.0  # Includes Cypress + browsers
+ # --- PLAYWRIGHT TEST FRONTEND ---
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.58.2-jammy 
     depends_on:
       - frontend
       - proxy
       - graph-node
       - hardhat-node  # Ensures full stack is up
     volumes:
-      - ./frontend:/app  # Mount frontend code (including cypress folder)
+      - ./frontend:/app  # Mount frontend code (including tests folder)
     working_dir: /app
     environment:
-      - CYPRESS_BASE_URL=http://frontend:5173  # Internal Docker URL for tests
-    command: npx cypress run --browser electron
+      - PLAYWRIGHT_BASE_URL=http://frontend:5173  # Internal Docker URL for tests
+    command: bash -c "npm install && npx playwright test"  # Install deps, then run tests (adjust browser if needed)

@@ -9,12 +9,14 @@ function DonationWithdrawTabs() {
     <div className="interaction-tabs">
       <div className="tab-header">
         <button 
+          data-cy="donate-tab"
           className={`tab-button ${activeTab === 'donate' ? 'active' : ''}`}
           onClick={() => setActiveTab('donate')}
         >
           Doar
         </button>
         <button 
+          data-cy="withdraw-tab"
           className={`tab-button ${activeTab === 'withdraw' ? 'active' : ''}`}
           onClick={() => setActiveTab('withdraw')}
         >

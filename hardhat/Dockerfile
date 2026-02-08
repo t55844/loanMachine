@@ -7,7 +7,7 @@ WORKDIR /app
 # Copy package.json and package-lock.json first for better caching
 COPY package*.json ./
 
-# Install dependencies
+# install dependencies
 RUN npm install
 
 # Copy all your Hardhat project files

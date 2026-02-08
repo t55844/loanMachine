@@ -1,0 +1,165 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: ⚠️
+    - generic [ref=e7]:
+      - strong [ref=e8]: Carteira Não Vinculada
+      - generic [ref=e9]: Esta carteira não está vinculada a nenhuma conta de membro. Alguns recursos podem ser limitados.
+    - button "Tentar Novamente" [ref=e10] [cursor=pointer]
+  - button [ref=e11] [cursor=pointer]
+  - generic [ref=e16]:
+    - generic [ref=e17]:
+      - heading "Painel do Usuário" [level=3] [ref=e18]
+      - button "×" [ref=e19] [cursor=pointer]
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - heading "Status do Usuário" [level=2] [ref=e22]
+        - generic [ref=e23]:
+          - strong [ref=e24]: "Conectado:"
+          - text: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f"
+        - generic [ref=e26]:
+          - strong [ref=e27]: "Seu Saldo USDT:"
+          - generic [ref=e28]: 390.00 USDT
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - strong [ref=e31]: "Doações do Usuário:"
+            - generic [ref=e32]: 0.00 USDT
+          - generic [ref=e33]:
+            - strong [ref=e34]: "Valor Emprestado:"
+            - generic [ref=e35]: 0.00 USDT
+          - generic [ref=e36]:
+            - strong [ref=e37]: "Dívida Atual:"
+            - generic [ref=e38]: 0.00 USDT
+          - generic [ref=e39]:
+            - strong [ref=e40]: "Pode Pegar Empréstimo:"
+            - text: Sim
+          - generic [ref=e41]:
+            - strong [ref=e42]: "Empréstimos Realizados:"
+            - text: "0"
+        - button "Atualizar Dados" [ref=e43] [cursor=pointer]
+        - generic [ref=e44]:
+          - generic [ref=e45]:
+            - button "Doar" [ref=e46] [cursor=pointer]
+            - button "Retirar" [active] [ref=e47] [cursor=pointer]
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - paragraph [ref=e51]: "Seu Saldo USDT: 390.00 USDT"
+              - paragraph [ref=e52]:
+                - text: "Saldo Disponível para Saque:"
+                - strong [ref=e53]: 0.00 USDT
+              - paragraph [ref=e54]: "ID do Membro:"
+            - spinbutton [ref=e55]
+            - button "Carteira não vinculada" [disabled] [ref=e56]
+      - generic [ref=e57]:
+        - heading "Vincular Membro à Carteira" [level=2] [ref=e58]
+        - generic [ref=e59]:
+          - strong [ref=e60]: "Carteira Atual:"
+          - text: 0x2361...1E8f
+        - generic [ref=e61]:
+          - heading "Insira o ID do Membro" [level=3] [ref=e62]
+          - generic [ref=e63]:
+            - spinbutton [ref=e64]
+            - button "Vincular Membro" [disabled] [ref=e65]
+          - paragraph [ref=e66]: Isso vinculará o ID do Membro ___ à sua carteira
+      - button "🛡️ Executar Verificação de Dívida" [ref=e68] [cursor=pointer]
+      - button "❌ Desconectar" [ref=e70] [cursor=pointer]
+  - generic [ref=e71]:
+    - heading "Loan Machine DApp" [level=1] [ref=e72]
+    - generic [ref=e73]:
+      - heading "Distribuição de Carteiras" [level=2] [ref=e74]
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - heading "Doações" [level=3] [ref=e77]
+          - application [ref=e80]
+        - generic [ref=e81]:
+          - heading "Empréstimos" [level=3] [ref=e82]
+          - application [ref=e85]
+    - generic [ref=e86]:
+      - heading "Visão Geral do Contrato" [level=2] [ref=e87]
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - strong [ref=e90]: "Doações Totais:"
+          - text: 0.00 USDT
+        - generic [ref=e91]:
+          - strong [ref=e92]: "Total Emprestado:"
+          - text: 0.00 USDT
+        - generic [ref=e93]:
+          - strong [ref=e94]: "Saldo Disponível:"
+          - text: 0.00 USDT
+        - generic [ref=e95]:
+          - strong [ref=e96]: "Saldo do Contrato:"
+          - text: 0.00 USDT
+      - heading "Últimas 5 Transações" [level=3] [ref=e97]
+      - generic [ref=e99]: Nenhuma transação encontrada
+    - generic [ref=e100]:
+      - heading "Sistema de Requisição de Empréstimos" [level=1] [ref=e101]
+      - generic [ref=e102]:
+        - button "Criar Requisição" [ref=e103] [cursor=pointer]
+        - button "Minhas Requisições" [ref=e104] [cursor=pointer]
+        - button "Cobrir Empréstimos" [ref=e105] [cursor=pointer]
+        - button "Meus Contratos" [ref=e106] [cursor=pointer]
+      - generic [ref=e107]:
+        - heading "Criar Requisição de Empréstimo" [level=2] [ref=e108]
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - generic [ref=e111]: Valor do Empréstimo (USDT)
+            - spinbutton "Valor do Empréstimo (USDT)" [ref=e112]
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - generic [ref=e115]: Cobertura Mínima (%)
+              - combobox "Cobertura Mínima (%)" [ref=e116]:
+                - option "71%"
+                - option "75%"
+                - option "80%" [selected]
+                - option "85%"
+                - option "90%"
+                - option "95%"
+                - option "100%"
+            - generic [ref=e117]:
+              - generic [ref=e118]: Quantidade de Parcelas
+              - combobox "Quantidade de Parcelas" [ref=e119]:
+                - option "1" [selected]
+                - option "2"
+                - option "3"
+                - option "4"
+                - option "5"
+                - option "6"
+                - option "7"
+                - option "8"
+                - option "9"
+                - option "10"
+                - option "11"
+                - option "12"
+            - generic [ref=e120]:
+              - generic [ref=e121]: Intervalo de Pagamento (Dias)
+              - combobox "Intervalo de Pagamento (Dias)" [ref=e122]:
+                - option "1 Dia"
+                - option "5 Dias"
+                - option "10 Dias"
+                - option "15 Dias"
+                - option "20 Dias"
+                - option "25 Dias"
+                - option "30 Dias" [selected]
+          - button "Carteira Não Vinculada" [disabled] [ref=e123]
+    - generic [ref=e124]: Você precisa vincular sua carteira a um membro antes de poder votar nas eleições.
+    - generic [ref=e125]:
+      - generic [ref=e126]:
+        - button "Votar & Candidatos" [ref=e127] [cursor=pointer]
+        - button "Criar Eleição" [ref=e128] [cursor=pointer]
+      - generic [ref=e130]:
+        - heading "Gerenciamento de Eleição" [level=2] [ref=e131]
+        - generic [ref=e132]:
+          - strong [ref=e133]: Carteira Não Vinculada
+          - text: Você precisa vincular sua carteira a um membro antes de poder participar das eleições. Por favor, use a seção "Vincular Membro" no menu lateral.
+        - generic [ref=e134]:
+          - heading "Nenhum Histórico de Eleição" [level=3] [ref=e135]
+          - paragraph [ref=e136]: Não há eleições passadas para exibir. Crie uma nova eleição para iniciar o processo de votação.
+    - generic [ref=e137]:
+      - heading "Painel do Moderador" [level=2] [ref=e138]
+      - generic [ref=e139]:
+        - paragraph [ref=e140]: Acesso negado. Você precisa de privilégios de moderador para acessar este painel.
+        - paragraph [ref=e141]: Clique no botão abaixo para verificar seu status.
+      - button "Verificar Status de Moderador" [ref=e143] [cursor=pointer]
+```

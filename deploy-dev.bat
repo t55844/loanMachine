@@ -28,17 +28,14 @@ echo.
 echo --- 5. Building and Deploying Subgraph (CRITICAL) ---
 
 echo ^> 5a. Generating code and building WASM...
-rem NOTE: You must have 'graph-cli' installed globally or locally on your host machine to run these commands
-call graph codegen
-call graph build
+cd hardhat\scripts\graphql
+call npx graph codegen
+call npx graph build
 
 echo ^> 5b. Creating and deploying subgraph to local Graph Node...
-rem The name 'loan-machine' MUST MATCH the name the frontend is querying (which is 'loan-machine')
-rem The port 8020 is for deployments (as per your docker-compose file)
-
-rem Use 'call' to ensure the batch script continues after these commands
 call graph create --node http://localhost:8020/ loan-machine
 call graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001/ loan-machine --version-label v0.0.1
+cd ..\..\..
 
 echo.
 echo --- DEV SETUP COMPLETE! ---
