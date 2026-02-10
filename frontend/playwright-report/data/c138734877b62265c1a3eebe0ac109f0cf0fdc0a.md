@@ -15,7 +15,7 @@
           - text: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
         - generic [ref=e19]:
           - strong [ref=e20]: "Seu Saldo USDT:"
-          - generic [ref=e21]: 370.00 USDT
+          - generic [ref=e21]: 640.00 USDT
         - generic [ref=e22]:
           - generic [ref=e23]:
             - strong [ref=e24]: "Doações do Usuário:"
@@ -39,7 +39,7 @@
             - button "Retirar" [ref=e40] [cursor=pointer]
           - generic [ref=e42]:
             - generic [ref=e43]:
-              - paragraph [ref=e44]: "Seu Saldo USDT: 370.00 USDT"
+              - paragraph [ref=e44]: "Seu Saldo USDT: 640.00 USDT"
               - paragraph [ref=e45]: "ID do Membro: 321654987 - Member 321654987"
             - spinbutton [ref=e46]
             - button "Doar USDT" [disabled] [ref=e47] [cursor=pointer]

@@ -1,47 +1,17 @@
 import { test, expect } from './fixtures.js';
 
 test.describe('Donation Sidebar', () => {
-  // Remove: test.use({ setupLoggedInUser: true });
-  
-  // Add manual login in beforeEach
-  test.beforeEach(async ({ page }) => {
-    console.log('Running manual login setup...');
-    
-    // Manual login (same as working test)
-    await page.goto('/');
-    await page.evaluate(() => localStorage.clear());
-    
-    // Click demo button
-    await page.getByRole('button', { name: 'demo' }).click({ force: true });
-    
-    // Input private key
-    await page.locator('input[placeholder*="chave privada demo"]').fill('0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97');
-    
-    // Click connect
-    await page.getByRole('button', { name: 'Conectar Demo' }).click({ force: true });
-    
-    // Wait for connection
-    await expect(page.getByText('Carteira Conectada')).toBeVisible({ timeout: 20000 });
-    
-    // Get USDT
-    await page.getByRole('button', { name: 'Obter' }).click({ force: true });
-    await expect(page.getByRole('button', { name: 'Mintando USDT...' })).toBeVisible({ timeout: 30000 });
-    
-    // Continue to DApp
-    await page.getByRole('button', { name: 'Continuar para DApp' }).click();
-    
-    // Verify main app loaded
-    await expect(page.getByRole('heading', { name: 'Loan Machine DApp' })).toBeVisible({ timeout: 10000 });
-    console.log('✓ Login completed, main app loaded');
+    test.beforeEach(async ({ page, setupLoggedInUser }) => {
+    console.log('Running setup before test...');
   });
+
 
   test('should donate successfully and update balances', async ({ page, extractCurrency, waitForTransaction }) => {
     // Wait for main app to load
     await expect(page.getByRole('heading', { name: /Loan Machine DApp/i })).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(3000); // Buffer for rendering
 
-    // Open sidebar with proper waiting
-    console.log('Opening sidebar...');
+     console.log('Opening sidebar...');
     await page.waitForTimeout(2000); // Wait for UI to stabilize
     
     const menuButton = page.locator('button.menu-toggle.left');
@@ -82,10 +52,19 @@ test.describe('Donation Sidebar', () => {
     console.log('Entering donation amount...');
     const donateInput = page.locator('.side-menu.left.visible .donate-input');
     await expect(donateInput).toBeVisible({ timeout: 5000 });
-    await donateInput.fill('15');
+
+    await donateInput.click({ force: true });
+    await donateInput.fill('15', { delay: 100 });  // Slow typing to allow app reactions
+    await expect(donateInput).toHaveValue('15');
     
     // Wait a moment
     await page.waitForTimeout(500);
+
+    // Click aprove button
+    console.log('Clicking donate button...');
+    const aprovButton = page.locator('.side-menu.left.visible .approve-button');
+    await expect(aprovButton).toBeEnabled({ timeout: 5000 });
+    await aprovButton.click({ force: true });
 
     // Click donate button
     console.log('Clicking donate button...');
@@ -171,40 +150,22 @@ test.describe('Donation Sidebar', () => {
     await expect(page.getByRole('heading', { name: /Loan Machine DApp/i })).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(3000);
 
-    // First, we need to have some donations to withdraw
-    // Let's do a donation first
-    console.log('First, making a donation to have funds to withdraw...');
-    await page.waitForTimeout(2000);
+
+    console.log('Opening sidebar...');
+    await page.waitForTimeout(2000); // Wait for UI to stabilize
     
     const menuButton = page.locator('button.menu-toggle.left');
     await menuButton.click({ force: true });
     
-    const sidebar = page.locator('.side-menu.left.visible');
-    await expect(sidebar).toBeVisible({ timeout: 10000 });
-    await page.waitForTimeout(1500);
-
-    // Click donate tab and make donation
-    const donateTab = page.locator('[data-cy="donate-tab"]');
-    await donateTab.click({ force: true });
-    await page.waitForTimeout(1000);
-
-    const donateInput = page.locator('.side-menu.left.visible .donate-input');
-    await donateInput.fill('20'); // Donate 20 first
-    await page.waitForTimeout(500);
-
-    const donateButton = page.locator('.side-menu.left.visible .donate-button');
-    await donateButton.click({ force: true });
-    
-    // Wait for donation transaction
-    await waitForTransaction(45000);
-    
-    // Close sidebar
-    await menuButton.click({ force: true });
-    await page.waitForTimeout(2000);
-
     // Now open sidebar again for withdrawal test
     console.log('Opening sidebar for withdrawal...');
-    await menuButton.click({ force: true });
+    const sidebar = page.locator('.side-menu.left.visible');
+    await expect(sidebar).toBeVisible({ timeout: 10000 });
+    console.log('✓ Sidebar opened');
+    
+    // Wait for sidebar content to load
+    await page.waitForTimeout(1500);
+
     await expect(sidebar).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1500);
 
@@ -226,22 +187,25 @@ test.describe('Donation Sidebar', () => {
     console.log(`Initial balance: ${initialBalance}`);
 
     // Get current donations (which should be withdrawable)
-    const donationsLocator = page.locator('.side-menu.left.visible .stat-item:has-text("Doações do Usuário:") span');
-    const donationsText = await donationsLocator.innerText({ timeout: 5000 });
-    const initialWithdrawable = await extractCurrency(donationsText);
+    const withdrawLocator = page.locator('.withdrawable-info:has-text("Saldo Disponível para Saque: ") strong');
+    const withdrawText = await withdrawLocator.innerText({ timeout: 5000 });
+    const initialWithdrawable = await extractCurrency(withdrawText);
     console.log(`Available to withdraw (donations): ${initialWithdrawable}`);
 
     // Enter withdrawal amount
     console.log('Entering withdrawal amount...');
     const withdrawInput = page.locator('.side-menu.left.visible .donate-input.withdraw-input, .side-menu.left.visible .withdraw-input, .side-menu.left.visible input[placeholder*="USDT"]');
     await expect(withdrawInput.first()).toBeVisible({ timeout: 5000 });
-    await withdrawInput.first().fill('10');
+    
+    await withdrawInput.first().click({ force: true });
+    await withdrawInput.first().fill('10', { delay: 100 });
+    await expect(withdrawInput.first()).toHaveValue('10');
     
     await page.waitForTimeout(500);
 
     // Click withdraw button
     console.log('Clicking withdraw button...');
-    const withdrawButton = page.locator('.side-menu.left.visible .donate-button.withdraw-button, .side-menu.left.visible .withdraw-button, .side-menu.left.visible button:has-text("Retirar")');
+    const withdrawButton = page.locator('.side-menu.left.visible .donate-button.withdraw-button');
     await expect(withdrawButton.first()).toBeEnabled({ timeout: 5000 });
     await withdrawButton.first().click({ force: true });
 
@@ -266,7 +230,7 @@ test.describe('Donation Sidebar', () => {
     // Get new values
     console.log('Getting new values...');
     
-    const newDonationsText = await donationsLocator.innerText({ timeout: 5000 });
+    const newDonationsText = await withdrawLocator.innerText({ timeout: 5000 });
     const newWithdrawable = await extractCurrency(newDonationsText);
     console.log(`New donations/withdrawable: ${newWithdrawable}`);
     

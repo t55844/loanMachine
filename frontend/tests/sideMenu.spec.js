@@ -1,11 +1,8 @@
 import { test, expect } from './fixtures.js';
 
 test.describe('Wallet Vinculation', () => {
-  // Remove this: test.use({ setupLoggedInUser: true });
   
-  // Add beforeEach with the fixture
   test.beforeEach(async ({ page, setupLoggedInUser }) => {
-    // The fixture will run before each test
     console.log('Running setup before test...');
   });
 
