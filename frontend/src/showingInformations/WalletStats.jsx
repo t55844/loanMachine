@@ -8,9 +8,9 @@ export default function UserStatus() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [usdtBalance, setUsdtBalance] = useState("0");
+  const [USDBalance, setUSDBalance] = useState("0");
   
-  const { account, getUSDTBalance } = useWeb3();
+  const { account, getUSDBalance } = useWeb3();
 
   // Fixed: Use const arrow functions to avoid hoisting issues
   const loadUserData = async () => {
@@ -27,7 +27,7 @@ export default function UserStatus() {
       const totalBorrowedWei = parseInt(data.totalBorrowed || "0");
       const currentDebtWei = parseInt(data.currentDebt || "0");
       
-      // Format with 6 decimals for USDT
+      // Format with 6 decimals for USD
       const totalDonated = ethers.utils.formatUnits(totalDonatedWei.toString(), 6);
       const totalBorrowed = ethers.utils.formatUnits(totalBorrowedWei.toString(), 6);
       const currentDebt = ethers.utils.formatUnits(currentDebtWei.toString(), 6);
@@ -49,30 +49,30 @@ export default function UserStatus() {
     }
   };
 
-  const loadUSDTBalance = async () => {
+  const loadUSDBalance = async () => {
     if (!account) return;
     
     try {
-      const balance = await getUSDTBalance();
-      setUsdtBalance(balance);
+      const balance = await getUSDBalance();
+      setUSDBalance(balance);
     } catch (e) {
-      //console.error("Erro ao carregar saldo USDT:", e);
+      //console.error("Erro ao carregar saldo USD:", e);
     }
   };
 
   useEffect(() => {
     if (account) {
       loadUserData();
-      loadUSDTBalance();
+      loadUSDBalance();
     }
   }, [account]);
 
   const refreshAllData = async () => {
-    await Promise.all([loadUserData(), loadUSDTBalance()]);
+    await Promise.all([loadUserData(), loadUSDBalance()]);
   };
 
-  // Format USDT amounts for display
-  const formatUSDT = (amount) => {
+  // Format USD amounts for display
+  const formatUSD = (amount) => {
     return parseFloat(amount).toFixed(2);
   };
 
@@ -93,11 +93,11 @@ export default function UserStatus() {
         <strong>Conectado:</strong> {account}
       </div>
 
-      {/* USDT Balance Display */}
-      <div className="usdt-balance-section">
+      {/* USD Balance Display */}
+      <div className="USD-balance-section">
         <div className="balance-card">
-          <strong>Seu Saldo USDT:</strong> 
-          <span className="balance-amount">{formatUSDT(usdtBalance)} USDT</span>
+          <strong>Seu Saldo USD:</strong> 
+          <span className="balance-amount">{formatUSD(USDBalance)} USD</span>
         </div>
       </div>
 
@@ -108,16 +108,16 @@ export default function UserStatus() {
         <div className="stats-grid">
           <div className="stat-item">
             <strong>Doações do Usuário:</strong> 
-            <span>{formatUSDT(userData.donations)} USDT</span>
+            <span>{formatUSD(userData.donations)} USD</span>
           </div>
           <div className="stat-item">
             <strong>Valor Emprestado:</strong> 
-            <span>{formatUSDT(userData.borrowings)} USDT</span>
+            <span>{formatUSD(userData.borrowings)} USD</span>
           </div>
           <div className="stat-item">
             <strong>Dívida Atual:</strong> 
             <span className={parseFloat(userData.currentDebt) > 0 ? "debt-amount" : ""}>
-              {formatUSDT(userData.currentDebt)} USDT
+              {formatUSD(userData.currentDebt)} USD
             </span>
           </div>
           <div className="stat-item">

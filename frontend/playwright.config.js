@@ -3,14 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',  
   fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,  
-  workers: undefined,
   reporter: 'html',  
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://host.docker.internal:5173',  
     trace: 'on',  
-    video: 'on',  
+    video: 'off',  
     viewport: { width: 1280, height: 720 },  
   },
   projects: [

@@ -5,7 +5,7 @@ import { eventSystem } from "../handlers/EventSystem";
 
 function Withdraw() {
   const [amount, setAmount] = useState("");
-  const [usdtBalance, setUsdtBalance] = useState("0");
+  const [USDBalance, setUSDBalance] = useState("0");
   const [withdrawableBalance, setWithdrawableBalance] = useState("0");
   const [loading, setLoading] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -13,16 +13,16 @@ function Withdraw() {
   const { 
     account, 
     contract, 
-    getUSDTBalance,
+    getUSDBalance,
     member
   } = useWeb3();
 
-  // Fetch USDT balance and withdrawable balance
+  // Fetch USD balance and withdrawable balance
   useEffect(() => {
     if (account) {
       fetchBalances();
     } else {
-      setUsdtBalance("0");
+      setUSDBalance("0");
       setWithdrawableBalance("0");
     }
   }, [account]);
@@ -33,14 +33,14 @@ function Withdraw() {
     setLoading(true);
     try {
       const [balance, withdrawable] = await Promise.all([
-        getUSDTBalance(),
+        getUSDBalance(),
         getWithdrawableBalance()
       ]);
       
-      setUsdtBalance(balance || "0");
+      setUSDBalance(balance || "0");
       setWithdrawableBalance(withdrawable || "0");
     } catch (err) {
-      setUsdtBalance("0");
+      setUSDBalance("0");
       setWithdrawableBalance("0");
       showError("Falha ao carregar saldos");
     } finally {
@@ -113,7 +113,7 @@ function Withdraw() {
 
     // Check withdrawable balance
     if (userAmount > availableAmount) {
-      showError(`Saldo sacável insuficiente. Você pode sacar até ${formatDisplayAmount(withdrawableBalance)} USDT`);
+      showError(`Saldo sacável insuficiente. Você pode sacar até ${formatDisplayAmount(withdrawableBalance)} USD`);
       return;
     }
 
@@ -147,7 +147,7 @@ function Withdraw() {
       const receipt = await tx.wait();
       
       if (receipt.status === 1) {
-        showSuccess(`Saque de ${amount} USDT bem-sucedido!`);
+        showSuccess(`Saque de ${amount} USD bem-sucedido!`);
         setAmount("");
         fetchBalances(); // Refresh balances after withdrawal
       } else {
@@ -177,9 +177,9 @@ function Withdraw() {
   return (
     <div className="donate-block withdraw-block">
       <div className="balance-info">
-        <p>Seu Saldo USDT: {formatDisplayAmount(usdtBalance)} USDT</p>
+        <p>Seu Saldo USD: {formatDisplayAmount(USDBalance)} USD</p>
         <p className="withdrawable-info">
-          Saldo Disponível para Saque: <strong>{formatDisplayAmount(withdrawableBalance)} USDT</strong>
+          Saldo Disponível para Saque: <strong>{formatDisplayAmount(withdrawableBalance)} USD</strong>
         </p>
         {loading && <p>Carregando saldos...</p>}
         {member && (
@@ -196,7 +196,7 @@ function Withdraw() {
         type="number"
         min={0}
         step="0.01"
-        placeholder="Quantidade em USDT para sacar"
+        placeholder="Quantidade em USD para sacar"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="donate-input withdraw-input"
@@ -205,7 +205,7 @@ function Withdraw() {
 
       {!hasSufficientWithdrawable && amount && (
         <p className="error-text">
-          ❌ Você só pode sacar até {formatDisplayAmount(withdrawableBalance)} USDT
+          ❌ Você só pode sacar até {formatDisplayAmount(withdrawableBalance)} USD
         </p>
       )}
 
@@ -215,7 +215,7 @@ function Withdraw() {
         disabled={!canWithdraw}
       >
         {withdrawing ? "Processando Saque..." : 
-         !hasMemberData ? "Carteira não vinculada" : "Sacar USDT"}
+         !hasMemberData ? "Carteira não vinculada" : "Sacar USD"}
       </button>
 
       {/* ✅ FIXED: Removed ModalWrapper - no modal for Withdraw */}

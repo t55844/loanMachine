@@ -35,7 +35,9 @@ export default function Toast() {
   }[toast.type];
 
   return (
-    <div style={{
+    <div 
+    pw-test-id="toast-notification"
+    style={{
       position: 'fixed',
       top: '20px',
       right: '20px',

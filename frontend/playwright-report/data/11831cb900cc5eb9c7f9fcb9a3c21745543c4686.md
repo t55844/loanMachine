@@ -1,0 +1,160 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - button [ref=e4] [cursor=pointer]
+  - generic [ref=e8]:
+    - heading "Loan Machine DApp" [level=1] [ref=e9]
+    - generic [ref=e10]:
+      - heading "Distribuição de Carteiras" [level=2] [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Doações" [level=3] [ref=e14]
+          - generic [ref=e16]:
+            - list [ref=e18]:
+              - listitem [ref=e19]:
+                - img "0x71be63f3384f5fb98995898a86b02fb2426c5788 legend icon" [ref=e20]
+                - text: "0x71be63f3384f5fb98995898a86b02fb2426c5788"
+              - listitem [ref=e22]:
+                - img "0xbcd4042de499d14e55001ccbb24a551f3b954096 legend icon" [ref=e23]
+                - text: "0xbcd4042de499d14e55001ccbb24a551f3b954096"
+              - listitem [ref=e25]:
+                - img "0xfabb0ac9d68b0b445fb7357272ff202c5651694a legend icon" [ref=e26]
+                - text: "0xfabb0ac9d68b0b445fb7357272ff202c5651694a"
+            - application [ref=e28]:
+              - generic [ref=e37]:
+                - generic [ref=e40]: 0xfabb...694a
+                - generic [ref=e42]: 0xbcd4...4096
+                - generic [ref=e45]: 0x71be...5788
+        - generic [ref=e46]:
+          - heading "Empréstimos" [level=3] [ref=e47]
+          - application [ref=e50]
+    - generic [ref=e51]:
+      - heading "Visão Geral do Contrato" [level=2] [ref=e52]
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - strong [ref=e55]: "Doações Totais:"
+          - text: 4420.00 USD
+        - generic [ref=e56]:
+          - strong [ref=e57]: "Total Emprestado:"
+          - text: 0.00 USD
+        - generic [ref=e58]:
+          - strong [ref=e59]: "Saldo Disponível:"
+          - text: 4420.00 USD
+        - generic [ref=e60]:
+          - strong [ref=e61]: "Saldo do Contrato:"
+          - text: 4420.00 USD
+      - heading "Últimas 5 Transações" [level=3] [ref=e62]
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - strong [ref=e66]: "Carteira:"
+            - text: 0xfabb...694a
+          - generic [ref=e67]:
+            - strong [ref=e68]: "Valor:"
+            - text: 10.00 USD
+          - generic [ref=e69]:
+            - strong [ref=e70]: "Horário:"
+            - text: 14/02/2026 05:34:02
+          - generic [ref=e71]:
+            - strong [ref=e72]: "Tipo:"
+            - text: Retirada
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - strong [ref=e75]: "Carteira:"
+            - text: 0xfabb...694a
+          - generic [ref=e76]:
+            - strong [ref=e77]: "Valor:"
+            - text: 100.00 USD
+          - generic [ref=e78]:
+            - strong [ref=e79]: "Horário:"
+            - text: 14/02/2026 05:33:28
+          - generic [ref=e80]:
+            - strong [ref=e81]: "Tipo:"
+            - text: Doação
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - strong [ref=e84]: "Carteira:"
+            - text: 0xbcd4...4096
+          - generic [ref=e85]:
+            - strong [ref=e86]: "Valor:"
+            - text: 10.00 USD
+          - generic [ref=e87]:
+            - strong [ref=e88]: "Horário:"
+            - text: 14/02/2026 05:28:00
+          - generic [ref=e89]:
+            - strong [ref=e90]: "Tipo:"
+            - text: Retirada
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - strong [ref=e93]: "Carteira:"
+            - text: 0xbcd4...4096
+          - generic [ref=e94]:
+            - strong [ref=e95]: "Valor:"
+            - text: 100.00 USD
+          - generic [ref=e96]:
+            - strong [ref=e97]: "Horário:"
+            - text: 14/02/2026 05:27:15
+          - generic [ref=e98]:
+            - strong [ref=e99]: "Tipo:"
+            - text: Doação
+        - generic [ref=e100]:
+          - generic [ref=e101]:
+            - strong [ref=e102]: "Carteira:"
+            - text: 0xbcd4...4096
+          - generic [ref=e103]:
+            - strong [ref=e104]: "Valor:"
+            - text: 10.00 USD
+          - generic [ref=e105]:
+            - strong [ref=e106]: "Horário:"
+            - text: 14/02/2026 05:21:32
+          - generic [ref=e107]:
+            - strong [ref=e108]: "Tipo:"
+            - text: Retirada
+    - generic [ref=e109]:
+      - heading "Sistema de Requisição de Empréstimos" [level=1] [ref=e110]
+      - generic [ref=e111]:
+        - button "Criar Requisição" [ref=e112] [cursor=pointer]
+        - button "Minhas Requisições" [active] [ref=e113] [cursor=pointer]
+        - button "Cobrir Empréstimos" [ref=e114] [cursor=pointer]
+        - button "Meus Contratos" [ref=e115] [cursor=pointer]
+      - generic [ref=e116]:
+        - heading "Minhas Requisições de Empréstimo" [level=2] [ref=e117]
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - 'heading "Requisição #8" [level=3] [ref=e121]'
+            - generic [ref=e122]: Pendente
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - strong [ref=e125]: "Valor:"
+              - text: 50.00 USD
+            - generic [ref=e126]:
+              - strong [ref=e127]: "Criada em:"
+              - text: 14/02/2026
+            - generic [ref=e128]:
+              - strong [ref=e129]: "Cobertura:"
+              - text: 0% / 0%
+            - generic [ref=e130]:
+              - strong [ref=e131]: "Credores:"
+              - text: "0"
+          - button "Cancelar Requisição" [ref=e134] [cursor=pointer]
+        - button "Atualizar Requisições" [ref=e135] [cursor=pointer]
+    - generic [ref=e136]:
+      - generic [ref=e137]:
+        - button "Votar & Candidatos" [ref=e138] [cursor=pointer]
+        - button "Criar Eleição" [ref=e139] [cursor=pointer]
+      - generic [ref=e141]:
+        - heading "Gerenciamento de Eleição" [level=2] [ref=e142]
+        - generic [ref=e143]:
+          - strong [ref=e144]: "Status do Membro:"
+          - text: "Vinculado como Membro #321654987"
+        - generic [ref=e145]:
+          - heading "Nenhum Histórico de Eleição" [level=3] [ref=e146]
+          - paragraph [ref=e147]: Não há eleições passadas para exibir. Crie uma nova eleição para iniciar o processo de votação.
+    - generic [ref=e148]:
+      - heading "Painel do Moderador" [level=2] [ref=e149]
+      - generic [ref=e150]:
+        - paragraph [ref=e151]: Acesso negado. Você precisa de privilégios de moderador para acessar este painel.
+        - paragraph [ref=e152]: Clique no botão abaixo para verificar seu status.
+      - button "Verificar Status de Moderador" [ref=e154] [cursor=pointer]
+```

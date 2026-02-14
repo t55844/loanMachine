@@ -159,6 +159,7 @@ contract LoanMachine is ILoanMachine, ReentrancyGuard {
     constructor(address _usdtToken, address _reputationSystem) {
         usdtToken = _usdtToken;
         reputationSystem = ReputationSystem(_reputationSystem);
+        
     }
     
     /**

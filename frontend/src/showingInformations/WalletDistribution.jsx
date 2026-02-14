@@ -14,7 +14,7 @@ export default function WalletDistribution() {
       try {
         const [donations, borrowings] = await fetchDonationsAndBorrows();
 
-        // Aggregate donations by donor - convert from wei to USDT (6 decimals)
+        // Aggregate donations by donor - convert from wei to USD (6 decimals)
         const donationsAggregated = donations.reduce((acc, d) => {
           const wallet = d.donor.id;
           const value = parseFloat(ethers.utils.formatUnits(d.amount, 6));
@@ -27,7 +27,7 @@ export default function WalletDistribution() {
           value: parseFloat(value.toFixed(4))
         }));
 
-        // Aggregate borrowings by borrower - convert from wei to USDT (6 decimals)
+        // Aggregate borrowings by borrower - convert from wei to USD (6 decimals)
         const borrowingsAggregated = borrowings.reduce((acc, b) => {
           const wallet = b.borrower.id;
           const value = parseFloat(ethers.utils.formatUnits(b.amount, 6));
@@ -71,7 +71,7 @@ export default function WalletDistribution() {
                   <Cell key={`donation-cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => `${value} USDT`} />
+              <Tooltip formatter={(value) => `${value} USD`} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -95,7 +95,7 @@ export default function WalletDistribution() {
                   <Cell key={`borrowing-cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => `${value} USDT`} />
+              <Tooltip formatter={(value) => `${value} USD`} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>

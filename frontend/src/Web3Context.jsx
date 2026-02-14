@@ -7,7 +7,6 @@ import { fetchWalletMember, fetchMemberReputation } from './graphql-frontend-que
 
 let PROXY_URL = import.meta.env.VITE_PROXY_URL;
 const hostname = window.location.hostname.trim().toLowerCase(); 
-console.log('Normalized hostname:', hostname, hostname === 'localhost',typeof hostname ); // Extra debug
 
 
 if (typeof hostname !== 'undefined') {
@@ -21,9 +20,8 @@ if (typeof hostname !== 'undefined') {
     PROXY_URL = 'http://localhost:3001/api/proxy';
   }
 
-console.log('Final PROXY_URL:', PROXY_URL);
 
-const USDT_ABI = [
+const USD_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
@@ -37,12 +35,12 @@ const USDT_ABI = [
 
 const Web3Context = createContext();
 
-// Web3Provider: This is the main React context provider component that wraps the app, managing Web3 state including account, contracts, provider, and connection logic. It fetches config on mount, handles auto-reconnection, and provides functions for connecting/disconnecting wallets and interacting with USDT.
+// Web3Provider: This is the main React context provider component that wraps the app, managing Web3 state including account, contracts, provider, and connection logic. It fetches config on mount, handles auto-reconnection, and provides functions for connecting/disconnecting wallets and interacting with USD.
 export function Web3Provider({ children }) {
   const [account, setAccount] = useState(null);
   const [contract, setContract] = useState(null);
   const [reputationContract, setReputationContract] = useState(null);
-  const [usdtContract, setUsdtContract] = useState(null);
+  const [usdContract, setusdContract] = useState(null);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null); // ✅ Added for explicit signer access
   const [loanInterface, setLoanInterface] = useState(null); // NEW: Interface for error decoding
@@ -61,16 +59,14 @@ export function Web3Provider({ children }) {
   useEffect(() => {
     // fetchConfig: Asynchronously fetches configuration data (like contract addresses) from a proxy server. It validates the response for required fields and sets the config state or handles errors.
     const fetchConfig = async () => {
-      console.log('Fetching config from proxy...',PROXY_URL);
       try {
         const response = await fetch(`${PROXY_URL}?type=config`);
         if (!response.ok) throw new Error('Failed to fetch config');
         const data = await response.json();
         //  Check all required addresses
-        if (!data.contractAddress || !data.reputationContractAddress || !data.mockUsdtAddress) {
+        if (!data.contractAddress || !data.reputationContractAddress || !data.mockUsdAddress) {
           throw new Error('Invalid config from server: missing required contract addresses.');
         }
-        console.log('Fetched config from proxy:', data);
         setConfig(data);
       } catch (err) {
         setError(`Config fetch failed: ${err.message}`);
@@ -147,7 +143,7 @@ export function Web3Provider({ children }) {
     }
   }, [account, config]); // ✅ Added config to deps
 
-  // setupContracts: Initializes Ethereum contracts (LoanMachine, ReputationSystem, USDT) using the provided provider and signer. Validates config and chain ID (commented out), sets up interfaces for error decoding, authorizes the LoanMachine if the signer is the owner, fetches member data, and updates all relevant states. Handles USDT connection warnings for non-local networks.
+  // setupContracts: Initializes Ethereum contracts (LoanMachine, ReputationSystem, USD) using the provided provider and signer. Validates config and chain ID (commented out), sets up interfaces for error decoding, authorizes the LoanMachine if the signer is the owner, fetches member data, and updates all relevant states. Handles USD connection warnings for non-local networks.
   const setupContracts = async (newProvider, newSigner, newAccount, newChainId, type) => {
     if (!config) {
       setError('Configuration loading... Please wait and try again.');
@@ -155,7 +151,7 @@ export function Web3Provider({ children }) {
       return; // Early return - retry connection after config loads
     }
     // ✅ ADDED: Double-check addresses (defense in depth)
-    if (!config.contractAddress || !config.reputationContractAddress || !config.mockUsdtAddress) {
+    if (!config.contractAddress || !config.reputationContractAddress || !config.mockUsdAddress) {
       setError('Incomplete configuration: missing contract addresses. Please refresh and try again.');
       setLoading(false);
       return;
@@ -176,17 +172,17 @@ console.log('Setting up contracts with config:', expectedChainId);
       newSigner
     ) // NEW: Create Interface for LoanMachine (for error decoding)
     const loanInterface = new ethers.utils.Interface(LoanMachineABI.abi);
-    const usdtAddress = config.mockUsdtAddress;
-    const usdtTokenContract = new ethers.Contract(usdtAddress, USDT_ABI, newSigner);
+    const usdAddress = config.mockUsdAddress;
+    const usdTokenContract = new ethers.Contract(usdAddress, USD_ABI, newSigner);
     try {
-      await usdtTokenContract.symbol();
+      await usdTokenContract.symbol();
     } catch (testError) {
-      console.warn(`⚠️ Cannot connect to MockUSDT at ${usdtAddress}. Expected if not on local Hardhat network.`);
+      console.warn(`⚠️ Cannot connect to MockUSD at ${usdAddress}. Expected if not on local Hardhat network.`);
       if(type === 'external' || type === 'demo') {
         // ✅ Allow demo/external to proceed with warning
-        setError('MockUSDT contract not found on this network. Faucet will be disabled.');
+        setError('MockUSD contract not found on this network. Faucet will be disabled.');
       } else {
-        throw new Error(`USDT contract not working at ${usdtAddress}. Please check deployment.`);
+        throw new Error(`USD contract not working at ${usdAddress}. Please check deployment.`);
       }
     }
     // maybeAuthorizeLoanMachine: Checks if the current signer is the owner of the ReputationSystem contract. If so, verifies if LoanMachine is authorized as a caller and authorizes it if not. This is a one-time setup to allow LoanMachine to interact with ReputationSystem. Errors are logged but do not interrupt the flow.
@@ -221,7 +217,7 @@ console.log('Setting up contracts with config:', expectedChainId);
     setSigner(newSigner); // ✅ Set signer
     setContract(loanContract);
     setReputationContract(reputationSystemContract);
-    setUsdtContract(usdtTokenContract);
+    setusdContract(usdTokenContract);
     setLoanInterface(loanInterface); // NEW: Set interface
     setAccount(newAccount);
     setChainId(newChainId);
@@ -368,7 +364,7 @@ console.log('Setting up contracts with config:', expectedChainId);
     setAccount(null);
     setContract(null);
     setReputationContract(null);
-    setUsdtContract(null);
+    setusdContract(null);
     setProvider(null);
     setSigner(null); // ✅ Clear signer
     setLoanInterface(null); // NEW: Clear interface
@@ -394,58 +390,58 @@ console.log('Setting up contracts with config:', expectedChainId);
     return Promise.resolve(null);
   };
 
-  // getUSDTBalance: Retrieves the USDT balance for the given address (or current account). Formats the balance from wei to human-readable units (assuming 6 decimals). Returns '0' on error.
-  const getUSDTBalance = async (address = null) => {
-    if (!usdtContract) throw new Error('USDT contract not initialized');
+  // getUSDBalance: Retrieves the USD balance for the given address (or current account). Formats the balance from wei to human-readable units (assuming 6 decimals). Returns '0' on error.
+  const getUSDBalance = async (address = null) => {
+    if (!usdContract) throw new Error('USD contract not initialized');
     try {
       const targetAddress = address || account;
-      const balance = await usdtContract.balanceOf(targetAddress);
+      const balance = await usdContract.balanceOf(targetAddress);
       return ethers.utils.formatUnits(balance, 6);
     } catch (err) {
-      //console.warn("Could not fetch USDT balance", err.message);
+      //console.warn("Could not fetch USD balance", err.message);
       return '0';
     }
   };
 
-  // approveUSDT: Approves the LoanMachine contract to spend a specified amount of USDT on behalf of the user. Converts amount to wei (6 decimals) and sends the approval transaction.
-  const approveUSDT = async (amount) => {
-    if (!usdtContract || !contract) throw new Error('Contracts not initialized');
+  // approveUSD: Approves the LoanMachine contract to spend a specified amount of USD on behalf of the user. Converts amount to wei (6 decimals) and sends the approval transaction.
+  const approveUSD = async (amount) => {
+    if (!usdContract || !contract) throw new Error('Contracts not initialized');
     const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
-    const tx = await usdtContract.approve(contract.address, amountInWei);
+    const tx = await usdContract.approve(contract.address, amountInWei);
     return tx;
   };
 
-  // getUSDTInfo: Fetches USDT contract metadata like name, symbol, decimals, and address. Returns defaults on error for fallback.
-  const getUSDTInfo = async () => {
-    if (!usdtContract) throw new Error('USDT contract not initialized');
+  // getUSDInfo: Fetches USD contract metadata like name, symbol, decimals, and address. Returns defaults on error for fallback.
+  const getUSDInfo = async () => {
+    if (!usdContract) throw new Error('USD contract not initialized');
     try {
       const [name, symbol, decimals] = await Promise.all([
-        usdtContract.name(),
-        usdtContract.symbol(),
-        usdtContract.decimals()
+        usdContract.name(),
+        usdContract.symbol(),
+        usdContract.decimals()
       ]);
       return {
         name,
         symbol,
         decimals,
-        address: usdtContract.address
+        address: usdContract.address
       };
     } catch(err) {
-      //console.warn("Could not fetch USDT info", err.message);
+      //console.warn("Could not fetch USD info", err.message);
       return {
-        name: 'MockUSDT',
-        symbol: 'mUSDT',
+        name: 'MockUSD',
+        symbol: 'mUSD',
         decimals: 6,
-        address: config.mockUsdtAddress
+        address: config.mockUsdAddress
       };
     }
   };
 
-  // needsUSDTApproval: Checks if the current allowance for the LoanMachine contract is less than the specified amount. Returns true if approval is needed, or on error (conservative default).
-  const needsUSDTApproval = async (amount) => {
-    if (!usdtContract || !contract) return true;
+  // needsUSDApproval: Checks if the current allowance for the LoanMachine contract is less than the specified amount. Returns true if approval is needed, or on error (conservative default).
+  const needsUSDApproval = async (amount) => {
+    if (!usdContract || !contract) return true;
     try {
-      const currentAllowance = await usdtContract.allowance(account, contract.address);
+      const currentAllowance = await usdContract.allowance(account, contract.address);
       const amountInWei = ethers.utils.parseUnits(amount.toString(), 6);
       return currentAllowance.lt(amountInWei);
     } catch (err) {
@@ -458,7 +454,7 @@ console.log('Setting up contracts with config:', expectedChainId);
     account,
     contract,
     reputationContract,
-    usdtContract,
+    usdContract,
     provider,
     signer,
     loanInterface,
@@ -473,10 +469,10 @@ console.log('Setting up contracts with config:', expectedChainId);
     connectWithPrivateKey,
     disconnect,
     refreshMemberData,
-    getUSDTBalance,
-    approveUSDT,
-    getUSDTInfo,
-    needsUSDTApproval,
+    getUSDBalance,
+    approveUSD,
+    getUSDInfo,
+    needsUSDApproval,
     switchAccount,
   };
 

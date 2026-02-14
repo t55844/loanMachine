@@ -9,7 +9,7 @@
     "dapp",
     "web3"
   ],
-  "license": "MIT",
+  "license": "AGPL",
   "author": "Thiago",
   "type": "commonjs",
   "main": "index.js",

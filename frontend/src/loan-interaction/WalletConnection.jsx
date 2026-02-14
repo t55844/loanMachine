@@ -10,8 +10,8 @@ const WalletConnection = ({ onContinue }) => {
     provider,
     loading,
     error: web3Error,
-    getUSDTBalance,
-    usdtContract,
+    getUSDBalance,
+    usdContract,
     connectToExternalWallet,
     connectWithPrivateKey,
     disconnect,
@@ -19,10 +19,10 @@ const WalletConnection = ({ onContinue }) => {
     signer,
     config // Added: From proxy-fetched config
   } = useWeb3();
-  const { showError, showSuccess } = useToast(provider, usdtContract); // UPDATED: Pass provider/usdtContract
+  const { showError, showSuccess } = useToast(provider, usdContract); // UPDATED: Pass provider/USDContract
 
   const valueToMint = config?.valueToMint || '1000'; // Fallback if not loaded
-  const [usdtBalance, setUsdtBalance] = useState('0');
+  const [USDBalance, setUSDBalance] = useState('0');
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [privateKeyInput, setPrivateKeyInput] = useState('');
   const [showDemoInput, setShowDemoInput] = useState(false);
@@ -58,8 +58,8 @@ const WalletConnection = ({ onContinue }) => {
     const fetchData = async () => {
       if (account && provider) {
         try {
-          const balance = await getUSDTBalance();
-          setUsdtBalance(balance);
+          const balance = await getUSDBalance();
+          setUSDBalance(balance);
         } catch (err) {
           //console.error('Erro ao buscar dados:', err);
           await showError(err); // UPDATED: Await showError
@@ -67,22 +67,22 @@ const WalletConnection = ({ onContinue }) => {
       }
     };
     fetchData();
-  }, [account, provider, getUSDTBalance, connectionType, showError]);
+  }, [account, provider, getUSDBalance, connectionType, showError]);
 
   // ✅ Request faucet (enabled for demo)
   const requestFaucet = async () => {
-    if (!usdtContract || !account) {
-      showError('Carteira não conectada ou contrato USDT não encontrado');
+    if (!usdContract || !account) {
+      showError('Carteira não conectada ou contrato USD não encontrado');
       return;
     }
     setFaucetLoading(true);
     try {
       const amount = ethers.utils.parseUnits(valueToMint, 6); // FIXED: Use utils.parseUnits
-      const tx = await usdtContract.mint(account, amount);
+      const tx = await usdContract.mint(account, amount);
       await tx.wait();
-      const newBalance = await getUSDTBalance();
-      setUsdtBalance(newBalance);
-      showSuccess(`Sucesso! ${valueToMint} USDT adicionados.`);
+      const newBalance = await getUSDBalance();
+      setUSDBalance(newBalance);
+      showSuccess(`Sucesso! ${valueToMint} USD adicionados.`);
     } catch (err) {
       //console.error('Erro no faucet:', err);
       await showError(err); // UPDATED: Await
@@ -196,7 +196,7 @@ const WalletConnection = ({ onContinue }) => {
             <strong>Endereço:</strong> {account}
           </div>
           <div className="balance-info">
-            <strong>Saldo USDT:</strong> {parseFloat(usdtBalance).toLocaleString()} USDT
+            <strong>Saldo USD:</strong> {parseFloat(USDBalance).toLocaleString()} USD
           </div>
           {connectionType === 'demo' ? (
             <div className="faucet-section">
@@ -205,7 +205,7 @@ const WalletConnection = ({ onContinue }) => {
                 disabled={faucetLoading}
                 className={`faucet-button ${faucetLoading ? 'loading' : ''}`}
               >
-                {faucetLoading ? 'Mintando USDT...' : `🎯 Obter ${valueToMint} USDT de Teste`}
+                {faucetLoading ? 'Mintando USD...' : `🎯 Obter ${valueToMint} USD de Teste`}
               </button>
             </div>
           ) : (

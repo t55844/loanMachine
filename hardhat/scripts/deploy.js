@@ -26,6 +26,7 @@ async function main() {
   const loanMachine = await LoanMachine.deploy(mockUSDTAddress, reputationSystemAddress);
   await loanMachine.waitForDeployment();
   const loanMachineAddress = await loanMachine.getAddress();
+  await reputationSystem.setAuthorizedCaller(loanMachineAddress, true);
   console.log("LoanMachine deployed to:", loanMachineAddress);
 
   console.log("✅ Deployment completed!");

@@ -38,7 +38,7 @@ app.all('/api/proxy', async (req, res) => {
       case 'config':
         return res.status(200).json({
           contractAddress: process.env.CONTRACT_ADDRESS,
-          mockUsdtAddress: process.env.MOCK_USDT_ADDRESS,
+          mockUsdAddress: process.env.MOCK_USDT_ADDRESS,
           reputationContractAddress: process.env.REPUTATION_CONTRACT_ADDRESS,
           valueToMint: process.env.VALUE_TO_MINT || '10',
           // Only include rpcUrl/subgraphUrl if you really need them client-side (usually not)

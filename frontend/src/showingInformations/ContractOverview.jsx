@@ -20,10 +20,10 @@ export default function ContractOverview() {
         if (!mounted) return;
 
         setStats({
-          totalDonations: ethers.utils.formatUnits(rawStats.totalDonations ?? "0", 6), // USDT (6 decimals)
-          totalBorrowed: ethers.utils.formatUnits(rawStats.totalBorrowed ?? "0", 6), // USDT (6 decimals)
-          availableBalance: ethers.utils.formatUnits(rawStats.availableBalance ?? "0", 6), // USDT (6 decimals)
-          contractBalance: ethers.utils.formatUnits(rawStats.availableBalance ?? "0", 6) // USDT (6 decimals)
+          totalDonations: ethers.utils.formatUnits(rawStats.totalDonations ?? "0", 6), // USD (6 decimals)
+          totalBorrowed: ethers.utils.formatUnits(rawStats.totalBorrowed ?? "0", 6), // USD (6 decimals)
+          availableBalance: ethers.utils.formatUnits(rawStats.availableBalance ?? "0", 6), // USD (6 decimals)
+          contractBalance: ethers.utils.formatUnits(rawStats.availableBalance ?? "0", 6) // USD (6 decimals)
         });
 
         // Get last transactions
@@ -64,8 +64,8 @@ export default function ContractOverview() {
     };
   }, []);
 
-  // Format USDT amount for display
-  const formatUSDT = (amount) => {
+  // Format USD amount for display
+  const formatUSD = (amount) => {
     return parseFloat(amount).toFixed(2);
   };
 
@@ -78,10 +78,10 @@ export default function ContractOverview() {
 
       {stats && (
         <div className="stats-grid" style={{ marginTop: 8 }}>
-          <div><strong>Doações Totais:</strong> {formatUSDT(stats.totalDonations)} USDT</div>
-          <div><strong>Total Emprestado:</strong> {formatUSDT(stats.totalBorrowed)} USDT</div>
-          <div><strong>Saldo Disponível:</strong> {formatUSDT(stats.availableBalance)} USDT</div>
-          <div><strong>Saldo do Contrato:</strong> {formatUSDT(stats.contractBalance)} USDT</div>
+          <div><strong>Doações Totais:</strong> {formatUSD(stats.totalDonations)} USD</div>
+          <div><strong>Total Emprestado:</strong> {formatUSD(stats.totalBorrowed)} USD</div>
+          <div><strong>Saldo Disponível:</strong> {formatUSD(stats.availableBalance)} USD</div>
+          <div><strong>Saldo do Contrato:</strong> {formatUSD(stats.contractBalance)} USD</div>
         </div>
       )}
 
@@ -92,7 +92,7 @@ export default function ContractOverview() {
           lastTxs.map((tx, i) => (
             <div data-cy={"transaction-row-"+i} key={i} className="transaction-row">
               <div><strong>Carteira:</strong> {tx.wallet?.slice(0, 6)}...{tx.wallet?.slice(-4)}</div>
-              <div><strong>Valor:</strong> {formatUSDT(tx.amount)} USDT</div>
+              <div><strong>Valor:</strong> {formatUSD(tx.amount)} USD</div>
               <div><strong>Horário:</strong> {tx.time}</div>
               <div><strong>Tipo:</strong> {tx.type}</div>
             </div>

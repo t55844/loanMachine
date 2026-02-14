@@ -50,14 +50,8 @@ npx playwright show-report
 
 proximos possos:
 
-Faucet Integration
+refatora component de Doar e sacar para perguntar o custo de gas
 
-performPeriodicDebtCheck
-
-sistema de monitoramento de pagamento --
-
-permitir seleção de intervalos entre parcelas --
-
-ver data da criação da eleição, a unica que esta nohorario "certo"
+refatora component de criação de emprestimo para perguntar o custo de gas
 
 --------------------------------------------------------------

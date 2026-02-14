@@ -5,7 +5,7 @@ import { eventSystem } from "../handlers/EventSystem";
 
 function Donate() {
   const [amount, setAmount] = useState("");
-  const [usdtBalance, setUsdtBalance] = useState("0");
+  const [USDBalance, setUSDBalance] = useState("0");
   const [needsApproval, setNeedsApproval] = useState(false);
   const [approving, setApproving] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -13,33 +13,33 @@ function Donate() {
   const { 
     account, 
     contract, 
-    getUSDTBalance, 
-    approveUSDT,
-    needsUSDTApproval,
+    getUSDBalance, 
+    approveUSD,
+    needsUSDApproval,
     member
   } = useWeb3();
 
-  // Fetch USDT balance
+  // Fetch USD balance
   useEffect(() => {
     if (account) {
-      fetchUSDTBalance();
+      fetchUSDBalance();
     } else {
-      setUsdtBalance("0");
+      setUSDBalance("0");
     }
   }, [account]);
 
-  async function fetchUSDTBalance() {
+  async function fetchUSDBalance() {
     if (!account) return;
     
     setLoading(true);
     try {
-      const balance = await getUSDTBalance();
-      setUsdtBalance(balance || "0");
+      const balance = await getUSDBalance();
+      setUSDBalance(balance || "0");
     } catch (err) {
-      //console.error("❌ Erro ao buscar saldo USDT:", err);
-      setUsdtBalance("0");
+      //console.error("❌ Erro ao buscar saldo USD:", err);
+      setUSDBalance("0");
       eventSystem.emit('showToast', {
-        message: "Falha ao carregar saldo USDT",
+        message: "Falha ao carregar saldo USD",
         isError: true
       });
     } finally {
@@ -60,7 +60,7 @@ function Donate() {
     if (!amount || !account) return;
     
     try {
-      const approvalNeeded = await needsUSDTApproval(amount);
+      const approvalNeeded = await needsUSDApproval(amount);
       setNeedsApproval(approvalNeeded);
     } catch (err) {
       //console.error("Erro ao verificar aprovação:", err);
@@ -97,10 +97,10 @@ function Donate() {
 
     setApproving(true);
     try {
-      const tx = await approveUSDT(amount);
+      const tx = await approveUSD(amount);
       await tx.wait();
       
-      showSuccess(`${amount} USDT aprovados com sucesso!`);
+      showSuccess(`${amount} USD aprovados com sucesso!`);
       setNeedsApproval(false);
       
     } catch (err) {
@@ -116,9 +116,9 @@ function Donate() {
       const receipt = await tx.wait();
       
       if (receipt.status === 1) {
-        showSuccess(`Doação de ${amount} USDT bem-sucedida!`);
+        showSuccess(`Doação de ${amount} USD bem-sucedida!`);
         setAmount("");
-        fetchUSDTBalance();
+        fetchUSDBalance();
       } else {
         throw new Error("Transação falhou");
       }
@@ -140,16 +140,16 @@ function Donate() {
     }
 
     // Check balance (use parseFloat for consistency)
-    if (parseFloat(usdtBalance) < parseFloat(amount)) {
-      showError(`Saldo USDT insuficiente. Você tem ${parseFloat(usdtBalance).toFixed(2)} USDT`);
+    if (parseFloat(USDBalance) < parseFloat(amount)) {
+      showError(`Saldo USD insuficiente. Você tem ${parseFloat(USDBalance).toFixed(2)} USD`);
       return;
     }
 
     // Final approval check
     try {
-      const currentApprovalNeeded = await needsUSDTApproval(amount);
+      const currentApprovalNeeded = await needsUSDApproval(amount);
       if (currentApprovalNeeded) {
-        showWarning("Por favor, aprove USDT primeiro");
+        showWarning("Por favor, aprove USD primeiro");
         setNeedsApproval(true);
         return;
       }
@@ -171,14 +171,14 @@ function Donate() {
     await confirmTransaction(amountInWei, memberId);
   }
 
-  const hasSufficientBalance = parseFloat(usdtBalance) >= parseFloat(amount);
+  const hasSufficientBalance = parseFloat(USDBalance) >= parseFloat(amount);
   const hasMemberData = member && member.id;
   const canDonate = account && amount && hasSufficientBalance && !needsApproval && hasMemberData;
 
   return (
     <div className="donate-block">
       <div className="balance-info">
-        <p>Seu Saldo USDT: {parseFloat(usdtBalance).toFixed(2)} USDT</p>
+        <p>Seu Saldo USD: {parseFloat(USDBalance).toFixed(2)} USD</p>
         {loading && <p>Carregando saldo...</p>}
         {member && (
           <p className="member-info">
@@ -194,7 +194,7 @@ function Donate() {
         type="number"
         min="0"
         step="0.01"
-        placeholder="Quantidade em USDT"
+        placeholder="Quantidade em USD"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="donate-input"
@@ -206,7 +206,7 @@ function Donate() {
           className="approve-button"
           disabled={approving || !amount}
         >
-          {approving ? "Aprovando..." : `Aprovar ${amount} USDT`}
+          {approving ? "Aprovando..." : `Aprovar ${amount} USD`}
         </button>
       )}
 
@@ -215,7 +215,7 @@ function Donate() {
         className="donate-button" 
         disabled={!canDonate}
       >
-        {!hasMemberData ? "Talvez a carteira não esteja vinculada" : "Doar USDT"}
+        {!hasMemberData ? "Talvez a carteira não esteja vinculada" : "Doar USD"}
       </button>
 
       {/* FIXED: Removed ModalWrapper—no modal for Donate */}

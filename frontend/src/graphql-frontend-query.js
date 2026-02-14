@@ -222,7 +222,7 @@ export async function fetchLoanRequisitions() {
       minimumCoverage: 0,
       status: getStatusText(event.status), // Helper function to convert status number to text
       durationDays: 0,
-      creationTime: event.blockTimestamp,
+      creationTime: event.blockTimestamp,//.split(' ')[0],
       coveringLendersCount: 0,
       parcelsCount: event.parcelsCount
     }));
@@ -637,7 +637,7 @@ export async function fetchBorrowerRequisitions(borrower) {
       id: req.requisitionId,
       amount: (parseFloat(req.amount) / 1e6).toFixed(2),
       status: Number(req.status),
-      creationTime: new Date(Number(req.blockTimestamp) * 1000).toLocaleString(),
+      creationTime: req.blockTimestamp.split(' ')[0],
       // Set default values for fields not in the query
       minimumCoverage: 0,
       currentCoverage: 0,

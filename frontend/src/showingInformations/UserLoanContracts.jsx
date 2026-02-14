@@ -15,7 +15,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
   const { provider, loanInterface } = useWeb3(); // NEW: Get provider and loanInterface
   const { showToast, showSuccess, showError, handleContractError } = useToast(provider, contract); // UPDATED: Pass provider/contract
-  const { needsUSDTApproval, approveUSDT, member } = useWeb3();
+  const { needsUSDApproval, approveUSD, member } = useWeb3();
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const loan = activeLoans.find(l => l.requisitionId === requisitionId);
       if (!loan) return;
 
-      const approvalNeeded = await needsUSDTApproval(loan.nextPaymentAmount);
+      const approvalNeeded = await needsUSDApproval(loan.nextPaymentAmount);
       setNeedsApproval(prev => ({
         ...prev,
         [requisitionId]: approvalNeeded
@@ -95,8 +95,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       const amountInWei = loan.nextPaymentAmountWei;
       const amountForDisplay = ethers.utils.formatUnits(amountInWei, 6);
       
-      await approveUSDT(amountForDisplay);
-      showSuccess("USDT aprovado com sucesso!");
+      await approveUSD(amountForDisplay);
+      showSuccess("USD aprovado com sucesso!");
       
       // Update approval status immediately
       setNeedsApproval(prev => ({
@@ -110,8 +110,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       }, 2000);
       
     } catch (err) {
-      //console.error("Erro ao aprovar USDT:", err);
-      await handleContractError(err, "approveUSDT"); // UPDATED: Await
+      //console.error("Erro ao aprovar USD:", err);
+      await handleContractError(err, "approveUSD"); // UPDATED: Await
       
       // Re-check approval status in case of error
       await checkApprovalForLoan(loan.requisitionId);
@@ -148,10 +148,10 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
 
     // Final approval check with the exact Wei amount
     try {
-      const currentApprovalNeeded = await needsUSDTApproval(loan.nextPaymentAmount);
+      const currentApprovalNeeded = await needsUSDApproval(loan.nextPaymentAmount);
       
       if (currentApprovalNeeded) {
-        showToast("Por favor, aprove USDT primeiro antes de fazer o pagamento", "error");
+        showToast("Por favor, aprove USD primeiro antes de fazer o pagamento", "error");
         setNeedsApproval(prev => ({
           ...prev,
           [loan.requisitionId]: true
@@ -162,7 +162,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
       //console.error("Erro na verificação final de aprovação:", err);
       
       // If there's an error checking approval, assume approval is needed
-      showToast("Erro ao verificar aprovação de USDT. Por favor, tente aprovar novamente.", "error");
+      showToast("Erro ao verificar aprovação de USD. Por favor, tente aprovar novamente.", "error");
       setNeedsApproval(prev => ({
         ...prev,
         [loan.requisitionId]: true
@@ -181,7 +181,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
         type: 'repay',
         requisitionId: loan.requisitionId,
         amount: loan.nextPaymentAmount,
-        token: 'USDT',
+        token: 'USD',
         memberId: member.id
       }
     );
@@ -211,7 +211,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
           ...prev,
           [requisitionId]: true
         }));
-        showToast("Aprovação de USDT necessária. Por favor, aprove USDT primeiro.", "error");
+        showToast("Aprovação de USD necessária. Por favor, aprove USD primeiro.", "error");
       } else {
         await handleContractError(err, "payInstallment"); // UPDATED: Await for consistency
       }
@@ -247,7 +247,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const formatUSDT = (amount) => {
+  const formatUSD = (amount) => {
     return parseFloat(amount).toFixed(2);
   };
 
@@ -315,8 +315,8 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
               </div>
 
               <div className="requisition-details">
-                <div><strong>Dívida Restante:</strong> {formatUSDT(loan.totalRemainingDebt)} USDT</div>
-                <div><strong>Próximo Pagamento:</strong> {formatUSDT(loan.nextPaymentAmount)} USDT</div>
+                <div><strong>Dívida Restante:</strong> {formatUSD(loan.totalRemainingDebt)} USD</div>
+                <div><strong>Próximo Pagamento:</strong> {formatUSD(loan.nextPaymentAmount)} USD</div>
                 <div><strong>Progresso:</strong> {loan.totalParcels - loan.parcelsRemaining}/{loan.totalParcels} parcelas pagas</div>
               </div>
 
@@ -326,9 +326,9 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                   
                   <div className="requisition-details" style={{ gridTemplateColumns: '1fr 1fr' }}>
                     <div><strong>Endereço do Contrato:</strong> {formatAddress(loan.walletAddress)}</div>
-                    <div><strong>Valor da Parcela:</strong> {formatUSDT(loan.parcelsValues)} USDT</div>
+                    <div><strong>Valor da Parcela:</strong> {formatUSD(loan.parcelsValues)} USD</div>
                     <div><strong>Total Pago:</strong> 
-                      {formatUSDT(((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)))} USDT
+                      {formatUSD(((loan.totalParcels - loan.parcelsRemaining) * parseFloat(loan.parcelsValues)))} USD
                     </div>
                     <div><strong>Conclusão:</strong> 
                       {Math.round((loan.totalParcels - loan.parcelsRemaining) / loan.totalParcels * 100)}%
@@ -397,7 +397,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                             background: 'var(--accent-orange)'
                           }}
                         >
-                          {approving ? "Aprovando..." : `Aprovar USDT (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
+                          {approving ? "Aprovando..." : `Aprovar USD (${formatUSD(loan.nextPaymentAmount)} USD)`}
                         </button>
                       )}
 
@@ -411,7 +411,7 @@ export default function UserLoanContracts({ contract, account, onLoanUpdate }) {
                         className="repay-button"
                         style={{ width: '100%' }}
                       >
-                        {paying ? "Processando Pagamento..." : `Pagar Parcela (${formatUSDT(loan.nextPaymentAmount)} USDT)`}
+                        {paying ? "Processando Pagamento..." : `Pagar Parcela (${formatUSD(loan.nextPaymentAmount)} USD)`}
                       </button>
                     </div>
                   )}

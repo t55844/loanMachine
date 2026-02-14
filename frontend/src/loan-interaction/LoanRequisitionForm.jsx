@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import { useWeb3 } from "../Web3Context"; // Assume this gives provider, contract
 import { useToast } from "../handlers/useToast";
-import Toast from "../handlers/Toast";
 
 export default function LoanRequisitionForm({ 
   contract, 
@@ -71,7 +70,6 @@ export default function LoanRequisitionForm({
 
   return (
     <>
-      <Toast />
       
       <div style={{
         background: 'var(--bg-tertiary)',
@@ -98,12 +96,13 @@ export default function LoanRequisitionForm({
         
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-            <label htmlFor="amount" style={{display: 'block', marginBottom: '8px'}}>Valor do Empréstimo (USDT)</label>
+            <label htmlFor="amount" style={{display: 'block', marginBottom: '8px'}}>Valor do Empréstimo (USD)</label>
             <input
               id="amount"
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
+              max="100000000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="wallet-input"
@@ -182,6 +181,7 @@ export default function LoanRequisitionForm({
           
           <button 
             type="submit" 
+            pw-test-id="submit-create-requisition-button"
             className="borrow-button"
             disabled={loading || !hasMemberData}
             style={{width: '100%', marginTop: '16px'}}

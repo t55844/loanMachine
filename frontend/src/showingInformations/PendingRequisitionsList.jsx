@@ -74,7 +74,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                 minimumCoverage: safeNumber(info.minimumCoverage),
                 currentCoverage: safeNumber(info.currentCoverage),
                 status: safeNumber(info.status),
-                creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleString(),
+                creationTime: new Date(safeNumber(info.creationTime) * 1000).toLocaleDateString('pt-BR'),
               };
             } catch (contractErr) {
               //console.warn(`Não foi possível obter dados do contrato para requisição ${requisitionId}:`, contractErr);
@@ -206,7 +206,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
     return isValid && canCover;
   };
 
-  const formatUSDT = (amount) => {
+  const formatUSD = (amount) => {
     const num = parseFloat(amount);
     return isNaN(num) ? "0.00" : num.toFixed(2);
   };
@@ -216,7 +216,6 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
 
   return (
     <div className="requsitionBlock">
-      <Toast />
       
       <h2>Requisições de Empréstimo Disponíveis</h2>
 
@@ -240,18 +239,18 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center' }}>
           <div>
             <strong>Doações Totais:</strong><br />
-            {formatUSDT(donationBalances.total)} USDT
+            {formatUSD(donationBalances.total)} USD
           </div>
           <div>
             <strong>Em Cobertura:</strong><br />
             <span style={{ color: 'var(--text-secondary)' }}>
-              {formatUSDT(donationBalances.allocated)} USDT
+              {formatUSD(donationBalances.allocated)} USD
             </span>
           </div>
           <div>
             <strong>Disponível:</strong><br />
             <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>
-              {formatUSDT(donationBalances.free)} USDT
+              {formatUSD(donationBalances.free)} USD
             </span>
           </div>
         </div>
@@ -295,7 +294,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
               </div>
 
               <div className="requisition-details">
-                <div><strong>Valor:</strong> {formatUSDT(req.amount)} USDT</div>
+                <div><strong>Valor:</strong> {formatUSD(req.amount)} USD</div>
                 <div><strong>Mutuatário:</strong> {formatAddress(req.borrower)}</div>
                 <div><strong>Cobertura:</strong> {req.currentCoverage}% / {req.minimumCoverage}%</div>
                 <div><strong>Credores:</strong> {req.coveringLendersCount}</div>
@@ -329,7 +328,7 @@ export default function PendingRequisitionsList({ contract, account, onCoverLoan
                   }}
                   stopPropagation={stopPropagation}
                   isPercentageValid={isPercentageValid}
-                  formatUSDT={formatUSDT}
+                  formatUSD={formatUSD}
                   showToast={showToast}
                   showSuccess={showSuccess}
                   showError={showError}

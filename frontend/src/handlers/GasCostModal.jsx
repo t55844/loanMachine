@@ -68,7 +68,7 @@ function GasCostModal({
       
       // NEW: Special handling for insufficient allowance
       if (err.code === 'UNPREDICTABLE_GAS_LIMIT' && err.error?.message?.includes('insufficient allowance')) {
-        setGasError("Aprovação insuficiente de USDT. Por favor, aprove o valor necessário primeiro.");
+        setGasError("Aprovação insuficiente de USD. Por favor, aprove o valor necessário primeiro.");
         setIsAllowanceError(true); // Flag to enable button despite error
         setGasCost("0.001"); // Fallback for allowance reverts
       } else {
@@ -121,11 +121,11 @@ function GasCostModal({
                 </div>
               )}
               
-              {transactionContext?.token === 'USDT' && transactionValue === 0 && (
+              {transactionContext?.token === 'USD' && transactionValue === 0 && (
                 <div className="detail-item">
                   <strong>Transferência de Token:</strong>
                   <span style={{color: 'var(--accent-blue)'}}>
-                    {transactionContext.amount} USDT (aprovação separada)
+                    {transactionContext.amount} USD (aprovação separada)
                   </span>
                 </div>
               )}
@@ -139,7 +139,7 @@ function GasCostModal({
               
               <div className="fee-note">
                 <small>
-                  * As taxas de gas são pagas em ETH, não em USDT. Isso cobre o custo da transação na rede.
+                  * As taxas de gas são pagas em ETH, não em USD. Isso cobre o custo da transação na rede.
                 </small>
               </div>
             </div>

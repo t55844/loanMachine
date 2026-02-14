@@ -2,7 +2,7 @@ import { test as base, expect } from '@playwright/test';
 
 // Create regular helper functions (not fixtures)
 async function connectDemoWalletFunction(page, privateKey = null) {
-  const pk = privateKey || '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6';
+  const pk = privateKey || '0xa267530f49f8280200edf313ee7af6b827f2a8bce2897751d06a843f644967b1';
 
   await page.getByRole('button', { name: 'demo' }).click({ force: true });
 
@@ -25,7 +25,7 @@ async function getUSDTFromFaucetFunction(page) {
   await expect(obterButton).toBeVisible({ timeout: 30000 });
 
   await expect(
-    page.getByText('Saldo USDT:').locator('..')
+    page.getByText('Saldo USD:').locator('..')
   ).toContainText(/[1-9]/, { timeout: 30000 });
 
   await page.getByRole('button', { name: 'Continuar para DApp' }).click({ force: true });

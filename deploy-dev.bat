@@ -28,14 +28,19 @@ echo.
 echo --- 5. Building and Deploying Subgraph (CRITICAL) ---
 
 echo ^> 5a. Generating code and building WASM...
+
+echo Current directory: %CD%
 cd hardhat\scripts\graphql
+echo Current directory: %CD%
 call npx graph codegen
 call npx graph build
 
 echo ^> 5b. Creating and deploying subgraph to local Graph Node...
+echo Current directory: %CD%
 call graph create --node http://localhost:8020/ loan-machine
 call graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001/ loan-machine --version-label v0.0.1
 cd ..\..\..
+echo Current directory: %CD%
 
 echo.
 echo --- DEV SETUP COMPLETE! ---

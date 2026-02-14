@@ -16,7 +16,7 @@ export default function TransactionPendingRequisition({
   onRefresh,
   stopPropagation,
   isPercentageValid,
-  formatUSDT
+  formatUSD
 }) {
   const [covering, setCovering] = useState(false);
   const [needsApproval, setNeedsApproval] = useState(false);
@@ -24,7 +24,7 @@ export default function TransactionPendingRequisition({
   const [currentCoverageAmount, setCurrentCoverageAmount] = useState("0");
 
   const { showTransactionModal, ModalWrapper } = useGasCostModal();
-  const { needsUSDTApproval, approveUSDT } = useWeb3();
+  const { needsUSDApproval, approveUSD } = useWeb3();
 
   // Helper function to show errors
   function showError(error) {
@@ -52,7 +52,7 @@ export default function TransactionPendingRequisition({
 
   const checkApproval = async (coverageAmount) => {
     try {
-      const approvalNeeded = await needsUSDTApproval(coverageAmount);
+      const approvalNeeded = await needsUSDApproval(coverageAmount);
       return approvalNeeded;
     } catch (err) {
       //console.error("Erro ao verificar aprovação:", err);
@@ -65,12 +65,12 @@ export default function TransactionPendingRequisition({
 
     setApproving(true);
     try {
-      await approveUSDT(currentCoverageAmount);
-      showSuccess("USDT aprovado com sucesso!");
+      await approveUSD(currentCoverageAmount);
+      showSuccess("USD aprovado com sucesso!");
       setNeedsApproval(false);
       setCurrentCoverageAmount("0");
     } catch (err) {
-      showError("Erro ao aprovar USDT");
+      showError("Erro ao aprovar USD");
     } finally {
       setApproving(false);
     }
@@ -113,7 +113,7 @@ export default function TransactionPendingRequisition({
     const coverageAmount = parseFloat(requisition.amount) * percentage / 100;
     
     if (parseFloat(donationBalances.free) < coverageAmount) {
-      showError(`Saldo de doação livre insuficiente. Você tem ${parseFloat(donationBalances.free).toFixed(2)} USDT livre mas precisa de ${coverageAmount.toFixed(2)} USDT`);
+      showError(`Saldo de doação livre insuficiente. Você tem ${parseFloat(donationBalances.free).toFixed(2)} USD livre mas precisa de ${coverageAmount.toFixed(2)} USD`);
       return;
     }
 
@@ -122,7 +122,7 @@ export default function TransactionPendingRequisition({
     if (approvalNeeded) {
       setCurrentCoverageAmount(coverageAmount.toString());
       setNeedsApproval(true);
-      showWarning("Por favor, aprove USDT primeiro antes de cobrir este empréstimo");
+      showWarning("Por favor, aprove USD primeiro antes de cobrir este empréstimo");
       return;
     }
 
@@ -226,13 +226,13 @@ export default function TransactionPendingRequisition({
           marginBottom: '16px'
         }}>
           <h4>Aprovação Necessária</h4>
-          <p>Você precisa aprovar {formatUSDT(currentCoverageAmount)} USDT antes de cobrir empréstimos.</p>
+          <p>Você precisa aprovar {formatUSD(currentCoverageAmount)} USD antes de cobrir empréstimos.</p>
           <button 
             onClick={handleApprove}
             disabled={approving}
             className="approve-button"
           >
-            {approving ? "Aprovando..." : `Aprovar ${formatUSDT(currentCoverageAmount)} USDT`}
+            {approving ? "Aprovando..." : `Aprovar ${formatUSD(currentCoverageAmount)} USD`}
           </button>
         </div>
       )}
@@ -258,8 +258,8 @@ export default function TransactionPendingRequisition({
                     : !isValid 
                       ? `Não é possível cobrir mais de ${remainingCoverage}%` 
                       : !canCover 
-                        ? `Precisa de ${coverageAmount.toFixed(2)} USDT (Você tem ${formatUSDT(donationBalances.free)} USDT disponível)` 
-                        : `Cobrir ${percentage}% (${coverageAmount.toFixed(2)} USDT)`
+                        ? `Precisa de ${coverageAmount.toFixed(2)} USD (Você tem ${formatUSD(donationBalances.free)} USD disponível)` 
+                        : `Cobrir ${percentage}% (${coverageAmount.toFixed(2)} USD)`
                 }
               >
                 {percentage}%
@@ -294,11 +294,11 @@ export default function TransactionPendingRequisition({
         </div>
         {customPercentage && (
           <div className="custom-amount">
-            Valor de cobertura: {(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT
+            Valor de cobertura: {(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USD
             {!isPercentageValid(requisition, parseInt(customPercentage)) && (
               <span className="error-text"> 
                 {parseFloat(donationBalances.free) < (parseFloat(requisition.amount) * parseInt(customPercentage) / 100) 
-                  ? ` - Precisa de ${(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USDT (Você tem ${formatUSDT(donationBalances.free)} USDT disponível)`
+                  ? ` - Precisa de ${(parseFloat(requisition.amount) * parseInt(customPercentage) / 100).toFixed(2)} USD (Você tem ${formatUSD(donationBalances.free)} USD disponível)`
                   : ' - Porcentagem inválida'
                 }
               </span>

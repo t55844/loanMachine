@@ -24,6 +24,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
     
     try {
       const requisitionDetails = await fetchBorrowerRequisitions(account);
+      console.log("Requisições carregadas:", requisitionDetails);
       setRequisitions(requisitionDetails);
     } catch (err) {
       //console.error("Erro ao carregar requisições:", err);
@@ -87,7 +88,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
     return status === 0 || status === 1;
   };
 
-  const formatUSDT = (amount) => {
+  const formatUSD = (amount) => {
     return parseFloat(amount).toFixed(2);
   };
 
@@ -138,7 +139,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
-                  <strong>Valor:</strong> {formatUSDT(req.amount)} USDT
+                  <strong>Valor:</strong> {formatUSD(req.amount)} USD
                 </div>
                 <div>
                   <strong>Criada em:</strong> {req.creationTime}
@@ -192,6 +193,7 @@ export default function LoanRequisitionMonitor({ contract, account, memberId }) 
       )}
       
       <button 
+        pw-test-id="update-requisitions-button"
         onClick={loadRequisitions} 
         className="wallet-button"
         style={{ marginTop: '16px' }}

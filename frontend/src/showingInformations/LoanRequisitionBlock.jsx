@@ -49,6 +49,7 @@ function LoanRequisitionBlock() {
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
         <button 
           onClick={() => setActiveTab("create")}
+          pw-test-id="create-requisition-button-tab"
           style={{ 
             padding: '12px 20px',
             border: 'none',
@@ -64,6 +65,7 @@ function LoanRequisitionBlock() {
         </button>
         <button 
           onClick={() => setActiveTab("monitor")}
+          pw-test-id="monitor-requisitions-button-tab"
           style={{ 
             padding: '12px 20px',
             border: 'none',
@@ -79,6 +81,7 @@ function LoanRequisitionBlock() {
         </button>
         <button 
           onClick={() => setActiveTab("pending")}
+          pw-test-id="pending-requisitions-button-tab"
           style={{ 
             padding: '12px 20px',
             border: 'none',
@@ -94,6 +97,7 @@ function LoanRequisitionBlock() {
         </button>
         <button 
           onClick={() => setActiveTab("contracts")}
+          pw-test-id="user-contracts-button-tab"
           style={{ 
             padding: '12px 20px',
             border: 'none',
