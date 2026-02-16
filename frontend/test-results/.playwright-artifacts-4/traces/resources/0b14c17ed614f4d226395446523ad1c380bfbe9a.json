@@ -1,0 +1,1 @@
+{"query":"query GetWalletMember($wallet: Bytes!)\n  {memberToWalletVinculationEvents(\n    where: { wallet: $wallet }, first: 1, orderBy: blockTimestamp, orderDirection: desc){memberId}}","variables":{"wallet":"0xbcd4042de499d14e55001ccbb24a551f3b954096"},"operationName":"GetWalletMember"}

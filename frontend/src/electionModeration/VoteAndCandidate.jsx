@@ -142,7 +142,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
   const hasWinner = lastElection && lastElection.winnerId && lastElection.winnerId !== 0;
 
   return (
-    <div>
+    <div pw-test-id="election-section">
       <h2>Gerenciamento de Eleição</h2>
 
       {/* Show member status */}
@@ -240,7 +240,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
 
           {/* Voting Section */}
           {electionInfo.candidates && electionInfo.candidates.length > 0 && hasVinculation && (
-            <div className="vinculate-section">
+            <div pw-test-id="voting-section" className="vinculate-section">
               <h3>Emitir Seu Voto</h3>
               
               <div style={{ marginBottom: '16px' }}>
@@ -296,7 +296,7 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
             <div className="stats-box">
               {/* Winner Display - More Prominent */}
               {hasWinner && (
-                <div style={{
+                <h3 style={{
                   textAlign: 'center',
                   padding: '20px',
                   background: 'linear-gradient(135deg, var(--accent-green) 0%, rgba(0, 192, 135, 0.1) 100%)',
@@ -307,16 +307,16 @@ const VoteAndCandidate = ({ contract, currentAccount, member }) => {
                   <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: 'white' }}>
                     🏆 VENCEDOR DA ÚLTIMA ELEIÇÃO
                   </div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
+                  <h4 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
                     Membro #{lastElection.winnerId.toString()}
-                  </div>
-                  <div style={{ fontSize: '16px', color: 'white' }}>
+                  </h4>
+                  <h4 style={{ fontSize: '16px', color: 'white' }}>
                     com {lastElection.winningVotes.toString()} votos
-                  </div>
+                  </h4>
                   <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', marginTop: '8px' }}>
                     Eleição #{lastElection.electionId.toString()} • {lastElection.blockTimestamp}
                   </div>
-                </div>
+                </h3>
               )}
 
               <h3>Resultados da Eleição #{lastElection.electionId.toString()}</h3>

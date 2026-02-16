@@ -1,40 +1,29 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  console.log("🚀 Starting deployment with USDT distribution...");
+  console.log("🚀 Deploying merged LoanMachine...");
 
-  const signers = await ethers.getSigners();
-  const [owner] = signers;
-  console.log(`📱 Found ${signers.length} wallets`);
+  const [owner] = await ethers.getSigners();
 
-  // --- Deploy MockUSDT ---
+  // MockUSDT
   const MockUSDT = await ethers.getContractFactory("MockUSDT");
   const mockUSDT = await MockUSDT.deploy();
   await mockUSDT.waitForDeployment();
-  const mockUSDTAddress = await mockUSDT.getAddress();
-  console.log("MockUSDT deployed to:", mockUSDTAddress);
+  console.log("MockUSDT →", await mockUSDT.getAddress());
 
-  // --- Deploy ReputationSystem ---
-  const ReputationSystem = await ethers.getContractFactory("ReputationSystem");
-  const reputationSystem = await ReputationSystem.deploy();
-  await reputationSystem.waitForDeployment();
-  const reputationSystemAddress = await reputationSystem.getAddress();
-  console.log("ReputationSystem deployed to:", reputationSystemAddress);
-
-  // --- Deploy LoanMachine ---
+  // LoanMachine (agora com Reputation dentro)
   const LoanMachine = await ethers.getContractFactory("LoanMachine");
-  const loanMachine = await LoanMachine.deploy(mockUSDTAddress, reputationSystemAddress);
+  const loanMachine = await LoanMachine.deploy(await mockUSDT.getAddress());
   await loanMachine.waitForDeployment();
-  const loanMachineAddress = await loanMachine.getAddress();
-  await reputationSystem.setAuthorizedCaller(loanMachineAddress, true);
-  console.log("LoanMachine deployed to:", loanMachineAddress);
 
-  console.log("✅ Deployment completed!");
-  console.log({ mockUSDTAddress, reputationSystemAddress, loanMachineAddress });
+  const addr = await loanMachine.getAddress();
+  console.log("LoanMachine (merged) →", addr);
+
+  console.log("✅ Tudo pronto!");
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });
 

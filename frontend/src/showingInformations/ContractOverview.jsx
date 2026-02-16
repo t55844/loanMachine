@@ -90,7 +90,7 @@ export default function ContractOverview() {
       <div className="transactions-box" style={{ marginTop: 12 }}>
         {lastTxs.length > 0 ? (
           lastTxs.map((tx, i) => (
-            <div data-cy={"transaction-row-"+i} key={i} className="transaction-row">
+            <div pw-test-id={"transaction-row-"+i+"-"+tx.type} key={i} className="transaction-row">
               <div><strong>Carteira:</strong> {tx.wallet?.slice(0, 6)}...{tx.wallet?.slice(-4)}</div>
               <div><strong>Valor:</strong> {formatUSD(tx.amount)} USD</div>
               <div><strong>Horário:</strong> {tx.time}</div>

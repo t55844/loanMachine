@@ -45,7 +45,7 @@ const CreateElection = ({ contract, currentAccount, member, onElectionCreated })
   };
 
   return (
-    <div>
+    <div pw-test-id="create-election-component">
       <h2>Criar Nova Eleição</h2>
       
       {/* Show member status */}

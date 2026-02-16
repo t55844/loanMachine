@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":47,"error":{"code":-32603,"message":"Error: Transaction reverted: function selector was not recognized and there's no fallback function","data":{"message":"Error: Transaction reverted: function selector was not recognized and there's no fallback function","data":"0x"}}}

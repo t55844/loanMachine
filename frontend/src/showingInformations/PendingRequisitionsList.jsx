@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { fetchLoanRequisitions, fetchUserDonations } from "../graphql-frontend-query";
 import { useToast } from "../handlers/useToast";
-import Toast from "../handlers/Toast";
 import TransactionPendingRequisition from "./TransactionPendingRequisition";
 import { useWeb3 } from "../Web3Context";
 

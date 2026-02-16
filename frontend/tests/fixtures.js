@@ -1,8 +1,9 @@
 import { test as base, expect } from '@playwright/test';
 
-// Create regular helper functions (not fixtures)
+// ==================== FUNÇÕES AUXILIARES ====================
+
 async function connectDemoWalletFunction(page, privateKey = null) {
-  const pk = privateKey || '0xa267530f49f8280200edf313ee7af6b827f2a8bce2897751d06a843f644967b1';
+  const pk = privateKey || '0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897';
 
   await page.getByRole('button', { name: 'demo' }).click({ force: true });
 
@@ -33,20 +34,28 @@ async function getUSDTFromFaucetFunction(page) {
   await expect(page.getByRole('heading', { name: /Loan Machine DApp/i })).toBeVisible();
 }
 
+// ==================== FIXTURES ====================
+
 export const test = base.extend({
-  setupLoggedInUser: async ({ page }, use) => {
+  // Fixture que permite sobrescrever a chave privada por teste
+  privateKey: [
+    '0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897', // valor padrão
+    { option: true }
+  ],
+
+  // Fixture principal de login agora recebe a chave privada
+  setupLoggedInUser: async ({ page, privateKey }, use) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await expect(page.getByText('Erro na Conexão')).not.toBeVisible();
 
-    // ✅ Now call the regular functions
-    await connectDemoWalletFunction(page);
+    await connectDemoWalletFunction(page, privateKey);
     await getUSDTFromFaucetFunction(page);
 
     await use();
   },
 
-  // Keep these as fixtures for tests that need them individually
+  // Fixtures auxiliares mantidas
   connectDemoWallet: async ({ page }, use) => {
     await use(async (privateKey = null) => {
       await connectDemoWalletFunction(page, privateKey);

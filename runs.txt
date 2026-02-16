@@ -48,10 +48,14 @@ docker exec -it container-almejado /bin/sh
 
 npx playwright show-report
 
+docker exec -it loan-machine-playwright-1 npx playwright test tests/07-electionSection.spec.js
+
+-----------------------------------------------------------
 proximos possos:
 
-refatora component de Doar e sacar para perguntar o custo de gas
+refatorar todos os components para perguntar o custo de gas
 
-refatora component de criação de emprestimo para perguntar o custo de gas
+refatorar todos os components para devolver sucesso se tiver tido
 
+data da eleição ta esquisita, votos também
 --------------------------------------------------------------

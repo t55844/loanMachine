@@ -1,0 +1,1 @@
+{"query":"\n    query LastElection {\n      electionClosedEvents(orderDirection: desc, orderBy: blockTimestamp, first: 1) {\n        electionId\n        winnerId\n        winningVotes\n        blockTimestamp\n      }\n    }\n  ","operationName":"LastElection"}
