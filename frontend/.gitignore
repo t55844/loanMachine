@@ -68,3 +68,9 @@ env/frontend*
 *.env.local
 .env.local*
 *.env.local*
+
+loan_machine_server\debug\*
+frontend/playwright-report/data/*
+frontend/test-results/*
+loan_machine_server/target/debug/*
+frontend/playwright-report/*

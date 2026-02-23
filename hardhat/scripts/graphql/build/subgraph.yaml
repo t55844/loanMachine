@@ -15,7 +15,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: LoanMachine\LoanMachine.wasm
+      file: LoanMachine/LoanMachine.wasm
       entities:
         - DonatedEvent
         - BorrowedEvent
@@ -40,7 +40,7 @@ dataSources:
         - LoanUncoveredEvent
       abis:
         - name: LoanMachine
-          file: LoanMachine\LoanMachine.json
+          file: LoanMachine/LoanMachine.json
       eventHandlers:
         - event: Donated(indexed address,uint256,uint256)
           handler: handleDonated
@@ -97,7 +97,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: LoanMachine\LoanMachine.wasm
+      file: LoanMachine/LoanMachine.wasm
       entities:
         - MemberToWalletVinculationEvent
         - ReputationChangedEvent
@@ -110,7 +110,7 @@ dataSources:
         - NewModeratorEvent
       abis:
         - name: ReputationSystem
-          file: ReputationSystem\ReputationSystem.json
+          file: ReputationSystem/ReputationSystem.json
       eventHandlers:
         - event: MemberToWalletVinculation(indexed uint32,indexed address,address[],uint256)
           handler: handleMemberToWalletVinculation

@@ -1,0 +1,11 @@
+FROM rust:latest
+
+RUN cargo install cargo-leptos cargo-watch
+
+RUN rustup component add rustfmt clippy
+
+WORKDIR /app
+
+COPY . .
+
+CMD ["cargo", "leptos", "watch", "--bin-features", "ssr"]

@@ -43,6 +43,7 @@ http://127.0.0.1:3000/  http://localhost:5173/ caso o site não abra por não co
 
 
 Get-ChildItem -Recurse -Include *.js, *.ts, *.json, *.cjs, Dockerfile |  Where-Object { $_.FullName -notmatch '\\node_modules\\' -and $_.FullName -notmatch '\\node\\' -and $_.FullName -notmatch '\\frontend\\' } | ForEach-Object { $_.FullName }
+Get-ChildItem -Recurse -Include *.rs, *.json, Dockerfile |  Where-Object { $_.FullName -notmatch '\\debug\\'} | ForEach-Object { $_.FullName }  
 docker ps
 docker exec -it container-almejado /bin/sh
 

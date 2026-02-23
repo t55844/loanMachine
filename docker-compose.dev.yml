@@ -1,7 +1,7 @@
 # docker-compose.dev.yml
 # This file is for DEVELOPMENT with HOT-RELOADING
 
-version: '3.8'  # Add this to fix validation – specifies schema, allows custom services like 'cypress'
+#version: '3.8'  # Add this to fix validation – specifies schema, allows custom services like 'cypress'
 
 services:
   # --- BLOCKCHAIN (UNCHANGED) ---
@@ -15,39 +15,22 @@ services:
       - ./hardhat/scripts:/app/scripts
       - ./hardhat/deployment-addresses.json:/app/deployment-addresses.json
 
-  # --- PROXY FOR ENVIRONMENT ---
-  proxy:
-    build:
-      context: ./proxy
-      dockerfile: Dockerfile
-    ports:
-      - '3001:3001'
-    environment:
-      - RPC_URL=http://hardhat-node:8545
-      - SUBGRAPH_URL=http://graph-node:8000/subgraphs/name/loan-machine
-      - CONTRACT_ADDRESS=0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0  # Or dynamic from deployment
-      - MOCK_USDT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
-      - REPUTATION_CONTRACT_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
-      - VALUE_TO_MINT=10
-    depends_on:
-      - hardhat-node
-      - graph-node
-
   # --- FRONTEND ---
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    ports:
-      - '5173:5173'
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_PROXY_URL=http://proxy:3001/api/proxy  # Client-side var for proxy
-    depends_on:
-      - proxy
-      - graph-node
+  #frontend:
+  #  build:
+  #    context: ./frontend
+  #    dockerfile: Dockerfile.dev
+  #  ports:
+  #    - '5173:5173'
+  #  volumes:
+  #    - ./frontend:/app
+  #    - /app/node_modules
+  #  environment:
+  #   - VITE_RUST_API_URL=http://loan_machine_server:3002 
+  #  depends_on:
+  #    - loan_machine_server
+  #    - graph-node
+  #    - hardhat-node
 
   # --- GRAPHQL TO GET AND STORE EVENTS FROM ON-CHAIN AND SEND IT TO THE FRONT ---
   ipfs:
@@ -98,16 +81,75 @@ services:
       - hardhat-node
 
  # --- PLAYWRIGHT TEST FRONTEND ---
-  playwright:
-    image: mcr.microsoft.com/playwright:v1.58.2-jammy 
-    depends_on:
-      - frontend
-      - proxy
-      - graph-node
-      - hardhat-node  # Ensures full stack is up
+  #playwright:
+  #  image: mcr.microsoft.com/playwright:v1.58.2-jammy 
+  #  depends_on:
+  #    - frontend
+  #    - loan_machine_server
+  #    - graph-node
+  #    - hardhat-node  # Ensures full stack is up
+  #  volumes:
+  #    - ./frontend:/app  # Mount frontend code (including tests folder)
+  #  working_dir: /app
+  #  environment:
+  #    - PLAYWRIGHT_BASE_URL=http://frontend:5173  # Internal Docker URL for tests
+  #  command: bash -c "npm install && npx playwright test"  # Install deps, then run tests (adjust browser if needed)
+
+    # --- RUST SERVER ---
+  #loan_machine_server:
+  #  build:
+  #      context: ./loan_machine_server
+  #      dockerfile: Dockerfile.dev   # <--- usa o dev agora
+  #  ports:
+  #      - '3002:3002'
+  #  environment:
+  #      - SUBGRAPH_URL=http://graph-node:8000/subgraphs/name/loan-machine
+  #      - RPC_URL=http://hardhat-node:8545
+  #  volumes:
+  #      - ./loan_machine_server:/app          
+  #      # Opcional: cache de dependências pra compilar mais rápido
+  #      - cargo-registry:/usr/local/cargo/registry
+  #      - cargo-git:/usr/local/cargo/git
+  #  depends_on:
+  #      - graph-node
+  #      - hardhat-node
+  #      - subgraph-deploy   
+  #  restart: unless-stopped
+
+  # --- SUBGRAPH DEPLOY ----
+  subgraph-deploy:
+    image: node:20
     volumes:
-      - ./frontend:/app  # Mount frontend code (including tests folder)
+      - ./hardhat/scripts/graphql:/app
     working_dir: /app
-    environment:
-      - PLAYWRIGHT_BASE_URL=http://frontend:5173  # Internal Docker URL for tests
-    command: bash -c "npm install && npx playwright test"  # Install deps, then run tests (adjust browser if needed)
+    command: >
+      sh -c "
+        echo '=== Instalando graph-cli e dependências... ===' &&
+        npm install -g @graphprotocol/graph-cli &&
+        if [ -f yarn.lock ]; then yarn install; else npm install; fi &&
+
+        echo '=== Aguardando graph-node ficar pronto (90s)... ===' &&
+        sleep 90 &&
+
+        echo '=== Removendo subgraph antigo (se existir)... ===' &&
+        graph remove --node http://graph-node:8020/ loan-machine || true &&
+
+        echo '=== Criando subgraph... ===' &&
+        graph create --node http://graph-node:8020/ loan-machine &&
+
+        echo '=== Codegen e build... ===' &&
+        graph codegen &&
+        graph build &&
+
+        echo '=== Deploying subgraph no node LOCAL (versão automática v0.0.1)... ===' &&
+        graph deploy --node http://graph-node:8020/ --ipfs http://ipfs:5001/ loan-machine --version-label v0.0.1 &&
+        
+        echo '=== SUBGRAPH DEPLOYED COM SUCESSO! ==='
+      "
+    depends_on:
+      - graph-node
+      - ipfs
+
+volumes:
+  cargo-registry:
+  cargo-git:
