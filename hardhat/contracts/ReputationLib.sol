@@ -1,0 +1,354 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "./IReputationSystem.sol";
+
+/**
+ * @title  ReputationLib
+ * @notice Internal library for reputation tracking and moderator elections.
+ *
+ * Being an INTERNAL library, every function here is inlined directly into
+ * LoanMachine's bytecode at compile time.  There is no separate deployment,
+ * no external call, and no new trust boundary.
+ *
+ * Why events are redeclared here
+ * ───────────────────────────────
+ * Solidity 0.8.19 does not allow `emit Interface.EventName()` syntax from a
+ * library.  The events are therefore declared again in the library with
+ * identical signatures.  Because this is an internal library, they inline into
+ * LoanMachine and the ABI de-duplicates them automatically.
+ */
+library ReputationLib {
+
+    // ─── STORAGE LAYOUT ──────────────────────────────────────────────────────
+
+    struct ReputationStorage {
+        // member ↔ wallet registry
+        mapping(uint32  => address)   memberToWallet;
+        mapping(address => uint32)    walletToMemberId;
+        mapping(uint32  => address[]) walletsOfMember;
+
+        // reputation
+        mapping(uint32 => int32) memberReputation;
+        int32                    totalPotentialVotes;
+        mapping(uint32 => bool)  activeMembers;
+        uint32[]                 membersWithPositiveReputation;
+
+        // moderator elections
+        mapping(uint32 => bool)  isModerator;
+        mapping(uint32 => int32) moderatorVotesReceived;
+        mapping(uint32 => mapping(uint32 => bool)) hasVotedInElection;
+        uint32                         electionCounter;
+        IReputationSystem.ElectionStatus[] elections;   // struct from interface
+    }
+
+    // ─── EVENTS (mirrors of IReputationSystem — required for library emit) ───
+
+    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, address[] allWallets, uint256 timestamp);
+    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
+    event ElectionOpened(uint32 indexed electionId, uint32 indexed candidateId, uint256 startTime, uint256 endTime);
+    event ElectionClosed(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
+    event CandidateAdded(uint32 indexed electionId, uint32 indexed candidateId);
+    event VoteCast(uint32 indexed electionId, uint32 indexed candidateId, uint32 indexed memberId, int32 voteWeight);
+    event NewModerator(uint32 indexed memberId, uint32 indexed electionId);
+    event UnbeatableMajorityReached(uint32 indexed electionId, uint32 indexed leadingCandidate, int32 leadingVotes);
+
+    // ─── ERRORS ──────────────────────────────────────────────────────────────
+
+    error RS_MemberIdOrWalletInvalid();
+    error RS_WalletAlreadyVinculated();
+    error RS_WalletAlreadyLinkedToAnotherMember();
+    error RS_ActiveElectionExists();
+    error RS_ElectionNotActive();
+    error RS_MemberAlreadyVoted();
+    error RS_InvalidCandidate();
+    error RS_NoCandidates();
+
+    // ─── CONSTANTS ───────────────────────────────────────────────────────────
+
+    int32 internal constant GAIN_REPAY   = 1;
+    int32 internal constant GAIN_COVER   = 2;
+    int32 internal constant LOSS_OVERDUE = 3;
+
+    // =========================================================================
+    //                        WALLET REGISTRATION
+    // =========================================================================
+
+    function registerMemberWallet(
+        ReputationStorage storage rs,
+        uint32  memberId,
+        address wallet
+    ) internal {
+        if (memberId == 0 || wallet == address(0))
+            revert RS_MemberIdOrWalletInvalid();
+
+        // Reject if this wallet is already bound to a *different* member
+        uint32 existingId = rs.walletToMemberId[wallet];
+        if (existingId != 0 && existingId != memberId)
+            revert RS_WalletAlreadyLinkedToAnotherMember();
+
+        // Reject duplicate within same member
+        address[] storage wallets = rs.walletsOfMember[memberId];
+        for (uint256 i = 0; i < wallets.length; i++) {
+            if (wallets[i] == wallet) revert RS_WalletAlreadyVinculated();
+        }
+
+        // First wallet for this memberId becomes the primary
+        if (rs.memberToWallet[memberId] == address(0)) {
+            rs.memberToWallet[memberId] = wallet;
+        }
+        rs.walletToMemberId[wallet] = memberId;
+        rs.walletsOfMember[memberId].push(wallet);
+
+        emit MemberToWalletVinculation(
+            memberId, wallet, rs.walletsOfMember[memberId], block.timestamp
+        );
+    }
+
+    // =========================================================================
+    //                        REPUTATION MUTATIONS
+    // =========================================================================
+
+    function reputationChange(
+        ReputationStorage storage rs,
+        uint32 memberId,
+        int32  points,
+        bool   increase
+    ) internal {
+        int32 current = rs.memberReputation[memberId];
+        int32 next    = increase ? current + points : current - points;
+
+        _updateTotalPotentialVotes(rs, memberId, current, next);
+        rs.memberReputation[memberId] = next;
+
+        emit ReputationChanged(
+            memberId, points, increase, next, block.timestamp
+        );
+    }
+
+    function _updateTotalPotentialVotes(
+        ReputationStorage storage rs,
+        uint32 memberId,
+        int32  oldRep,
+        int32  newRep
+    ) private {
+        int32 oldPos = oldRep > 0 ? oldRep : int32(0);
+        int32 newPos = newRep > 0 ? newRep : int32(0);
+        rs.totalPotentialVotes += (newPos - oldPos);
+
+        if (oldRep <= 0 && newRep > 0) {
+            rs.activeMembers[memberId] = true;
+            rs.membersWithPositiveReputation.push(memberId);
+        } else if (oldRep > 0 && newRep <= 0) {
+            rs.activeMembers[memberId] = false;
+            _removeMemberFromActiveList(rs, memberId);
+        }
+    }
+
+    function _removeMemberFromActiveList(
+        ReputationStorage storage rs,
+        uint32 memberId
+    ) private {
+        uint32[] storage list = rs.membersWithPositiveReputation;
+        uint256 len = list.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (list[i] == memberId) {
+                list[i] = list[len - 1];
+                list.pop();
+                break;
+            }
+        }
+    }
+
+    // =========================================================================
+    //                           ELECTIONS
+    // =========================================================================
+
+    function openElection(
+        ReputationStorage storage rs,
+        uint32 candidateId,
+        uint32 opponent
+    ) internal {
+        // Enforce: no active election may already exist
+        uint256 len = rs.elections.length;
+        if (len > 0 && rs.elections[len - 1].active)
+            revert RS_ActiveElectionExists();
+
+        if (
+            rs.memberToWallet[candidateId] == address(0) ||
+            rs.memberToWallet[opponent]    == address(0)
+        ) revert RS_InvalidCandidate();
+
+        uint32[] memory candidates = new uint32[](2);
+        candidates[0] = candidateId;
+        candidates[1] = opponent;
+
+        rs.elections.push(IReputationSystem.ElectionStatus({
+            id:                      rs.electionCounter,
+            candidates:              candidates,
+            startTime:               block.timestamp,
+            endTime:                 block.timestamp + 30 days,
+            active:                  true,
+            totalVotesCast:          0,
+            potentialRemainingVotes: rs.totalPotentialVotes,
+            winnerId:                0,
+            winningVotes:            0
+        }));
+
+        emit ElectionOpened(
+            rs.electionCounter, candidateId, block.timestamp, block.timestamp + 30 days
+        );
+        rs.electionCounter++;
+    }
+
+    function addCandidate(
+        ReputationStorage storage rs,
+        uint32 electionId,
+        uint32 candidateId
+    ) internal {
+        _requireElectionActive(rs, electionId);
+        rs.elections[electionId].candidates.push(candidateId);
+        emit CandidateAdded(electionId, candidateId);
+    }
+
+    function voteForModerator(
+        ReputationStorage storage rs,
+        uint32 electionId,
+        uint32 candidateId,
+        uint32 memberId
+    ) internal {
+        _requireElectionActive(rs, electionId);
+
+        if (rs.hasVotedInElection[electionId][memberId])
+            revert RS_MemberAlreadyVoted();
+
+        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
+
+        bool valid = false;
+        for (uint256 i = 0; i < e.candidates.length; i++) {
+            if (e.candidates[i] == candidateId) { valid = true; break; }
+        }
+        if (!valid) revert RS_InvalidCandidate();
+
+        int32 weight = rs.memberReputation[memberId];
+        if (weight < 0) weight = 0;
+
+        rs.hasVotedInElection[electionId][memberId] = true;
+        rs.moderatorVotesReceived[candidateId] += weight;
+        e.totalVotesCast += weight;
+
+        int32 rep = rs.memberReputation[memberId];
+        if (rep > 0) e.potentialRemainingVotes -= rep;
+
+        emit VoteCast(electionId, candidateId, memberId, weight);
+        _checkAndCloseElectionIfUnbeatable(rs, electionId);
+    }
+
+    function closeElection(
+        ReputationStorage storage rs,
+        uint32 electionId
+    ) internal {
+        if (electionId >= rs.elections.length) revert RS_ElectionNotActive();
+
+        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
+        if (!e.active)                revert RS_ElectionNotActive();
+        if (e.candidates.length == 0) revert RS_NoCandidates();
+
+        e.active = false;
+
+        (uint32 winnerId, int32 winVotes,,) = _getTopTwoCandidates(rs, electionId);
+        rs.isModerator[winnerId] = true;
+        e.winnerId     = winnerId;
+        e.winningVotes = winVotes;
+
+        emit ElectionClosed(electionId, winnerId, winVotes);
+    }
+
+    // ─── ELECTION INTERNALS ──────────────────────────────────────────────────
+
+    function _requireElectionActive(
+        ReputationStorage storage rs,
+        uint32 electionId
+    ) private view {
+        if (electionId >= rs.elections.length) revert RS_ElectionNotActive();
+        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
+        if (block.timestamp > e.endTime || !e.active) revert RS_ElectionNotActive();
+    }
+
+    function _checkAndCloseElectionIfUnbeatable(
+        ReputationStorage storage rs,
+        uint32 electionId
+    ) private {
+        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
+        if (e.candidates.length < 2) return;
+
+        (uint32 first, int32 fVotes,, int32 sVotes) = _getTopTwoCandidates(rs, electionId);
+        if (first == 0) return;
+
+        if (fVotes > sVotes + e.potentialRemainingVotes) {
+            e.active       = false;
+            e.winnerId     = first;
+            e.winningVotes = fVotes;
+            rs.isModerator[first] = true;
+
+            emit NewModerator(first, electionId);
+            emit UnbeatableMajorityReached(electionId, first, fVotes);
+            emit ElectionClosed(electionId, first, fVotes);
+        }
+    }
+
+    function _getTopTwoCandidates(
+        ReputationStorage storage rs,
+        uint32 electionId
+    ) private view returns (
+        uint32 firstId,  int32 firstVotes,
+        uint32 secondId, int32 secondVotes
+    ) {
+        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
+        if (e.candidates.length == 0) return (0, 0, 0, 0);
+
+        firstId    = e.candidates[0];
+        firstVotes = rs.moderatorVotesReceived[firstId];
+
+        for (uint256 i = 1; i < e.candidates.length; i++) {
+            uint32 cId    = e.candidates[i];
+            int32  cVotes = rs.moderatorVotesReceived[cId];
+            if (cVotes > firstVotes) {
+                secondId = firstId;  secondVotes = firstVotes;
+                firstId  = cId;      firstVotes  = cVotes;
+            } else if (cVotes > secondVotes) {
+                secondId = cId;      secondVotes = cVotes;
+            }
+        }
+    }
+
+    // =========================================================================
+    //                        VIEW / PURE HELPERS
+    // (marked internal so they can be called from LoanMachine directly)
+    // =========================================================================
+
+    function getTopTwoCandidatesView(
+        ReputationStorage storage rs,
+        uint32 electionId
+    ) internal view returns (
+        uint32 firstId,  int32 firstVotes,
+        uint32 secondId, int32 secondVotes
+    ) {
+        return _getTopTwoCandidates(rs, electionId);
+    }
+
+    function electionIsActive(
+        ReputationStorage storage rs,
+        uint32 electionId
+    ) internal view returns (bool) {
+        if (electionId >= rs.elections.length) return false;
+        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
+        return e.active && block.timestamp <= e.endTime;
+    }
+
+    function electionCount(ReputationStorage storage rs)
+        internal view returns (uint256)
+    {
+        return rs.elections.length;
+    }
+}

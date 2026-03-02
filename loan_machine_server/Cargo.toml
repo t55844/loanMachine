@@ -53,6 +53,15 @@ thiserror = "1.0"
 hex = "0.4"
 getrandom = { version = "0.2", features = ["js"] }
 
+wasm-bindgen = { version = "0.2" }
+web-sys = { version = "0.3", features = [
+    "Window",
+    "CustomEvent",
+    "CustomEventInit",
+    "EventTarget",
+] }
+js-sys = { version = "0.3" }
+
 
 # Server-only dependencies (optional, enabled by ssr)
 axum = { version = "0.8", optional = true, default-features = false }
@@ -88,4 +97,5 @@ output-name = "loan_machine_server"
 site-root = "target/site"
 site-pkg-dir = "pkg"
 bin-features = ["ssr"]
-assets-dir = "public"            
+assets-dir = "public"
+lib-features = ["hydrate"]     

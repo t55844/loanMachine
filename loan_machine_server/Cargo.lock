@@ -2550,6 +2550,7 @@ dependencies = [
  "getrandom 0.2.17",
  "hex",
  "http",
+ "js-sys",
  "leptos",
  "leptos_axum",
  "leptos_config",
@@ -2565,6 +2566,8 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "tracing-subscriber",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

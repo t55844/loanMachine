@@ -1,0 +1,57 @@
+┌─────────────────────────────────────────────────────┐
+│  LEPTOS                                             │
+│  What it is: a Rust UI framework (like React)       │
+│  What it does: components, signals, server fns      │
+│  Where it runs: generates code for BOTH targets     │
+│  Files: src/app.rs, src/components/**               │
+│  Key concept: macros (#[component], #[server])      │
+│  expand into a lot of invisible Rust code           │
+└──────────────────────┬──────────────────────────────┘
+                       │ compiles into two targets
+          ┌────────────┴────────────┐
+          ▼                         ▼
+┌─────────────────┐       ┌───────────────────────┐
+│  SSR BUILD      │       │  WASM BUILD           │
+│  (server)       │       │  (browser)            │
+│                 │       │                       │
+│  feature = ssr  │       │  feature = hydrate    │
+│  target = your  │       │  target = wasm32-     │
+│  OS (Windows)   │       │  unknown-unknown      │
+│                 │       │                       │
+│  Has access to: │       │  Has access to:       │
+│  - tokio        │       │  - wasm_bindgen       │
+│  - axum         │       │  - web_sys            │
+│  - alloy        │       │  - js_sys             │
+│  - filesystem   │       │  - DOM APIs           │
+│  - network      │       │                       │
+│                 │       │  Does NOT have:       │
+│  Does NOT have: │       │  - alloy              │
+│  - DOM          │       │  - tokio              │
+│  - wasm APIs    │       │  - axum               │
+└─────────────────┘       └───────────────────────┘
+          │
+          │ talks to blockchain via
+          ▼
+┌─────────────────────────────────────────────────────┐
+│  ALLOY                                              │
+│  What it is: Rust blockchain library                │
+│  What it does: encodes calls, estimates gas,        │
+│  reads contract state via RPC                       │
+│  Where it runs: SSR ONLY (server)                   │
+│  Files: src/services/blockchain/**                  │
+│  Key concept: sol! macro generates Rust types       │
+│  from Solidity ABI definitions                      │
+└─────────────────────────────────────────────────────┘
+
+Step 1 — Which layer?
+  Is the error in a component/app file?     → Leptos layer
+  Is it about cfg/features/target_arch?     → SSR/WASM boundary
+  Is it in services/blockchain/**?          → Alloy layer
+
+Step 2 — What kind?
+  E0433 unresolved crate                    → wrong layer (importing SSR thing in WASM or vice versa)
+  E0282 type annotations needed             → Rust can't infer across async boundary → annotate explicitly
+  E0525 FnOnce vs FnMut                     → closure called inside reactive closure → change Children to ChildrenFn
+  E0761 module found at both paths          → old flat file still exists alongside new folder → delete the flat file
+
+Step 3 — Fix with understanding, not just copy-paste

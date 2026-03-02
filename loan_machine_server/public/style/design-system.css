@@ -86,6 +86,7 @@ body {
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -10%, rgba(240,204,0,0.06) 0%, transparent 60%),
     radial-gradient(ellipse 50% 40% at 80% 80%,  rgba(201,148,26,0.04) 0%, transparent 50%);
+  overflow-x: hidden;
 }
 
 ::selection { background: var(--c-yellow); color: var(--c-ink); }
@@ -201,6 +202,8 @@ body {
   user-select: none;
   position: relative;
   overflow: hidden;
+  /* Minimum tap target size for mobile */
+  min-height: 44px;
 }
 
 .btn::before {
@@ -675,3 +678,102 @@ body {
 .p-6   { padding: var(--sp-6); }
 .p-8   { padding: var(--sp-8); }
 .w-full { width: 100%; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+   Everything above this line is the original desktop design,
+   untouched. Everything below is additions only.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── TABLET: 1024px and below ─────────────────────────────── */
+@media (max-width: 1024px) {
+  /* 3 and 4 col grids become 2 col on tablets */
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── MOBILE: 768px and below ──────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Containers: less horizontal padding */
+  .container,
+  .container-sm,
+  .container-md {
+    padding: 0 var(--sp-4);
+  }
+
+  /* Sections: less vertical space — sp-16 (4rem) is too much on a phone */
+  .section    { padding: var(--sp-8) 0; }
+  .section-sm { padding: var(--sp-6) 0; }
+
+  /* All grids: single column */
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
+
+  /* Cards: less padding */
+  .card { padding: var(--sp-4); }
+
+  /* No hover lift on touch — avoids cards getting stuck lifted after tap */
+  .card:hover  { transform: none; }
+  .btn:hover   { transform: none; }
+
+  /* Navbar: brand + links wrap to two rows instead of overflowing */
+  .navbar-inner {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .navbar-brand  { font-size: 1.35rem; }
+  .navbar-links  { gap: var(--sp-4); flex-wrap: wrap; }
+  .navbar-link   { font-size: 0.7rem; }
+
+  /* Inputs: 16px prevents iOS Safari from zooming on focus.
+     This is a Safari-specific behaviour — it zooms in on any input
+     with font-size below 16px. Cannot be disabled any other way. */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Ticker: slightly smaller on phones */
+  .ticker-item { font-size: 0.7rem; }
+
+  /* Hero: shorter on mobile */
+  .hero { min-height: 60vh; }
+
+  /* Tables: allow horizontal scroll instead of breaking layout */
+  .table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Steps: tighter gap */
+  .step        { gap: var(--sp-3); }
+  .step-number { font-size: 2rem; min-width: 2rem; }
+
+  /* Alerts: tighter padding */
+  .alert { padding: var(--sp-3) var(--sp-4); }
+
+  /* Stat value: clamp is based on vw so it scales, but set a safe floor */
+  .stat-value { font-size: clamp(2rem, 10vw, 3.5rem); }
+}
+
+/* ── SMALL PHONES: 380px and below ───────────────────────── */
+@media (max-width: 380px) {
+  .container,
+  .container-sm,
+  .container-md { padding: 0 var(--sp-3); }
+
+  .navbar-brand  { font-size: 1.2rem; }
+  .btn-lg        { font-size: 1rem; padding: var(--sp-3) var(--sp-5); }
+}
