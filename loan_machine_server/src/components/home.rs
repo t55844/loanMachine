@@ -2,14 +2,22 @@
 use leptos::prelude::*;
 use crate::components::ui::*;
 
-/// Public landing page — shown to ALL visitors before login.
-/// on_login is called when the user clicks the main CTA.
+
 #[component]
-pub fn HomePage(
-    #[prop(into)] on_login: Callback<()>,
-) -> impl IntoView {
+pub fn HomePage(#[prop(into)] on_login: Callback<()>) -> impl IntoView {
     view! {
-        // ── HERO ───────────────────────────────────────────────
+        <HeroSection on_login=on_login />
+        <HowItWorksSection />
+        <TransparencySection />
+        <CtaSection on_login=on_login />
+        <HomeFooter />
+    }
+}
+
+
+#[component]
+pub(crate) fn HeroSection(#[prop(into)] on_login: Callback<()>) -> impl IntoView {
+    view! {
         <section class="hero">
             <div class="container">
                 <div style="max-width: 680px; display:flex; flex-direction:column; gap: var(--sp-8)">
@@ -55,8 +63,12 @@ pub fn HomePage(
                 </div>
             </div>
         </section>
+    }
+}
 
-        // ── HOW IT WORKS ───────────────────────────────────────
+#[component]
+pub(crate) fn HowItWorksSection() -> impl IntoView {
+    view! {
         <section class="section" id="como-funciona">
             <div class="container">
                 <div class="t-cordel-rule t-display-md t-yellow mb-12">
@@ -99,8 +111,13 @@ pub fn HomePage(
                 </div>
             </div>
         </section>
+    }
+}
 
-        // ── TRANSPARENCY ───────────────────────────────────────
+
+#[component]
+pub(crate) fn TransparencySection() -> impl IntoView {
+    view! {
         <section class="section-sm" style="background: var(--c-surface); border-top: 1px solid var(--c-gray-2); border-bottom: 1px solid var(--c-gray-2)">
             <div class="container">
                 <div class="grid-4">
@@ -123,8 +140,11 @@ pub fn HomePage(
                 </div>
             </div>
         </section>
-
-        // ── CTA ────────────────────────────────────────────────
+    }
+}
+#[component]
+pub(crate) fn CtaSection(#[prop(into)] on_login: Callback<()>) -> impl IntoView{
+    view!{
         <section class="section">
             <div class="container-sm t-center">
                 <div class="flex-col flex-center gap-6">
@@ -145,8 +165,12 @@ pub fn HomePage(
                 </div>
             </div>
         </section>
+    }
+}
 
-        // ── FOOTER ────────────────────────────────────────────
+#[component]
+pub(crate) fn HomeFooter() -> impl IntoView {
+    view!{
         <footer style="border-top: 1px solid var(--c-gray-2); padding: var(--sp-8) 0">
             <div class="container flex-between">
                 <span class="t-display-md t-yellow" style="opacity:0.6">"LOAN MACHINE"</span>
@@ -155,3 +179,6 @@ pub fn HomePage(
         </footer>
     }
 }
+
+ 
+    
