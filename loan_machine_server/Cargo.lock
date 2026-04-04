@@ -2544,6 +2544,7 @@ name = "loan_machine_server"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "any_spawner",
  "axum",
  "chrono",
  "dotenvy",

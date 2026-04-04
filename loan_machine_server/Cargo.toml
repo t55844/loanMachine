@@ -83,6 +83,8 @@ tower = { version = "0.4", optional = true, default-features = false }
 [dev-dependencies]
 http = "1.0"
 mime = "0.3"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+any_spawner = { version = "0.3", features = ["tokio"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
