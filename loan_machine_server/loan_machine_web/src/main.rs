@@ -2,9 +2,9 @@ use leptos::prelude::*;
 use leptos::hydration::HydrationScripts;          
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use leptos_config::{get_configuration, LeptosOptions};
-use loan_machine_server::app::App;
-use loan_machine_server::config::AppState;
-use loan_machine_server::create_app;
+use loan_machine_web::app::App;
+use loan_machine_core::config::AppState;
+use loan_machine_web::create_app;
 use tower_http::services::ServeDir;
 
 #[component]

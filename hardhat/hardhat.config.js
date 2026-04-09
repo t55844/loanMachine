@@ -1,16 +1,13 @@
-// hardhat.config.js
-require('@nomicfoundation/hardhat-toolbox');
-require('dotenv').config();
+require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-ethers");
+require("dotenv").config();
 
 module.exports = {
-    solidity: {
+  solidity: {
     version: "0.8.19",
     settings: {
       viaIR: true,
-      optimizer: {
-        enabled: true,
-        runs: 150
-      }
+      optimizer: { enabled: true, runs: 200 }
     }
   },
   paths: {
@@ -20,14 +17,20 @@ module.exports = {
     artifacts: "./artifacts"
   },
   networks: {
-    sepolia: {
-      url: process.env.ALCHEMY_API_URL,
-      accounts: [process.env.PRIVATE_KEY]
-    }
-  },
-   etherscan: {
-    apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY 
-    }
+    localhost: {
+      url: process.env.RPC_URL || "http://127.0.0.1:8545",
+      chainId: 31337,
+      mining: { auto: true, interval: 5000 }
+    }/*,
+    polygon: {
+      url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      chainId: 137,
+    },
+    amoy: {
+      url: process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology",
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      chainId: 80002,
+    }*/
   }
 };

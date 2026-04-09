@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::components::ui::*;
-use crate::models::responses::{CoopInfo, VinculationBundle};
+use loan_machine_models::responses::{CoopInfo, VinculationBundle};
 
 // ── GATE ─────────────────────────────────────────────────────
 #[derive(Clone, PartialEq)]
@@ -301,10 +301,12 @@ fn send_bundle_to_privy(bundle: VinculationBundle) {
 pub async fn get_wallet_coop(
     smart_wallet: String,
 ) -> Result<Option<CoopInfo>, ServerFnError> {
-    use crate::services::blockchain::BlockchainError;
+    #[cfg(feature = "ssr")]
+    use loan_machine_core::services::blockchain::BlockchainError;
+    #[cfg(feature = "ssr")]
     use alloy::primitives::{Address, FixedBytes};
 
-    let state = use_context::<crate::config::AppState>()
+    let state = use_context::<loan_machine_core::config::AppState>()
         .ok_or_else(|| ServerFnError::new("AppState not found"))?;
 
     let wallet: Address = smart_wallet
@@ -341,10 +343,12 @@ pub async fn prepare_first_vinculation(
     coop_id:      String,
     access_code:  String,
 ) -> Result<VinculationBundle, ServerFnError> {
-    use crate::services::blockchain::BlockchainError;
+    #[cfg(feature = "ssr")]
+    use loan_machine_core::services::blockchain::BlockchainError;
+    #[cfg(feature = "ssr")]
     use alloy::primitives::{Address, FixedBytes, U256};
 
-    let state = use_context::<crate::config::AppState>()
+    let state = use_context::<loan_machine_core::config::AppState>()
         .ok_or_else(|| ServerFnError::new("AppState not found"))?;
 
     let wallet: Address = smart_wallet

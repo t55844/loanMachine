@@ -1,22 +1,17 @@
 // src/config.rs
-#[cfg(feature = "ssr")]
+
 use std::sync::Arc;
-#[cfg(feature = "ssr")]
 use axum::extract::FromRef;
-#[cfg(feature = "ssr")]
 use leptos_config::LeptosOptions;
-#[cfg(feature = "ssr")]
 use crate::services::blockchain::BlockchainService;
 
-#[cfg(feature = "ssr")]
+
 #[derive(Clone)]
 pub struct SubgraphUrl(pub String);
 
-#[cfg(feature = "ssr")]
 #[derive(Clone)]
 pub struct ContractAddr(pub String);
 
-#[cfg(feature = "ssr")]
 #[derive(Clone, FromRef)]
 pub struct AppState {
     pub subgraph_url:       SubgraphUrl,
@@ -27,7 +22,6 @@ pub struct AppState {
     pub chain_id:         u64,
 }
 
-#[cfg(feature = "ssr")]
 impl AppState {
     pub async fn new(leptos_options: LeptosOptions) -> Self {
         dotenvy::dotenv().ok();

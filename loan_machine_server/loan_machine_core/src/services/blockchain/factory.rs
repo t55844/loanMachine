@@ -18,7 +18,7 @@ use std::sync::Arc;
 use super::abis::{LoanMachine, LoanMachineFactory};
 use super::provider::Provider;
 use super::BlockchainError; 
-use crate::models::responses::CoopInfo;
+use loan_machine_models::responses::CoopInfo;
 
 pub struct FactoryService{
     pub provider: Arc<Provider>,

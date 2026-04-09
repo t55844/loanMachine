@@ -1,14 +1,6 @@
 // src/lib.rs
 pub mod app;
 pub mod components;
-pub mod models;
-pub mod config;
-
-#[cfg(feature = "ssr")]
-pub mod services;
-
-#[cfg(feature = "ssr")]
-pub mod routes;
 
 pub use app::App;
 
@@ -28,9 +20,9 @@ use axum::{Router, routing::post};
 #[cfg(feature = "ssr")]
 use tower_http::cors::CorsLayer;
 #[cfg(feature = "ssr")]
-use crate::config::AppState;
+use loan_machine_core::config::AppState;
 #[cfg(feature = "ssr")]
-use crate::routes::{prepare_donation, prepare_vinculation_to_wallet};
+use loan_machine_core::routes::{prepare_donation, prepare_vinculation_to_wallet};
 
 #[cfg(feature = "ssr")]
 pub fn create_app() -> Router<AppState> {

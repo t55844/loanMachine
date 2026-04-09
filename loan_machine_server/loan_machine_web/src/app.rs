@@ -139,13 +139,6 @@ fn WalletRouter() -> impl IntoView {
             on_logout=Arc::clone(&logout_fn)
         />
 
-        <Ticker items=vec![
-            ("ETH",  "$3,241.00", "2.4%",  true),
-            ("BTC",  "$67,100",   "1.1%",  true),
-            ("GAS",  "12 gwei",   "0.5%",  false),
-            ("USDT", "$1.00",     "0.01%", true),
-        ]/>
-
         <Router>
             <Routes fallback=|| view! {
                 <section class="section">

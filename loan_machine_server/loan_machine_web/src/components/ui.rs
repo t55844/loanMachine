@@ -417,32 +417,3 @@ pub fn Divider(
         <div class="divider-cordel">{s}</div>
     }
 }
-
-// ── TICKER BAR ────────────────────────────────────────────────
-
-/// Scrolling price ticker — pass static items as (symbol, price, change)
-#[component]
-pub fn Ticker(
-    items: Vec<(&'static str, &'static str, &'static str, bool)>,
-) -> impl IntoView {
-    let items_clone = items.clone();
-    view! {
-        <div class="ticker">
-            <div class="ticker-track">
-                // Duplicate for seamless loop
-                {items.iter().chain(items_clone.iter()).map(|(sym, price, change, up)| {
-                    let color = if *up { "var(--c-ink)" } else { "var(--c-red)" };
-                    let arrow = if *up { "▲" } else { "▼" };
-                    view! {
-                        <span class="ticker-item">
-                            <strong>{*sym}</strong>
-                            {" "}{*price}
-                            <span style=format!("color: {}", color)>{arrow}{" "}{*change}</span>
-                            <span style="opacity:0.4; margin: 0 8px">{" | "}</span>
-                        </span>
-                    }
-                }).collect::<Vec<_>>()}
-            </div>
-        </div>
-    }
-}
