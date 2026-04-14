@@ -21,7 +21,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hex         = "0.4"
 chrono      = { version = "0.4", features = ["serde"] }
 reqwest     = { version = "0.12", features = ["json"] }
-
 alloy = { workspace = true, features = [
     "contract",
     "providers",
@@ -30,7 +29,6 @@ alloy = { workspace = true, features = [
     "rpc-types",
     "network",
 ] }
-
 axum        = { version = "0.8", default-features = false, features = ["macros"] }
 leptos_axum = { version = "0.8" }
 leptos      = { version = "0.8", features = ["ssr"] }

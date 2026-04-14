@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockUSDT is ERC20 {
     constructor() ERC20("Mock USDT", "USDT") {
-        _mint(msg.sender, 100 * 1e6); // initial supply (optional)
+        _mint(msg.sender, 100 * 1e6);
     }
 
     function decimals() public pure override returns (uint8) {

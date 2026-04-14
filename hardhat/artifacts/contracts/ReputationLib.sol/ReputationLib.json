@@ -54,9 +54,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "CandidateAdded",
@@ -73,9 +73,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "winnerId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -98,9 +98,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -123,9 +123,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": true,
@@ -154,9 +154,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": true,
@@ -173,9 +173,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -216,9 +216,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "leadingCandidate",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -241,15 +241,15 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -262,8 +262,8 @@
       "type": "event"
     }
   ],
-  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220efd2f0133eb78ef2409703fcfecde88c4253fffcca2b93ae6f1eb0be998ed47b64736f6c63430008130033",
-  "deployedBytecode": "0x600080fdfea2646970667358221220efd2f0133eb78ef2409703fcfecde88c4253fffcca2b93ae6f1eb0be998ed47b64736f6c63430008130033",
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220228993ab789824aa5179be3aa1cc65c0005993c9f0d9ab235e8e777ec9d4124b64736f6c63430008130033",
+  "deployedBytecode": "0x600080fdfea2646970667358221220228993ab789824aa5179be3aa1cc65c0005993c9f0d9ab235e8e777ec9d4124b64736f6c63430008130033",
   "linkReferences": {},
   "deployedLinkReferences": {}
 }

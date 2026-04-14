@@ -33,9 +33,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "CandidateAdded",
@@ -52,9 +52,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "winnerId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -77,9 +77,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -102,9 +102,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": true,
@@ -133,9 +133,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -152,9 +152,9 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -195,9 +195,9 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "winnerId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -220,15 +220,15 @@
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": true,
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "indexed": false,
@@ -287,9 +287,9 @@
           "type": "uint32"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "addCandidate",
@@ -332,9 +332,9 @@
     {
       "inputs": [
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "getCandidateVotes",
@@ -377,9 +377,9 @@
           "type": "uint32"
         },
         {
-          "internalType": "uint32[]",
+          "internalType": "bytes32[]",
           "name": "candidates",
-          "type": "uint32[]"
+          "type": "bytes32[]"
         },
         {
           "internalType": "uint256",
@@ -397,9 +397,9 @@
           "type": "bool"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "winnerId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "internalType": "int32",
@@ -426,9 +426,9 @@
       "name": "getMemberId",
       "outputs": [
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "stateMutability": "view",
@@ -437,9 +437,9 @@
     {
       "inputs": [
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "getReputation",
@@ -461,9 +461,9 @@
           "type": "uint32"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "hasMemberVoted",
@@ -480,9 +480,9 @@
     {
       "inputs": [
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "isModerator",
@@ -518,14 +518,14 @@
     {
       "inputs": [
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
-          "internalType": "uint32",
-          "name": "oponent",
-          "type": "uint32"
+          "internalType": "bytes32",
+          "name": "opponent",
+          "type": "bytes32"
         }
       ],
       "name": "openElection",
@@ -536,27 +536,9 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "caller",
-          "type": "address"
-        },
-        {
-          "internalType": "bool",
-          "name": "authorized",
-          "type": "bool"
-        }
-      ],
-      "name": "setAuthorizedCaller",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
           "internalType": "address",
@@ -577,14 +559,14 @@
           "type": "uint32"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "candidateId",
-          "type": "uint32"
+          "type": "bytes32"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "memberId",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "voteForModerator",

@@ -7,7 +7,7 @@ module.exports = {
     version: "0.8.19",
     settings: {
       viaIR: true,
-      optimizer: { enabled: true, runs: 200 }
+      optimizer: { enabled: true, runs: 10 }
     }
   },
   paths: {

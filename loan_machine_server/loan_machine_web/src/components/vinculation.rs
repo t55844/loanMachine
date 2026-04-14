@@ -1,6 +1,7 @@
 // src/components/vinculation.rs
 use leptos::prelude::*;
 use leptos::task::spawn_local;
+use leptos::ev::SubmitEvent;
 
 use crate::components::ui::*;
 use loan_machine_models::responses::{CoopInfo, VinculationBundle};
@@ -80,9 +81,6 @@ pub fn FirstVinculationForm(
     smart_wallet: String,
     on_success:   impl Fn(CoopInfo) + 'static,
 ) -> impl IntoView {
-    let (member_id,   set_member_id)   = signal(0u32);
-    let (coop_id,     set_coop_id)     = signal(String::new());
-    let (access_code, set_access_code) = signal(String::new());
     let (loading,     set_loading)     = signal(false);
     let (error,       set_error)       = signal::<Option<String>>(None);
     let (bundle,      set_bundle)      = signal::<Option<VinculationBundle>>(None);
@@ -90,27 +88,64 @@ pub fn FirstVinculationForm(
 
     let wallet = smart_wallet.clone();
 
+   
+        view! {
+            <div class="flex-col gap-8">
+
+            <IdentifyCard  error=error loading=loading 
+                on_submit=move |id, cid, code| {
+                set_loading.set(true);
+                set_error.set(None);
+                let w = wallet.clone();
+                spawn_local(async move {
+                    match prepare_first_vinculation(id, w, cid, code).await {
+                        Ok(b)  => set_bundle.set(Some(b)),
+                        Err(e) => set_error.set(Some(e.to_string())),
+                    }
+                    set_loading.set(false);
+                });
+            }/>
+
+        // ── CARD 2: sign button — only shown when bundle exists ──
+        // This card disappears once tx is sent (tx_status != Idle)
+            {move || bundle.get().map(|b| {
+                if tx_status.get() != TxStatus::Idle {
+                    return view! { <div></div> }.into_any();
+                }
+                view! {
+                    <SignCard bundle=b set_tx_status=set_tx_status />
+                }.into_any()
+            })}
+
+        // ── CARD 3: tx status — only shown after sign clicked ──
+        // This reads tx_status signal and re-renders on every change
+        <TxStatusCard tx_status=tx_status set_tx_status=set_tx_status />
+
+
+    
+    </div>
+    }
+
+}
+
+#[component]
+fn IdentifyCard(
+    on_submit:   impl Fn(u32, String, String) + Send + Sync + 'static,
+    error: ReadSignal<Option<String>>,
+    loading: ReadSignal<bool>,
+
+) -> impl IntoView {
+
+    let (member_id,   set_member_id)   = signal(0u32);
+    let (coop_id,     set_coop_id)     = signal(String::new());
+    let (access_code, set_access_code) = signal(String::new());
+
     let on_prepare = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
-        set_loading.set(true);
-        set_error.set(None);
-
-        let w    = wallet.clone();
-        let id   = member_id.get();
-        let cid  = coop_id.get();
-        let code = access_code.get();
-
-        spawn_local(async move {
-            match prepare_first_vinculation(id, w, cid, code).await {
-                Ok(b)  => set_bundle.set(Some(b)),
-                Err(e) => set_error.set(Some(e.to_string())),
-            }
-            set_loading.set(false);
-        });
+        on_submit(member_id.get(), coop_id.get(), access_code.get());
     };
 
-    view! {
-    <div class="flex-col gap-8">
+     view! {
 
         // ── TITLE ──────────────────────────────────────────
         <div class="t-center">
@@ -163,113 +198,105 @@ pub fn FirstVinculationForm(
                 </Button>
             </form>
         </Card>
+     }
+}
 
-        // ── CARD 2: sign button — only shown when bundle exists ──
-        // This card disappears once tx is sent (tx_status != Idle)
-        {move || bundle.get().map(|b| {
-            let b_clone = b.clone();
 
-            // Hide card 2 once submission started — no point showing it
-            if tx_status.get() != TxStatus::Idle {
-                return view! { <div></div> }.into_any();
-            }
+#[component]
+fn SignCard(
+    bundle:        VinculationBundle,
+    set_tx_status: WriteSignal<TxStatus>,
+) -> impl IntoView {
+    let b = bundle.clone();
 
-            view! {
-                <Card variant=CardVariant::Gold tag="PASSO 02 — ASSINAR" hover=false>
-                    <div class="flex-col gap-6 mt-4">
-                        <p class="t-mono-sm t-muted">
-                            "Uma transação vinculará seu ID de membro à sua carteira."
-                        </p>
-                        <div class="stat-block">
-                            <span class="stat-label">"Loan Machine"</span>
-                            <HashDisplay value=b.loan_machine_address.clone() />
-                        </div>
-                        <div class="stat-block">
-                            <span class="stat-label">"Gas Estimado"</span>
-                            <span class="stat-value-sm">{b.gas_join.clone()}" gas"</span>
-                        </div>
-                        <Button
-                            variant=BtnVariant::Primary
-                            size=BtnSize::Lg
-                            full_width=true
-                            on_click=Box::new(move || {
-                                // 1. immediately update UI to Pending
-                                set_tx_status.set(TxStatus::Pending);
-                                // 2. fire-and-forget to JS bridge
-                                send_bundle_to_privy(b_clone.clone());
-                            })
-                        >
-                            "ASSINAR COM SUA CARTEIRA"
-                        </Button>
-                    </div>
-                </Card>
-            }.into_any()
-        })}
-
-        // ── CARD 3: tx status — only shown after sign clicked ──
-        // This reads tx_status signal and re-renders on every change
-        {move || match tx_status.get() {
-
-            // Nothing sent yet — render nothing (empty fragment)
-            TxStatus::Idle => view! { <div></div> }.into_any(),
-
-            // Privy is signing/submitting — show spinner
-            TxStatus::Pending => view! {
-                <Card variant=CardVariant::Default hover=false>
-                    <div class="flex-center gap-4" style="padding: var(--sp-8) 0">
-                        <span class="spinner"></span>
-                        <span class="t-mono-sm t-muted">
-                            "Aguardando assinatura e confirmação..."
-                        </span>
-                    </div>
-                </Card>
-            }.into_any(),
-
-            // Privy confirmed the tx — show hash
-            TxStatus::Complete(hash) => view! {
-                <Card variant=CardVariant::Gold tag="VINCULAÇÃO ENVIADA" hover=false>
-                    <div class="flex-col gap-4 mt-4">
-                        <Alert kind=AlertKind::Success>
-                            "Transação enviada com sucesso!"
-                        </Alert>
-                        <div class="stat-block">
-                            <span class="stat-label">"Transaction Hash"</span>
-                            <HashDisplay value=hash />
-                        </div>
-                        <p class="t-mono-xs t-muted">
-                            "Aguarde a confirmação na blockchain. \
-                             Isso pode levar 10–30 segundos."
-                        </p>
-                    </div>
-                </Card>
-            }.into_any(),
-
-            // Something went wrong — show error and let user retry
-            TxStatus::Failed(err) => view! {
-                <Card variant=CardVariant::Default hover=false>
-                    <div class="flex-col gap-4 mt-4">
-                        <Alert kind=AlertKind::Error>
-                            "Falha ao enviar transação."
-                        </Alert>
-                        <p class="t-mono-sm t-muted">{err}</p>
-                        <Button
-                            variant=BtnVariant::Ghost
-                            on_click=Box::new(move || {
-                                // Reset so user can try again from card 2
-                                set_tx_status.set(TxStatus::Idle);
-                            })
-                        >
-                            "TENTAR NOVAMENTE"
-                        </Button>
-                    </div>
-                </Card>
-            }.into_any(),
-        }}
-
-    
-    </div>
+    view! {
+        <Card variant=CardVariant::Gold tag="PASSO 02 — ASSINAR" hover=false>
+            <div class="flex-col gap-6 mt-4">
+                <p class="t-mono-sm t-muted">
+                    "Uma transação vinculará seu ID de membro à sua carteira."
+                </p>
+                <div class="stat-block">
+                    <span class="stat-label">"Loan Machine"</span>
+                    <HashDisplay value=bundle.loan_machine_address.clone() />
+                </div>
+                <div class="stat-block">
+                    <span class="stat-label">"Gas Estimado"</span>
+                    <span class="stat-value-sm">{bundle.gas_join.clone()}" gas"</span>
+                </div>
+                <Button
+                    variant=BtnVariant::Primary
+                    size=BtnSize::Lg
+                    full_width=true
+                    on_click=Box::new(move || {
+                        set_tx_status.set(TxStatus::Pending);
+                        send_bundle_to_privy(b.clone());
+                    })
+                >
+                    "ASSINAR COM SUA CARTEIRA"
+                </Button>
+            </div>
+        </Card>
     }
+}
 
+
+#[component]
+fn TxStatusCard(
+    tx_status: ReadSignal<TxStatus>,
+    set_tx_status: WriteSignal<TxStatus>,
+) -> impl IntoView {
+    move || match tx_status.get() {
+
+        TxStatus::Idle => view! { <div></div> }.into_any(),
+
+        TxStatus::Pending => view! {
+            <Card variant=CardVariant::Default hover=false>
+                <div class="flex-center gap-4" style="padding: var(--sp-8) 0">
+                    <span class="spinner"></span>
+                    <span class="t-mono-sm t-muted">
+                        "Aguardando assinatura e confirmação..."
+                    </span>
+                </div>
+            </Card>
+        }.into_any(),
+
+        TxStatus::Complete(hash) => view! {
+            <Card variant=CardVariant::Gold tag="VINCULAÇÃO ENVIADA" hover=false>
+                <div class="flex-col gap-4 mt-4">
+                    <Alert kind=AlertKind::Success>
+                        "Transação enviada com sucesso!"
+                    </Alert>
+                    <div class="stat-block">
+                        <span class="stat-label">"Transaction Hash"</span>
+                        <HashDisplay value=hash />
+                    </div>
+                    <p class="t-mono-xs t-muted">
+                        "Aguarde a confirmação na blockchain. \
+                         Isso pode levar 10–30 segundos."
+                    </p>
+                </div>
+            </Card>
+        }.into_any(),
+
+        TxStatus::Failed(err) => view! {
+            <Card variant=CardVariant::Default hover=false>
+                <div class="flex-col gap-4 mt-4">
+                    <Alert kind=AlertKind::Error>
+                        "Falha ao enviar transação."
+                    </Alert>
+                    <p class="t-mono-sm t-muted">{err}</p>
+                    <Button
+                        variant=BtnVariant::Ghost
+                        on_click=Box::new(move || {
+                            set_tx_status.set(TxStatus::Idle);
+                        })
+                    >
+                        "TENTAR NOVAMENTE"
+                    </Button>
+                </div>
+            </Card>
+        }.into_any(),
+    }
 }
 
 // ── JS INTEROP ────────────────────────────────────────────────

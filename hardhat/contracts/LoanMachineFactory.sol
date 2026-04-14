@@ -1,89 +1,79 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "./LoanMachine.sol";
+/**
+ * @title  CoopRegistry
+ * @notice Lightweight on-chain registry for cooperatives.
+ *         Does NOT deploy LoanMachine — your server does that separately.
+ *         This only stores the mapping coopId → loanMachine address
+ *         so the on-chain record can't be lost.
+ */
+contract CoopRegistry {
 
-contract LoanMachineFactory {
-
-    // ── STORAGE ──────────────────────────────────────────────
     address public platformAdmin;
 
     struct CoopRecord {
-        address loanMachine;  // the deployed instance
+        address loanMachine;
         string  name;
-        uint256 deployedAt;
+        uint256 registeredAt;
         bool    exists;
     }
 
     mapping(bytes32 => CoopRecord) public coops;
     bytes32[] public allCoopIds;
 
-    // ── EVENTS ───────────────────────────────────────────────
-    event CoopDeployed(
+    event CoopRegistered(
         bytes32 indexed coopId,
         address indexed loanMachine,
-        address indexed coopAdmin,
         string  name
     );
 
-    // ── ERRORS ───────────────────────────────────────────────
-    error Factory_NotPlatformAdmin();
-    error Factory_CoopNotFound();
-    error Factory_NameEmpty();
+    error Registry_NotPlatformAdmin();
+    error Registry_CoopNotFound();
+    error Registry_NameEmpty();
+    error Registry_AlreadyRegistered();
 
-    // ── CONSTRUCTOR ──────────────────────────────────────────
     constructor() {
         platformAdmin = msg.sender;
     }
 
     modifier onlyPlatformAdmin() {
-        if (msg.sender != platformAdmin) revert Factory_NotPlatformAdmin();
+        if (msg.sender != platformAdmin) revert Registry_NotPlatformAdmin();
         _;
     }
 
-    // ── DEPLOY ───────────────────────────────────────────────
-
-    /// Deploys a new LoanMachine and hands full control to coopAdmin.
-    /// After this call, the Factory has ZERO authority over the instance.
-    function deployCoop(
+    /// @notice Server deploys LoanMachine separately, then registers it here.
+    function registerCoop(
         string  calldata name,
-        address          usdtToken,
-        address          coopAdmin,   // who will own/manage the LoanMachine
-        string  calldata accessCode
-    ) external onlyPlatformAdmin returns (bytes32 coopId, address loanMachine) {
-        if (bytes(name).length == 0) revert Factory_NameEmpty();
+        address loanMachine
+    ) external onlyPlatformAdmin returns (bytes32 coopId) {
+        if (bytes(name).length == 0) revert Registry_NameEmpty();
 
-        // Deploy the instance
-        LoanMachine instance = new LoanMachine(usdtToken);
-
-        // Immediately transfer all authority to coopAdmin.
-        // From this point the Factory cannot call anything privileged.
-        instance.initializeAdmin(coopAdmin, accessCode);
-
-        coopId = keccak256(abi.encodePacked(name, block.timestamp, coopAdmin));
+        coopId = keccak256(abi.encodePacked(name, block.timestamp, loanMachine));
+        if (coops[coopId].exists) revert Registry_AlreadyRegistered();
 
         coops[coopId] = CoopRecord({
-            loanMachine: address(instance),
+            loanMachine: loanMachine,
             name:        name,
-            deployedAt:  block.timestamp,
+            registeredAt: block.timestamp,
             exists:      true
         });
-
         allCoopIds.push(coopId);
 
-        emit CoopDeployed(coopId, address(instance), coopAdmin, name);
-        return (coopId, address(instance));
+        emit CoopRegistered(coopId, loanMachine, name);
     }
 
-    // ── VIEW ─────────────────────────────────────────────────
-
     function getCoopInstance(bytes32 coopId) external view returns (address) {
-        if (!coops[coopId].exists) revert Factory_CoopNotFound();
+        if (!coops[coopId].exists) revert Registry_CoopNotFound();
         return coops[coopId].loanMachine;
     }
 
     function getAllCoops() external view returns (bytes32[] memory) {
         return allCoopIds;
+    }
+
+    function getCoopCount() external view returns (uint256) {
+        return allCoopIds.length;
     }
 
     function transferPlatformAdmin(address newAdmin) external onlyPlatformAdmin {

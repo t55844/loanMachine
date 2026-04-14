@@ -9,17 +9,27 @@ import "./IReputationSystem.sol";
 import "./ReputationLib.sol";
 
 /**
- * @title  LoanMachine
- * @notice Single-contract credit cooperative.  Reputation and election logic
- *         is organised in ReputationLib (an internal library — no separate
- *         deployment, no external calls, no new trust boundaries).
+ * @title  LoanMachine v3 (slim)
+ * @notice Credit cooperative — governance + privacy.
  *
- * Size reduction
- * ──────────────
- * • Optimizer enabled in hardhat.config.js (runs = 200).
- * • ReputationLib inlined by the compiler: duplicated bytecode sequences are
- *   deduplicated automatically, reducing the total size.
- * • Shadow warning fixed: getElectionInfo return param renamed to `isActive`.
+ * SIZE REDUCTION vs v3
+ * ────────────────────
+ * Removed from on-chain → moved to server/subgraph:
+ *
+ * • DebtWatchItem[], performPeriodicDebtCheck(), _removeFromWatchlist()
+ *   → Server reads LoanContractGenerated events + paymentDates,
+ *     compares with current time to determine overdue status.
+ *     The repay() function still emits BorrowerOverdue/BorrowerDebtSettled
+ *     events for the subgraph to index.
+ *
+ * • getActiveLoans()        → subgraph query on LoanContractGenerated + ParcelPaid events
+ * • checkUnbeatableMajority() → subgraph computes from VoteCast events
+ * • getRepaymentSummary()   → computed from getLoanContract() off-chain
+ * • getAverageReputation()  → subgraph aggregates ReputationChanged events
+ * • isBorrowerOverdue()     → server checks paymentDates vs now
+ * • getDebtWatchlist()      → subgraph indexes all active loans
+ * • canUserBorrow()         → server checks off-chain
+ * • Several simple getters consolidated
  */
 contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
@@ -29,12 +39,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //                          STRUCTS
     // =============================================================
 
-    struct DebtWatchItem {
-        uint256 requisitionId;
-        address borrower;
-        uint256 nextDueDate;
-        bool    isOverdue;
-    }
+    // DebtWatchItem is inherited from ILoanMachine
 
     struct LoanRequisition {
         uint256 requisitionId;
@@ -50,51 +55,109 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         uint32  daysIntervalOfPayment;
     }
 
+    // ── MULTISIG ─────────────────────────────────────────────
+    enum ProposalType {
+        TransferAdmin,
+        AddAdmin,
+        RemoveAdmin,
+        RotateAccessCode,
+        RevokeWallet,
+        Deactivate,
+        Reactivate,
+        SetAuthorizedCaller,
+        ChangeThreshold
+    }
+
+    struct Proposal {
+        ProposalType pType;
+        bytes   data;
+        uint256 confirmations;
+        bool    executed;
+        uint256 createdAt;
+    }
+
+    struct WalletApprovalRequest {
+        address wallet;
+        bool    adminApproved;
+        bytes32 moderatorId;
+        bool    moderatorApproved;
+        bool    executed;
+        uint256 createdAt;
+    }
+
     // =============================================================
-    //                       ADMIN STORAGE
+    //                    MULTISIG ADMIN STORAGE
     // =============================================================
 
-    address public coopAdmin;
-    bool    private _initialized;
+    address[] public admins;
+    mapping(address => bool) public isAdmin;
+    uint256 public adminThreshold;
+
+    uint256 public proposalCounter;
+    mapping(uint256 => Proposal) private proposals;
+    mapping(uint256 => mapping(address => bool)) private hasConfirmedProposal;
+
+    bool private _initialized;
+
+    event ProposalCreated(uint256 indexed proposalId, ProposalType indexed pType, address indexed proposer);
+    event ProposalConfirmed(uint256 indexed proposalId, address indexed admin, uint256 confirmations);
+    event ProposalExecuted(uint256 indexed proposalId, ProposalType indexed pType);
+    event AdminAdded(address indexed admin);
+    event AdminRemoved(address indexed admin);
+    event ThresholdChanged(uint256 oldThreshold, uint256 newThreshold);
+
+    // =============================================================
+    //                  WALLET APPROVAL STORAGE
+    // =============================================================
+
+    uint256 public walletApprovalCounter;
+    mapping(uint256 => WalletApprovalRequest) public walletApprovalRequests;
+
+    event WalletApprovalProposed(uint256 indexed requestId, address indexed wallet, address indexed proposer);
+    event WalletApprovalModeratorSigned(uint256 indexed requestId, address indexed wallet, bytes32 indexed moderatorId);
+    event WalletApproved(address indexed wallet);
+    event WalletRevoked(address indexed wallet);
+
+    // =============================================================
+    //                   WITHDRAWAL DELAY STORAGE
+    // =============================================================
+
+    uint256 public constant WITHDRAWAL_DELAY = 48 hours;
+
+    uint256 public withdrawalRequestCounter;
+    mapping(uint256 => WithdrawalRequest) private withdrawalRequests;
+    mapping(address => uint256[]) private userWithdrawalRequestIds;
+
+    // =============================================================
+    //                     GENERAL STORAGE
+    // =============================================================
 
     bytes32 private accessCodeHash;
-    bool    public  active;
+    bool    private active;
 
     mapping(address => bool) private approvedWallets;
     mapping(address => bool) public  isMember;
     address[] private memberWallets;
 
-    // ── ADMIN EVENTS ─────────────────────────────────────────────
-
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
     event AccessCodeRotated();
-    event WalletApproved(address indexed wallet);
-    event WalletRevoked(address indexed wallet);
-    event MemberJoined(address indexed wallet, uint32 memberId);
+    event MemberJoined(address indexed wallet, bytes32 indexed memberId);
     event CoopDeactivated();
     event CoopReactivated();
 
     // =============================================================
-    //               REPUTATION STORAGE (via library struct)
-    // All reputation/election state lives in this single struct.
-    // ReputationLib functions receive it as a storage pointer.
+    //               REPUTATION STORAGE
     // =============================================================
 
     ReputationLib.ReputationStorage private _rs;
-
-    // kept for IReputationSystem interface compatibility
     mapping(address => bool) public authorizedCallers;
 
     // =============================================================
     //                      LOAN STORAGE
     // =============================================================
 
-    DebtWatchItem[] public debtWatchlist;
+    DebtWatchItem[] private debtWatchlist;
     mapping(uint256 => uint256) private watchlistIndex;
-
-    uint256 public nextCheckIndex;
-    uint256 public lastPeriodicCheckTimestamp;
-    uint256 public constant CHECK_INTERVAL = 15 days;
 
     mapping(address => uint256) private donations;
     mapping(address => uint256) private borrowings;
@@ -108,18 +171,16 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     mapping(uint256 => LoanRequisition) private loanRequisitions;
     uint256 public requisitionCounter = 1;
-    mapping(address => uint256[]) public borrowerRequisitions;
+    mapping(address => uint256[]) private borrowerRequisitions;
     mapping(address => uint256)   private donationsInCoverage;
-    mapping(uint32  => uint32)    private loanRequisitionNumber;
+    mapping(bytes32 => uint32)    private loanRequisitionNumber;
     mapping(address => uint256)   private lastContractPerWalletId;
 
-    mapping(uint256 => LoanContract) public loanContracts;
+    mapping(uint256 => LoanContract) private loanContracts;
 
     uint32 private constant BORROW_DURATION         = 30 days;
     uint32 private constant MIN_DONATION_FOR_BORROW = 1e6;
-    uint32 private constant MAX_DONATION            = 5e6;
 
-    // Expose reputation constants for interface compatibility
     int32 public constant REPUTATION_GAIN_BY_REPAYNG_DEBT  = ReputationLib.GAIN_REPAY;
     int32 public constant REPUTATION_GAIN_BY_COVERING_LOAN = ReputationLib.GAIN_COVER;
     int32 public constant REPUTATION_LOSS_BY_DEBT_NOT_PAYD = ReputationLib.LOSS_OVERDUE;
@@ -128,7 +189,25 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //                      CUSTOM ERRORS
     // =============================================================
 
-    error LoanMachine_NotCoopAdmin();
+    error LoanMachine_NotAdmin();
+    error LoanMachine_AlreadyAdmin();
+    error LoanMachine_NotEnoughAdmins();
+    error LoanMachine_InvalidThreshold();
+    error LoanMachine_ProposalAlreadyExecuted();
+    error LoanMachine_AlreadyConfirmed();
+    error LoanMachine_ProposalNotFound();
+
+    error LoanMachine_WalletApprovalNotFound();
+    error LoanMachine_WalletApprovalAlreadyExecuted();
+    error LoanMachine_NotModerator();
+    error LoanMachine_AdminNotYetProposed();
+
+    error LoanMachine_WithdrawalNotReady();
+    error LoanMachine_WithdrawalBlocked();
+    error LoanMachine_WithdrawalAlreadyExecuted();
+    error LoanMachine_WithdrawalNotOwner();
+    error LoanMachine_OnlyAdminOrModerator();
+
     error LoanMachine_AlreadyInitialized();
     error LoanMachine_NotApproved();
     error LoanMachine_AlreadyMember();
@@ -136,7 +215,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_CoopNotActive();
     error LoanMachine_InvalidAmount();
     error LoanMachine_InsufficientFunds();
-    error LoanMachine_MinimumDonationRequired();
     error LoanMachine_BorrowNotExpired();
     error LoanMachine_InvalidCoveragePercentage();
     error LoanMachine_OverCoverage();
@@ -145,13 +223,10 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_InsufficientDonationBalance();
     error LoanMachine_NoActiveBorrowing();
     error LoanMachine_InvalidParcelsCount();
-    error LoanMachine_ExcessiveDonation();
     error LoanMachine_TokenTransferFailed();
     error LoanMachine_MemberIdOrWalletInvalid();
-    error LoanMachine_WalletAlreadyVinculated();
     error LoanMachine_MinimumPercentageCover();
     error LoanMachine_InsufficientWithdrawableBalance();
-    error LoanMachine_CheckIntervalNotYetPassed();
     error LoanMachine_OnlyBorrowerCanCancelRequisition();
     error LoanMachine_RequisitionNotCancellable();
     error LoanMachine_RequisitionAlreadyFullyCovered();
@@ -161,8 +236,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //                         MODIFIERS
     // =============================================================
 
-    modifier onlyCoopAdmin() {
-        if (msg.sender != coopAdmin) revert LoanMachine_NotCoopAdmin();
+    modifier onlyAdmin() {
+        if (!isAdmin[msg.sender]) revert LoanMachine_NotAdmin();
         _;
     }
 
@@ -171,15 +246,21 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         _;
     }
 
-    modifier validMember(uint32 memberId, address wallet) {
-        if (memberId == 0 || _rs.walletToMemberId[wallet] == 0)
-            revert LoanMachine_MemberIdOrWalletInvalid();
+    modifier onlyAdminOrModerator() {
+        bool authorized = isAdmin[msg.sender];
+        if (!authorized) {
+            bytes32 callerId = _rs.walletToMemberId[msg.sender];
+            if (callerId != bytes32(0) && _rs.isModerator[callerId]) {
+                authorized = true;
+            }
+        }
+        if (!authorized) revert LoanMachine_OnlyAdminOrModerator();
         _;
     }
 
-    modifier minimumPercentCoveragePermited(uint256 minimumCoverage) {
-        if (minimumCoverage <= 70 || minimumCoverage > 100)
-            revert LoanMachine_InvalidCoveragePercentage();
+    modifier validMember(bytes32 memberId, address wallet) {
+        if (memberId == bytes32(0) || _rs.walletToMemberId[wallet] == bytes32(0))
+            revert LoanMachine_MemberIdOrWalletInvalid();
         _;
     }
 
@@ -194,12 +275,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         _;
     }
 
-    modifier maxParcelsCountAndInterval(uint32 count, uint32 interval) {
-        if (count < 1 || count > 12) revert LoanMachine_InvalidParcelsCount();
-        if (interval > 30)           revert LoanMachine_IntervalOfPaymentAboveLimit();
-        _;
-    }
-
     modifier borrowingActive(uint256 requisitionId) {
         LoanContract storage loan = loanContracts[requisitionId];
         if (borrowings[msg.sender] == 0)         revert LoanMachine_NoActiveBorrowing();
@@ -209,7 +284,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         _;
     }
 
-    modifier checkLoanRequisitionOpened(uint32 memberId) {
+    modifier checkLoanRequisitionOpened(bytes32 memberId) {
         if (loanRequisitionNumber[memberId] >= 3)
             revert LoanMachine_MaxLoanRequisitionPendingReached();
         _;
@@ -227,62 +302,318 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //                      INITIALIZATION
     // =============================================================
 
-    function initializeAdmin(
-        address _coopAdmin,
+    function initializeMultisig(
+        address[] calldata _admins,
+        uint256   _threshold,
         string calldata accessCode
     ) external {
         if (_initialized) revert LoanMachine_AlreadyInitialized();
-        coopAdmin      = _coopAdmin;
+        if (_admins.length == 0) revert LoanMachine_NotEnoughAdmins();
+        if (_threshold == 0 || _threshold > _admins.length)
+            revert LoanMachine_InvalidThreshold();
+
+        for (uint256 i = 0; i < _admins.length; i++) {
+            address a = _admins[i];
+            if (isAdmin[a]) revert LoanMachine_AlreadyAdmin();
+            isAdmin[a] = true;
+            admins.push(a);
+            emit AdminAdded(a);
+        }
+
+        adminThreshold = _threshold;
         accessCodeHash = keccak256(abi.encodePacked(accessCode));
         active         = true;
         _initialized   = true;
     }
 
     // =============================================================
-    //                       ADMIN FUNCTIONS
+    //               MULTISIG ADMIN FUNCTIONS
     // =============================================================
 
-    function transferAdmin(address newAdmin) external onlyCoopAdmin {
-        emit AdminTransferred(coopAdmin, newAdmin);
-        coopAdmin = newAdmin;
-    }
+    function proposeAction(
+        ProposalType pType,
+        bytes calldata data
+    ) external onlyAdmin returns (uint256 proposalId) {
+        proposalId = proposalCounter++;
+        proposals[proposalId] = Proposal({
+            pType:         pType,
+            data:          data,
+            confirmations: 1,
+            executed:      false,
+            createdAt:     block.timestamp
+        });
+        hasConfirmedProposal[proposalId][msg.sender] = true;
 
-    function rotateAccessCode(string calldata newCode) external onlyCoopAdmin {
-        accessCodeHash = keccak256(abi.encodePacked(newCode));
-        emit AccessCodeRotated();
-    }
+        emit ProposalCreated(proposalId, pType, msg.sender);
+        emit ProposalConfirmed(proposalId, msg.sender, 1);
 
-    function approveWallet(address wallet) external onlyCoopAdmin {
-        approvedWallets[wallet] = true;
-        emit WalletApproved(wallet);
-    }
-
-    function approveWalletBatch(address[] calldata wallets) external onlyCoopAdmin {
-        for (uint256 i = 0; i < wallets.length; i++) {
-            approvedWallets[wallets[i]] = true;
-            emit WalletApproved(wallets[i]);
+        if (1 >= adminThreshold) {
+            _executeProposal(proposalId);
         }
     }
 
-    function revokeWallet(address wallet) external onlyCoopAdmin {
-        approvedWallets[wallet] = false;
-        emit WalletRevoked(wallet);
+    function confirmProposal(uint256 proposalId) external onlyAdmin {
+        Proposal storage p = proposals[proposalId];
+        if (p.executed)    revert LoanMachine_ProposalAlreadyExecuted();
+        if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
+        if (hasConfirmedProposal[proposalId][msg.sender])
+            revert LoanMachine_AlreadyConfirmed();
+
+        hasConfirmedProposal[proposalId][msg.sender] = true;
+        p.confirmations++;
+
+        emit ProposalConfirmed(proposalId, msg.sender, p.confirmations);
+
+        if (p.confirmations >= adminThreshold) {
+            _executeProposal(proposalId);
+        }
     }
 
-    function deactivateCoop() external onlyCoopAdmin {
-        active = false;
-        emit CoopDeactivated();
+    function _executeProposal(uint256 proposalId) internal {
+        Proposal storage p = proposals[proposalId];
+        p.executed = true;
+
+        if (p.pType == ProposalType.TransferAdmin) {
+            (address oldAdmin, address newAdmin) = abi.decode(p.data, (address, address));
+            _replaceAdmin(oldAdmin, newAdmin);
+        } else if (p.pType == ProposalType.AddAdmin) {
+            address newAdmin = abi.decode(p.data, (address));
+            _addAdmin(newAdmin);
+        } else if (p.pType == ProposalType.RemoveAdmin) {
+            address toRemove = abi.decode(p.data, (address));
+            _removeAdmin(toRemove);
+        } else if (p.pType == ProposalType.RotateAccessCode) {
+            bytes32 newHash = abi.decode(p.data, (bytes32));
+            accessCodeHash = newHash;
+            emit AccessCodeRotated();
+        } else if (p.pType == ProposalType.RevokeWallet) {
+            address wallet = abi.decode(p.data, (address));
+            approvedWallets[wallet] = false;
+            emit WalletRevoked(wallet);
+        } else if (p.pType == ProposalType.Deactivate) {
+            active = false;
+            emit CoopDeactivated();
+        } else if (p.pType == ProposalType.Reactivate) {
+            active = true;
+            emit CoopReactivated();
+        } else if (p.pType == ProposalType.SetAuthorizedCaller) {
+            (address caller, bool authorized) = abi.decode(p.data, (address, bool));
+            authorizedCallers[caller] = authorized;
+            emit AuthorizedCallerUpdated(caller, authorized);
+        } else if (p.pType == ProposalType.ChangeThreshold) {
+            uint256 newThreshold = abi.decode(p.data, (uint256));
+            if (newThreshold == 0 || newThreshold > admins.length)
+                revert LoanMachine_InvalidThreshold();
+            emit ThresholdChanged(adminThreshold, newThreshold);
+            adminThreshold = newThreshold;
+        }
+
+        emit ProposalExecuted(proposalId, p.pType);
     }
 
-    function reactivateCoop() external onlyCoopAdmin {
-        active = true;
-        emit CoopReactivated();
+    function _addAdmin(address a) internal {
+        if (isAdmin[a]) revert LoanMachine_AlreadyAdmin();
+        isAdmin[a] = true;
+        admins.push(a);
+        emit AdminAdded(a);
     }
 
-    // kept for IReputationSystem interface — admin-gated here
-    function setAuthorizedCaller(address caller, bool authorized) external onlyCoopAdmin {
-        authorizedCallers[caller] = authorized;
-        emit AuthorizedCallerUpdated(caller, authorized);
+    function _removeAdmin(address a) internal {
+        if (!isAdmin[a]) revert LoanMachine_NotAdmin();
+        if (admins.length <= adminThreshold) revert LoanMachine_NotEnoughAdmins();
+        isAdmin[a] = false;
+        for (uint256 i = 0; i < admins.length; i++) {
+            if (admins[i] == a) {
+                admins[i] = admins[admins.length - 1];
+                admins.pop();
+                break;
+            }
+        }
+        emit AdminRemoved(a);
+    }
+
+    function _replaceAdmin(address oldAdmin, address newAdmin) internal {
+        if (!isAdmin[oldAdmin]) revert LoanMachine_NotAdmin();
+        if (isAdmin[newAdmin])  revert LoanMachine_AlreadyAdmin();
+        isAdmin[oldAdmin] = false;
+        isAdmin[newAdmin] = true;
+        for (uint256 i = 0; i < admins.length; i++) {
+            if (admins[i] == oldAdmin) {
+                admins[i] = newAdmin;
+                break;
+            }
+        }
+        emit AdminRemoved(oldAdmin);
+        emit AdminAdded(newAdmin);
+        emit AdminTransferred(oldAdmin, newAdmin);
+    }
+
+    // =============================================================
+    //         WALLET APPROVAL WITH MODERATOR CO-SIGNATURE
+    // =============================================================
+
+    function proposeWalletApproval(address wallet) external onlyAdmin returns (uint256 requestId) {
+        requestId = walletApprovalCounter++;
+        walletApprovalRequests[requestId] = WalletApprovalRequest({
+            wallet:            wallet,
+            adminApproved:     true,
+            moderatorId:       bytes32(0),
+            moderatorApproved: false,
+            executed:          false,
+            createdAt:         block.timestamp
+        });
+
+        emit WalletApprovalProposed(requestId, wallet, msg.sender);
+    }
+
+    function signWalletApproval(
+        uint256 requestId,
+        bytes32 moderatorMemberId
+    ) external {
+        WalletApprovalRequest storage req = walletApprovalRequests[requestId];
+        if (req.createdAt == 0)   revert LoanMachine_WalletApprovalNotFound();
+        if (req.executed)         revert LoanMachine_WalletApprovalAlreadyExecuted();
+        if (!req.adminApproved)   revert LoanMachine_AdminNotYetProposed();
+
+        if (_rs.walletToMemberId[msg.sender] != moderatorMemberId)
+            revert LoanMachine_MemberIdOrWalletInvalid();
+        if (!_rs.isModerator[moderatorMemberId])
+            revert LoanMachine_NotModerator();
+
+        req.moderatorApproved = true;
+        req.moderatorId       = moderatorMemberId;
+
+        approvedWallets[req.wallet] = true;
+        req.executed = true;
+
+        emit WalletApprovalModeratorSigned(requestId, req.wallet, moderatorMemberId);
+        emit WalletApproved(req.wallet);
+    }
+
+    /// @notice Bootstrap: no moderator exists yet. Requires ALL admins.
+    function bootstrapApproveWallet(address wallet) external onlyAdmin returns (uint256 proposalId) {
+        proposalId = proposalCounter++;
+        proposals[proposalId] = Proposal({
+            pType:         ProposalType.RevokeWallet,
+            data:          abi.encode(wallet, true),
+            confirmations: 1,
+            executed:      false,
+            createdAt:     block.timestamp
+        });
+        hasConfirmedProposal[proposalId][msg.sender] = true;
+
+        emit ProposalCreated(proposalId, ProposalType.RevokeWallet, msg.sender);
+
+        if (admins.length == 1) {
+            approvedWallets[wallet] = true;
+            proposals[proposalId].executed = true;
+            emit WalletApproved(wallet);
+            emit ProposalExecuted(proposalId, ProposalType.RevokeWallet);
+        }
+    }
+
+    function confirmBootstrapApproval(uint256 proposalId) external onlyAdmin {
+        Proposal storage p = proposals[proposalId];
+        if (p.executed) revert LoanMachine_ProposalAlreadyExecuted();
+        if (hasConfirmedProposal[proposalId][msg.sender])
+            revert LoanMachine_AlreadyConfirmed();
+
+        hasConfirmedProposal[proposalId][msg.sender] = true;
+        p.confirmations++;
+
+        if (p.confirmations >= admins.length) {
+            (address wallet,) = abi.decode(p.data, (address, bool));
+            approvedWallets[wallet] = true;
+            p.executed = true;
+            emit WalletApproved(wallet);
+            emit ProposalExecuted(proposalId, p.pType);
+        }
+    }
+
+    // =============================================================
+    //               WITHDRAWAL WITH DELAY
+    // =============================================================
+
+    function requestWithdrawal(
+        uint256 amount,
+        bytes32 memberId
+    )
+        external
+        validMember(memberId, msg.sender)
+        validAmount(amount)
+        nonReentrant
+        returns (uint256 requestId)
+    {
+        uint256 withdrawable = getWithdrawableBalance(msg.sender);
+        if (amount > withdrawable)
+            revert LoanMachine_InsufficientWithdrawableBalance();
+
+        requestId = withdrawalRequestCounter++;
+        uint256 executableAfter = block.timestamp + WITHDRAWAL_DELAY;
+
+        withdrawalRequests[requestId] = WithdrawalRequest({
+            requester:       msg.sender,
+            amount:          amount,
+            requestedAt:     block.timestamp,
+            executableAfter: executableAfter,
+            executed:        false,
+            blocked:         false
+        });
+
+        userWithdrawalRequestIds[msg.sender].push(requestId);
+        donations[msg.sender] -= amount;
+
+        emit WithdrawalRequested(requestId, msg.sender, amount, executableAfter);
+    }
+
+    function executeWithdrawal(
+        uint256 requestId,
+        bytes32 memberId
+    )
+        external
+        validMember(memberId, msg.sender)
+        nonReentrant
+    {
+        WithdrawalRequest storage req = withdrawalRequests[requestId];
+        if (req.requester != msg.sender)      revert LoanMachine_WithdrawalNotOwner();
+        if (req.executed)                     revert LoanMachine_WithdrawalAlreadyExecuted();
+        if (req.blocked)                      revert LoanMachine_WithdrawalBlocked();
+        if (block.timestamp < req.executableAfter)
+            revert LoanMachine_WithdrawalNotReady();
+
+        req.executed = true;
+
+        totalDonations   -= req.amount;
+        availableBalance -= req.amount;
+
+        _safeTransfer(msg.sender, req.amount);
+
+        emit WithdrawalExecuted(requestId, msg.sender, req.amount);
+        emit Withdrawn(msg.sender, req.amount, donations[msg.sender]);
+        emit TotalDonationsUpdated(totalDonations);
+        emit AvailableBalanceUpdated(availableBalance);
+    }
+
+    function cancelWithdrawal(uint256 requestId) external {
+        WithdrawalRequest storage req = withdrawalRequests[requestId];
+        if (req.requester != msg.sender) revert LoanMachine_WithdrawalNotOwner();
+        if (req.executed) revert LoanMachine_WithdrawalAlreadyExecuted();
+
+        req.executed = true;
+        donations[msg.sender] += req.amount;
+
+        emit WithdrawalCancelled(requestId, msg.sender);
+    }
+
+    function blockWithdrawal(uint256 requestId) external onlyAdminOrModerator {
+        WithdrawalRequest storage req = withdrawalRequests[requestId];
+        if (req.executed) revert LoanMachine_WithdrawalAlreadyExecuted();
+
+        req.blocked  = true;
+        req.executed = true;
+        donations[req.requester] += req.amount;
+
+        emit WithdrawalBlocked(requestId, msg.sender);
     }
 
     // =============================================================
@@ -290,7 +621,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     // =============================================================
 
     function joinCoop(
-        uint32 memberId,
+        bytes32 memberId,
         address wallet,
         string calldata accessCode
     ) external onlyActive {
@@ -303,8 +634,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
         isMember[wallet] = true;
         memberWallets.push(wallet);
-
-        // library handles duplicate + cross-member checks
         _rs.registerMemberWallet(memberId, wallet);
 
         emit MemberJoined(wallet, memberId);
@@ -312,25 +641,24 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     // =============================================================
     //               REPUTATION SYSTEM — PUBLIC SURFACE
-    //        (thin wrappers that delegate into ReputationLib)
     // =============================================================
 
-    function vinculationMemberToWallet(uint32 memberId, address wallet) external {
+    function vinculationMemberToWallet(bytes32 memberId, address wallet) external {
         _rs.registerMemberWallet(memberId, wallet);
     }
 
-    function openElection(uint32 candidateId, uint32 opponent) external {
+    function openElection(bytes32 candidateId, bytes32 opponent) external {
         _rs.openElection(candidateId, opponent);
     }
 
-    function addCandidate(uint32 electionId, uint32 candidateId) external {
+    function addCandidate(uint32 electionId, bytes32 candidateId) external {
         _rs.addCandidate(electionId, candidateId);
     }
 
     function voteForModerator(
-        uint32 electionId,
-        uint32 candidateId,
-        uint32 memberId
+        uint32  electionId,
+        bytes32 candidateId,
+        bytes32 memberId
     )
         external
         validMember(memberId, msg.sender)
@@ -346,34 +674,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //                   LOAN MACHINE FUNCTIONS
     // =============================================================
 
-    function performPeriodicDebtCheck(uint256 batchSize) external nonReentrant {
-        uint256 len = debtWatchlist.length;
-        if (len == 0) return;
-
-        bool intervalPassed = block.timestamp > lastPeriodicCheckTimestamp + CHECK_INTERVAL;
-        if (nextCheckIndex == 0 && !intervalPassed)
-            revert LoanMachine_CheckIntervalNotYetPassed();
-
-        uint256 checked = 0;
-        for (uint256 i = 0; i < batchSize && nextCheckIndex < len; i++) {
-            DebtWatchItem storage item = debtWatchlist[nextCheckIndex];
-            if (!item.isOverdue && block.timestamp > item.nextDueDate) {
-                item.isOverdue = true;
-                emit BorrowerOverdue(item.requisitionId, item.borrower, item.nextDueDate);
-            }
-            nextCheckIndex++;
-            checked++;
-        }
-
-        if (nextCheckIndex >= len) {
-            nextCheckIndex = 0;
-            lastPeriodicCheckTimestamp = block.timestamp;
-        }
-
-        emit PeriodicCheckRun(checked, nextCheckIndex);
-    }
-
-    function cancelLoanRequisition(uint256 requisitionId, uint32 memberId)
+    function cancelLoanRequisition(uint256 requisitionId, bytes32 memberId)
         external
         nonReentrant
         validMember(memberId, msg.sender)
@@ -410,27 +711,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         );
     }
 
-    function withdraw(uint256 amount, uint32 memberId)
-        external
-        validMember(memberId, msg.sender)
-        validAmount(amount)
-        nonReentrant
-    {
-        uint256 withdrawable = getWithdrawableBalance(msg.sender);
-        if (amount > withdrawable) revert LoanMachine_InsufficientWithdrawableBalance();
-
-        donations[msg.sender] -= amount;
-        totalDonations        -= amount;
-        availableBalance      -= amount;
-
-        _safeTransfer(msg.sender, amount);
-
-        emit Withdrawn(msg.sender, amount, donations[msg.sender]);
-        emit TotalDonationsUpdated(totalDonations);
-        emit AvailableBalanceUpdated(availableBalance);
-    }
-
-    function repay(uint256 requisitionId, uint256 amount, uint32 memberId)
+    function repay(uint256 requisitionId, uint256 amount, bytes32 memberId)
         external
         nonReentrant
         validMember(memberId, msg.sender)
@@ -438,11 +719,12 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     {
         if (amount == 0) revert LoanMachine_InvalidAmount();
 
-        LoanContract storage loan  = loanContracts[requisitionId];
-        uint32  parcelIdx          = loan.parcelsCount - loan.parcelsPending;
-        uint256 parcelDueDate      = loan.paymentDates[parcelIdx];
+        LoanContract storage loan = loanContracts[requisitionId];
+        uint32  parcelIdx         = loan.parcelsCount - loan.parcelsPending;
+        uint256 parcelDueDate     = loan.paymentDates[parcelIdx];
         DebtWatchItem storage item = debtWatchlist[watchlistIndex[requisitionId]];
 
+        // Reputation: late vs on-time.  Watchlist + events for subgraph.
         if (block.timestamp > parcelDueDate) {
             _rs.reputationChange(memberId, REPUTATION_LOSS_BY_DEBT_NOT_PAYD, false);
             if (!item.isOverdue) {
@@ -485,7 +767,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         emit AvailableBalanceUpdated(availableBalance);
     }
 
-    function donate(uint256 amount, uint32 memberId)
+    function donate(uint256 amount, bytes32 memberId)
         external
         validMember(memberId, msg.sender)
         validAmount(amount)
@@ -510,17 +792,21 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         uint256 amount,
         uint32  minimumCoverage,
         uint32  parcelscount,
-        uint32  memberId,
+        bytes32 memberId,
         uint32  daysIntervalOfPayment
     )
         external
         checkLoanRequisitionOpened(memberId)
         validMember(memberId, msg.sender)
         validAmount(amount)
-        minimumPercentCoveragePermited(minimumCoverage)
-        maxParcelsCountAndInterval(parcelscount, daysIntervalOfPayment)
         returns (uint256)
     {
+        if (minimumCoverage <= 70 || minimumCoverage > 100)
+            revert LoanMachine_InvalidCoveragePercentage();
+        if (parcelscount < 1 || parcelscount > 12)
+            revert LoanMachine_InvalidParcelsCount();
+        if (daysIntervalOfPayment > 30)
+            revert LoanMachine_IntervalOfPaymentAboveLimit();
         if (amount > availableBalance) revert LoanMachine_InsufficientFunds();
 
         uint256 lastId = lastContractPerWalletId[msg.sender];
@@ -554,7 +840,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     function coverLoan(
         uint256 requisitionId,
         uint32  coveragePercentage,
-        uint32  memberId
+        bytes32 memberId
     )
         external
         validMember(memberId, msg.sender)
@@ -577,7 +863,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
                 revert LoanMachine_BorrowNotExpired();
         }
 
-        // Ceiling division — prevents dust shortfall in coverage
         uint256 PRECISION   = 1e18;
         uint256 coverAmount =
             ((req.amount * coveragePercentage * PRECISION) + (100 * PRECISION - 1)) /
@@ -634,34 +919,18 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         uint256 remainder = req.amount % req.parcelsCount;
         loan.parcelsValues = base;
 
-        _generatePaymentDates(loan, req.parcelsCount, req.daysIntervalOfPayment);
-        lastContractPerWalletId[loan.walletAddress] = requisitionId;
-
+        uint256 interval = uint256(req.daysIntervalOfPayment) * 1 days;
         for (uint32 i = 0; i < req.parcelsCount; i++) {
+            loan.paymentDates.push(block.timestamp + interval * (i + 1));
             loan.parcelsAmounts.push(i < remainder ? base + 1 : base);
         }
 
-        emit LoanContractGenerated(
-            loan.walletAddress,
-            requisitionId,
-            loan.status,
-            loan.parcelsPending,
-            loan.parcelsValues,
-            loan.paymentDates,
-            loan.creationTime
-        );
-    }
+        lastContractPerWalletId[loan.walletAddress] = requisitionId;
 
-    function _generatePaymentDates(
-        LoanContract storage loan,
-        uint32 count,
-        uint32 intervalDays
-    ) internal {
-        uint256 interval = uint256(intervalDays) * 1 days;
-        uint256 start    = block.timestamp;
-        for (uint32 i = 0; i < count; i++) {
-            loan.paymentDates.push(start + interval * (i + 1));
-        }
+        emit LoanContractGenerated(
+            loan.walletAddress, requisitionId, loan.status,
+            loan.parcelsPending, loan.parcelsValues, loan.paymentDates, loan.creationTime
+        );
     }
 
     function _fundLoan(uint256 requisitionId) internal {
@@ -676,6 +945,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
         _safeTransfer(borrower, req.amount);
 
+        // Add to watchlist for on-chain overdue tracking
         uint256 firstDue = loanContracts[requisitionId].paymentDates[0];
         watchlistIndex[requisitionId] = debtWatchlist.length;
         debtWatchlist.push(DebtWatchItem({
@@ -723,59 +993,46 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     // =============================================================
     //                       VIEW FUNCTIONS
+    //       (only essential on-chain reads — rest via subgraph)
     // =============================================================
 
-    // ── Admin / member ────────────────────────────────────────────
+    function getAdmins() external view returns (address[] memory) { return admins; }
+
+    function getProposal(uint256 proposalId) external view returns (
+        ProposalType pType, uint256 confirmations, bool executed, uint256 createdAt
+    ) {
+        Proposal storage p = proposals[proposalId];
+        return (p.pType, p.confirmations, p.executed, p.createdAt);
+    }
+
+    function getWithdrawalRequest(uint256 requestId) external view returns (WithdrawalRequest memory) {
+        return withdrawalRequests[requestId];
+    }
+
+    function getUserWithdrawalRequests(address user) external view returns (uint256[] memory) {
+        return userWithdrawalRequestIds[user];
+    }
 
     function isWalletApproved(address wallet) external view returns (bool) {
         return approvedWallets[wallet];
     }
 
-    function getMemberWallets() external view returns (address[] memory) {
-        return memberWallets;
-    }
 
-    function isCoopActive() external view returns (bool) { return active; }
+    // ── Reputation ───────────────────────────────────────────
 
-    // ── Reputation (reads from _rs struct) ───────────────────────
-
-    function getReputation(uint32 memberId) external view returns (int32) {
+    function getReputation(bytes32 memberId) external view returns (int32) {
         return _rs.memberReputation[memberId];
     }
 
-    function getMemberId(address wallet) external view returns (uint32) {
+    function getMemberId(address wallet) external view returns (bytes32) {
         return _rs.walletToMemberId[wallet];
     }
 
     function isWalletVinculated(address wallet) external view returns (bool) {
-        return _rs.walletToMemberId[wallet] != 0;
+        return _rs.walletToMemberId[wallet] != bytes32(0);
     }
 
-    function getActiveMemberCount() external view returns (uint32) {
-        return uint32(_rs.membersWithPositiveReputation.length);
-    }
-
-    function getAverageReputation() external view returns (int32) {
-        uint32 n = uint32(_rs.membersWithPositiveReputation.length);
-        if (n == 0) return 0;
-        return _rs.totalPotentialVotes / int32(n);
-    }
-
-    function isMemberActive(uint32 memberId) external view returns (bool) {
-        return _rs.activeMembers[memberId];
-    }
-
-    function getCandidateVotes(uint32 candidateId) external view returns (int32) {
-        return _rs.moderatorVotesReceived[candidateId];
-    }
-
-    function hasMemberVoted(uint32 electionId, uint32 memberId)
-        external view returns (bool)
-    {
-        return _rs.hasVotedInElection[electionId][memberId];
-    }
-
-    function isModerator(uint32 memberId) external view returns (bool) {
+    function isModerator(bytes32 memberId) external view returns (bool) {
         return _rs.isModerator[memberId];
     }
 
@@ -786,22 +1043,17 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         return last.active ? int32(last.id) : -1;
     }
 
-    /**
-     * @dev Shadow warning FIXED: return variable renamed from `active` to
-     *      `isActive` so it no longer shadows the state var `bool public active`.
-     */
     function getElectionInfo(uint32 electionId)
-        external
-        view
+        external view
         returns (
-            uint32   id,
-            uint32[] memory candidates,
-            uint256  startTime,
-            uint256  endTime,
-            bool     isActive,       // ← was `active`, shadowed state var
-            uint32   winnerId,
-            int32    winningVotes,
-            int32    totalVotesCast
+            uint32    id,
+            bytes32[] memory candidates,
+            uint256   startTime,
+            uint256   endTime,
+            bool      isActive,
+            bytes32   winnerId,
+            int32     winningVotes,
+            int32     totalVotesCast
         )
     {
         if (electionId >= _rs.elections.length)
@@ -809,46 +1061,30 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
         IReputationSystem.ElectionStatus storage e = _rs.elections[electionId];
         return (
-            e.id,
-            e.candidates,
-            e.startTime,
-            e.endTime,
-            e.active,
-            e.winnerId,
-            e.winningVotes,
-            e.totalVotesCast
+            e.id, e.candidates, e.startTime, e.endTime,
+            e.active, e.winnerId, e.winningVotes, e.totalVotesCast
         );
     }
 
-    function checkUnbeatableMajority(uint32 electionId)
-        external
-        view
-        returns (
-            bool   isUnbeatable,
-            uint32 leadingCandidate,
-            int32  leadingVotes,
-            uint32 secondCandidate,
-            int32  secondVotes
-        )
-    {
-        if (electionId >= _rs.elections.length)
-            revert ReputationLib.RS_ElectionNotActive();
-
-        IReputationSystem.ElectionStatus storage e = _rs.elections[electionId];
-        if (e.candidates.length < 2) return (false, 0, 0, 0, 0);
-
-        (leadingCandidate, leadingVotes, secondCandidate, secondVotes) =
-            _rs.getTopTwoCandidatesView(electionId);
-
-        isUnbeatable = (leadingVotes > secondVotes + e.potentialRemainingVotes);
+    function getCandidateVotes(bytes32 candidateId) external view returns (int32) {
+        return _rs.moderatorVotesReceived[candidateId];
     }
 
-    // ── Loan ─────────────────────────────────────────────────────
+    function hasMemberVoted(uint32 electionId, bytes32 memberId) external view returns (bool) {
+        return _rs.hasVotedInElection[electionId][memberId];
+    }
 
-    function getWithdrawableBalance(address user) public view returns (uint256) {
-        uint256 avail  = donations[user];
-        uint256 locked = donationsInCoverage[user];
-        return avail > locked ? avail - locked : 0;
+    // ── Loan (essential on-chain reads) ──────────────────────
+
+    function getDebtWatchlist() external view returns (DebtWatchItem[] memory) {
+        return debtWatchlist;
+    }
+
+    function isBorrowerOverdue(uint256 requisitionId) external view returns (bool) {
+        uint256 idx = watchlistIndex[requisitionId];
+        if (debtWatchlist.length == 0) return false;
+        if (idx == 0 && debtWatchlist[0].requisitionId != requisitionId) return false;
+        return debtWatchlist[idx].isOverdue;
     }
 
     function getActiveLoans(address borrower)
@@ -875,34 +1111,11 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         }
     }
 
-    function getDebtWatchlist() external view returns (DebtWatchItem[] memory) {
-        return debtWatchlist;
-    }
-
-    function isBorrowerOverdue(uint256 requisitionId) external view returns (bool) {
-        uint256 idx = watchlistIndex[requisitionId];
-        if (debtWatchlist.length == 0) return false;
-        if (idx == 0 && debtWatchlist[0].requisitionId != requisitionId) return false;
-        return debtWatchlist[idx].isOverdue;
-    }
-
-    function getNextPaymentAmount(uint256 requisitionId)
-        external view returns (uint256 paymentAmount, bool canPay)
-    {
-        LoanContract storage loan = loanContracts[requisitionId];
-        if (loan.status == ContractStatus.Active && loan.parcelsPending > 0)
-            return (loan.parcelsValues, true);
-        return (0, false);
-    }
-
     function getRepaymentSummary(uint256 requisitionId)
         external view
         returns (
-            uint256 totalRemainingDebt,
-            uint256 nextPaymentAmount,
-            uint256 parcelsRemaining,
-            uint256 totalParcels,
-            bool    isActive
+            uint256 totalRemainingDebt, uint256 nextPaymentAmount,
+            uint256 parcelsRemaining, uint256 totalParcels, bool isActive
         )
     {
         LoanContract storage loan   = loanContracts[requisitionId];
@@ -910,60 +1123,29 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         if (loan.status == ContractStatus.Active && loan.parcelsPending > 0) {
             return (
                 loan.parcelsPending * loan.parcelsValues,
-                loan.parcelsValues,
-                loan.parcelsPending,
-                req.parcelsCount,
-                true
+                loan.parcelsValues, loan.parcelsPending,
+                req.parcelsCount, true
             );
         }
         return (0, 0, 0, req.parcelsCount, false);
     }
 
-    function canPayRequisition(uint256 requisitionId, address borrower)
-        external view returns (bool)
-    {
-        LoanContract storage loan = loanContracts[requisitionId];
+    function canUserBorrow(address user, uint256 amount) external view returns (bool) {
         return (
-            loan.walletAddress  == borrower &&
-            loan.status         == ContractStatus.Active &&
-            loan.parcelsPending > 0
+            amount > 0 &&
+            amount <= availableBalance &&
+            (donations[user] >= MIN_DONATION_FOR_BORROW || borrowings[user] == 0) &&
+            (lastBorrowTime[user] + BORROW_DURATION < block.timestamp || borrowings[user] == 0)
         );
     }
 
-    function getPaymentDates(uint256 requisitionId)
-        external view returns (uint256[] memory)
-    { return loanContracts[requisitionId].paymentDates; }
+    function getWithdrawableBalance(address user) internal view returns (uint256) {
+        uint256 avail  = donations[user];
+        uint256 locked = donationsInCoverage[user];
+        return avail > locked ? avail - locked : 0;
+    }
 
-    function getDonationsInCoverage(address lender)
-        external view returns (uint256)
-    { return donationsInCoverage[lender]; }
-
-    function getUSDTBalance()           external view returns (uint256) { return IERC20(usdtToken).balanceOf(address(this)); }
-    function getAllowance(address user)  external view returns (uint256) { return IERC20(usdtToken).allowance(user, address(this)); }
-    function getAvailableBorrowAmount() external view returns (uint256) { return availableBalance; }
-    function getTotalDonations()        external view returns (uint256) { return totalDonations; }
-    function getTotalBorrowed()         external view returns (uint256) { return totalBorrowed; }
-    function getAvailableBalance()      external view returns (uint256) { return availableBalance; }
-    function getContractBalance()       external view returns (uint256) { return IERC20(usdtToken).balanceOf(address(this)); }
-    function getDonation(address user)  external view returns (uint256) { return donations[user]; }
-    function getBorrowing(address user) external view returns (uint256) { return borrowings[user]; }
-    function getLastBorrowTime(address user) external view returns (uint256) { return lastBorrowTime[user]; }
-
-    function getCoveringLenders(uint256 requisitionId)
-        external view returns (address[] memory)
-    { return loanRequisitions[requisitionId].coveringLenders; }
-
-    function getLenderCoverage(uint256 requisitionId, address lender)
-        external view returns (uint256)
-    { return loanRequisitions[requisitionId].coverageAmounts[lender]; }
-
-    function getBorrowerRequisitions(address borrower)
-        external view returns (uint256[] memory)
-    { return borrowerRequisitions[borrower]; }
-
-    function getRequisitionInfo(uint256 requisitionId)
-        external view returns (RequisitionInfo memory)
-    {
+    function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory) {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         return RequisitionInfo({
             requisitionId:   req.requisitionId,
@@ -978,18 +1160,70 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         });
     }
 
-    function getLoanContract(uint256 requisitionId)
-        external view returns (LoanContract memory)
-    { return loanContracts[requisitionId]; }
+    function getLoanContract(uint256 requisitionId) external view returns (LoanContract memory) {
+        return loanContracts[requisitionId];
+    }
 
-    function canUserBorrow(address user, uint256 amount)
-        external view returns (bool)
-    {
+    function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay) {
+        LoanContract storage loan = loanContracts[requisitionId];
+        if (loan.status == ContractStatus.Active && loan.parcelsPending > 0)
+            return (loan.parcelsValues, true);
+        return (0, false);
+    }
+
+    function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool) {
+        LoanContract storage loan = loanContracts[requisitionId];
+        return (loan.walletAddress == borrower && loan.status == ContractStatus.Active && loan.parcelsPending > 0);
+    }
+
+    function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory) {
+        return loanContracts[requisitionId].paymentDates;
+    }
+
+    /// @notice All pool-level stats in one call (saves ~5 function dispatch entries)
+    function getCoopStats() external view returns (
+        uint256 _totalDonations,
+        uint256 _totalBorrowed,
+        uint256 _availableBalance,
+        uint256 _contractBalance,
+        bool    _isActive,
+        uint32  _activeMemberCount,
+        int32   _averageReputation
+    ) {
+        uint32 n = uint32(_rs.membersWithPositiveReputation.length);
         return (
-            amount > 0 &&
-            amount <= availableBalance &&
-            (donations[user] >= MIN_DONATION_FOR_BORROW || borrowings[user] == 0) &&
-            (lastBorrowTime[user] + BORROW_DURATION < block.timestamp || borrowings[user] == 0)
+            totalDonations,
+            totalBorrowed,
+            availableBalance,
+            IERC20(usdtToken).balanceOf(address(this)),
+            active,
+            n,
+            n > 0 ? _rs.totalPotentialVotes / int32(n) : int32(0)
         );
     }
+
+    /// @notice All per-user financial data in one call (saves ~6 function dispatch entries)
+    function getUserFinancials(address user) external view returns (
+        uint256 donation,
+        uint256 borrowing,
+        uint256 _lastBorrowTime,
+        uint256 inCoverage,
+        uint256 withdrawable,
+        uint256 allowance
+    ) {
+        uint256 avail  = donations[user];
+        uint256 locked = donationsInCoverage[user];
+        return (
+            avail,
+            borrowings[user],
+            lastBorrowTime[user],
+            locked,
+            avail > locked ? avail - locked : 0,
+            IERC20(usdtToken).allowance(user, address(this))
+        );
+    }
+
+    function getCoveringLenders(uint256 id) external view returns (address[] memory) { return loanRequisitions[id].coveringLenders; }
+    function getLenderCoverage(uint256 id, address l) external view returns (uint256) { return loanRequisitions[id].coverageAmounts[l]; }
+    function getBorrowerRequisitions(address b) external view returns (uint256[] memory) { return borrowerRequisitions[b]; }
 }

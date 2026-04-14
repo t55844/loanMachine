@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 use leptos::prelude::*;
 use leptos::hydration::HydrationScripts;          
 use leptos_axum::{generate_route_list, LeptosRoutes};

@@ -73,14 +73,14 @@ async function main() {
     await coopAccount.initialize(
       member1.address, loanMachineAddr, LOCAL.memberId, LOCAL.guardians
     );
-    console.log("✅ CoopAccount        →", accountAddr);
+    /*console.log("✅ CoopAccount        →", accountAddr);
 
     const loanMachine = await ethers.getContractAt("LoanMachine", loanMachineAddr);
     await loanMachine.connect(coopAdmin).approveWallet(member1.address);
     console.log("✅ Wallet approved");
 
     await loanMachine.connect(member1).joinCoop(LOCAL.memberId, member1.address, LOCAL.accessCode);
-    console.log("✅ Member1 joined coop");
+    console.log("✅ Member1 joined coop");*/
 
     console.log("");
     console.log("── Addresses ────────────────────────────────────────────────");

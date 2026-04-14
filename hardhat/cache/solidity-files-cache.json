@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\codigos\\loan-machine\\hardhat\\contracts\\ILoanMachine.sol": {
-      "lastModificationDate": 1771208681312,
-      "contentHash": "5cdf7da393b94490112440c028b41c28",
+      "lastModificationDate": 1776136323388,
+      "contentHash": "8345f26beeafc378612f35813917e46a",
       "sourceName": "contracts/ILoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -11,7 +11,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -47,7 +47,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -76,8 +76,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1771899106558,
-      "contentHash": "3cd678af185c47b40df3d011af03eab6",
+      "lastModificationDate": 1776136337300,
+      "contentHash": "0a25c212eac1b2f97f7f050a0fecbeb3",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -85,7 +85,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -117,45 +117,9 @@
         "LoanMachine"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\IReputationSystem.sol": {
-      "lastModificationDate": 1771208446292,
-      "contentHash": "608a7d78b2914a1e1f289a9c608e8f8f",
-      "sourceName": "contracts/IReputationSystem.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "IReputationSystem"
-      ]
-    },
     "C:\\codigos\\loan-machine\\hardhat\\contracts\\ReputationLib.sol": {
-      "lastModificationDate": 1771899077409,
-      "contentHash": "55d71f5efa50033b523b43f0213edde7",
+      "lastModificationDate": 1776135008987,
+      "contentHash": "fbf17177a5a8814828f5c20dfe350892",
       "sourceName": "contracts/ReputationLib.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -163,7 +127,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -191,17 +155,17 @@
         "ReputationLib"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
-      "lastModificationDate": 1762399977362,
-      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
-      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\IReputationSystem.sol": {
+      "lastModificationDate": 1776136348186,
+      "contentHash": "50d8a34de4919f7ac3c63b0ba3553598",
+      "sourceName": "contracts/IReputationSystem.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -221,10 +185,10 @@
       },
       "imports": [],
       "versionPragmas": [
-        "^0.8.0"
+        "^0.8.19"
       ],
       "artifacts": [
-        "ReentrancyGuard"
+        "IReputationSystem"
       ]
     },
     "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
@@ -237,7 +201,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -263,17 +227,17 @@
         "IERC20"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachineFactory.sol": {
-      "lastModificationDate": 1771815643236,
-      "contentHash": "214b6e76de05c769ca8bc19a4f5560c7",
-      "sourceName": "contracts/LoanMachineFactory.sol",
+    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
+      "lastModificationDate": 1762399977362,
+      "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
+      "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
       "solcConfig": {
         "version": "0.8.19",
         "settings": {
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -291,14 +255,12 @@
           }
         }
       },
-      "imports": [
-        "./LoanMachine.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
-        "^0.8.19"
+        "^0.8.0"
       ],
       "artifacts": [
-        "LoanMachineFactory"
+        "ReentrancyGuard"
       ]
     },
     "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
@@ -311,7 +273,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -349,7 +311,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -389,7 +351,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -416,8 +378,8 @@
       ]
     },
     "C:\\codigos\\loan-machine\\hardhat\\contracts\\MockUSDT.sol": {
-      "lastModificationDate": 1759623435335,
-      "contentHash": "50e7df17ba93176ee3229eb4e624273e",
+      "lastModificationDate": 1776131668328,
+      "contentHash": "350008f1afd9397cd715c796f69f9357",
       "sourceName": "contracts/MockUSDT.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -425,7 +387,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -463,7 +425,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {
@@ -489,9 +451,45 @@
         "LoanCalculations"
       ]
     },
+    "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachineFactory.sol": {
+      "lastModificationDate": 1776134945964,
+      "contentHash": "5986ef01800422ec7b52f6fdbfff01db",
+      "sourceName": "contracts/LoanMachineFactory.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 10
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "CoopRegistry"
+      ]
+    },
     "C:\\codigos\\loan-machine\\hardhat\\contracts\\SimpleAccount.sol": {
-      "lastModificationDate": 1771950226903,
-      "contentHash": "e33c09008d8180c92a44322818b704d8",
+      "lastModificationDate": 1776134953868,
+      "contentHash": "7d75d3e350bd32e1bcd5d21997528b8c",
       "sourceName": "contracts/SimpleAccount.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -499,7 +497,7 @@
           "viaIR": true,
           "optimizer": {
             "enabled": true,
-            "runs": 200
+            "runs": 10
           },
           "outputSelection": {
             "*": {

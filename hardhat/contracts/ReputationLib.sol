@@ -4,56 +4,66 @@ pragma solidity ^0.8.19;
 import "./IReputationSystem.sol";
 
 /**
- * @title  ReputationLib
- * @notice Internal library for reputation tracking and moderator elections.
+ * @title  ReputationLib (v3)
+ * @notice Internal library — inlined into LoanMachine.
  *
- * Being an INTERNAL library, every function here is inlined directly into
- * LoanMachine's bytecode at compile time.  There is no separate deployment,
- * no external call, and no new trust boundary.
+ * v3 changes:
+ * ───────────
+ * • memberId is now bytes32 = keccak256(abi.encodePacked(coopSalt, cpfOrCnpj))
+ * • No CPF/CNPJ validation on-chain — the hash is opaque.
+ *   The server is responsible for:
+ *     1. Validating CPF/CNPJ format + check digits
+ *     2. Generating: memberId = keccak256(abi.encodePacked(salt, cpf))
+ *     3. Storing the mapping  hash ↔ raw CPF  in its database
+ *     4. Ensuring the same CPF always produces the same hash (same salt per coop)
  *
- * Why events are redeclared here
- * ───────────────────────────────
- * Solidity 0.8.19 does not allow `emit Interface.EventName()` syntax from a
- * library.  The events are therefore declared again in the library with
- * identical signatures.  Because this is an internal library, they inline into
- * LoanMachine and the ABI de-duplicates them automatically.
+ * The salt should be:
+ *   - Per cooperative (so the same CPF in two different coops produces different hashes)
+ *   - Stored securely in the server, NEVER on-chain
+ *   - A random 32-byte value generated at cooperative creation time
+ *
+ * If the server is compromised, the attacker gets the salt and can brute-force
+ * CPFs (only ~10^11 possibilities).  For higher security, use a slow hash
+ * (bcrypt/argon2) off-chain and store the result, but that means the hash
+ * can't be recomputed from Solidity's keccak256 — which is fine since the
+ * contract never needs to verify the preimage.
  */
 library ReputationLib {
 
-    // ─── STORAGE LAYOUT ──────────────────────────────────────────────────────
+    // ─── STORAGE LAYOUT ──────────────────────────────────────
 
     struct ReputationStorage {
         // member ↔ wallet registry
-        mapping(uint32  => address)   memberToWallet;
-        mapping(address => uint32)    walletToMemberId;
-        mapping(uint32  => address[]) walletsOfMember;
+        mapping(bytes32  => address)   memberToWallet;      // first/primary wallet
+        mapping(address  => bytes32)   walletToMemberId;
+        mapping(bytes32  => address[]) walletsOfMember;
 
         // reputation
-        mapping(uint32 => int32) memberReputation;
-        int32                    totalPotentialVotes;
-        mapping(uint32 => bool)  activeMembers;
-        uint32[]                 membersWithPositiveReputation;
+        mapping(bytes32 => int32) memberReputation;
+        int32                     totalPotentialVotes;
+        mapping(bytes32 => bool)  activeMembers;
+        bytes32[]                 membersWithPositiveReputation;
 
         // moderator elections
-        mapping(uint32 => bool)  isModerator;
-        mapping(uint32 => int32) moderatorVotesReceived;
-        mapping(uint32 => mapping(uint32 => bool)) hasVotedInElection;
+        mapping(bytes32 => bool)  isModerator;
+        mapping(bytes32 => int32) moderatorVotesReceived;
+        mapping(uint32  => mapping(bytes32 => bool)) hasVotedInElection;   // electionId → memberId → voted
         uint32                         electionCounter;
-        IReputationSystem.ElectionStatus[] elections;   // struct from interface
+        IReputationSystem.ElectionStatus[] elections;
     }
 
-    // ─── EVENTS (mirrors of IReputationSystem — required for library emit) ───
+    // ─── EVENTS ──────────────────────────────────────────────
 
-    event MemberToWalletVinculation(uint32 indexed memberId, address indexed wallet, address[] allWallets, uint256 timestamp);
-    event ReputationChanged(uint32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
-    event ElectionOpened(uint32 indexed electionId, uint32 indexed candidateId, uint256 startTime, uint256 endTime);
-    event ElectionClosed(uint32 indexed electionId, uint32 indexed winnerId, int32 winningVotes);
-    event CandidateAdded(uint32 indexed electionId, uint32 indexed candidateId);
-    event VoteCast(uint32 indexed electionId, uint32 indexed candidateId, uint32 indexed memberId, int32 voteWeight);
-    event NewModerator(uint32 indexed memberId, uint32 indexed electionId);
-    event UnbeatableMajorityReached(uint32 indexed electionId, uint32 indexed leadingCandidate, int32 leadingVotes);
+    event MemberToWalletVinculation(bytes32 indexed memberId, address indexed wallet, address[] allWallets, uint256 timestamp);
+    event ReputationChanged(bytes32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
+    event ElectionOpened(uint32 indexed electionId, bytes32 indexed candidateId, uint256 startTime, uint256 endTime);
+    event ElectionClosed(uint32 indexed electionId, bytes32 indexed winnerId, int32 winningVotes);
+    event CandidateAdded(uint32 indexed electionId, bytes32 indexed candidateId);
+    event VoteCast(uint32 indexed electionId, bytes32 indexed candidateId, bytes32 indexed memberId, int32 voteWeight);
+    event NewModerator(bytes32 indexed memberId, uint32 indexed electionId);
+    event UnbeatableMajorityReached(uint32 indexed electionId, bytes32 indexed leadingCandidate, int32 leadingVotes);
 
-    // ─── ERRORS ──────────────────────────────────────────────────────────────
+    // ─── ERRORS ──────────────────────────────────────────────
 
     error RS_MemberIdOrWalletInvalid();
     error RS_WalletAlreadyVinculated();
@@ -64,7 +74,7 @@ library ReputationLib {
     error RS_InvalidCandidate();
     error RS_NoCandidates();
 
-    // ─── CONSTANTS ───────────────────────────────────────────────────────────
+    // ─── CONSTANTS ───────────────────────────────────────────
 
     int32 internal constant GAIN_REPAY   = 1;
     int32 internal constant GAIN_COVER   = 2;
@@ -76,15 +86,15 @@ library ReputationLib {
 
     function registerMemberWallet(
         ReputationStorage storage rs,
-        uint32  memberId,
+        bytes32 memberId,
         address wallet
     ) internal {
-        if (memberId == 0 || wallet == address(0))
+        if (memberId == bytes32(0) || wallet == address(0))
             revert RS_MemberIdOrWalletInvalid();
 
-        // Reject if this wallet is already bound to a *different* member
-        uint32 existingId = rs.walletToMemberId[wallet];
-        if (existingId != 0 && existingId != memberId)
+        // Reject if wallet is already bound to a DIFFERENT member
+        bytes32 existingId = rs.walletToMemberId[wallet];
+        if (existingId != bytes32(0) && existingId != memberId)
             revert RS_WalletAlreadyLinkedToAnotherMember();
 
         // Reject duplicate within same member
@@ -93,7 +103,7 @@ library ReputationLib {
             if (wallets[i] == wallet) revert RS_WalletAlreadyVinculated();
         }
 
-        // First wallet for this memberId becomes the primary
+        // First wallet becomes the primary
         if (rs.memberToWallet[memberId] == address(0)) {
             rs.memberToWallet[memberId] = wallet;
         }
@@ -111,9 +121,9 @@ library ReputationLib {
 
     function reputationChange(
         ReputationStorage storage rs,
-        uint32 memberId,
-        int32  points,
-        bool   increase
+        bytes32 memberId,
+        int32   points,
+        bool    increase
     ) internal {
         int32 current = rs.memberReputation[memberId];
         int32 next    = increase ? current + points : current - points;
@@ -121,16 +131,14 @@ library ReputationLib {
         _updateTotalPotentialVotes(rs, memberId, current, next);
         rs.memberReputation[memberId] = next;
 
-        emit ReputationChanged(
-            memberId, points, increase, next, block.timestamp
-        );
+        emit ReputationChanged(memberId, points, increase, next, block.timestamp);
     }
 
     function _updateTotalPotentialVotes(
         ReputationStorage storage rs,
-        uint32 memberId,
-        int32  oldRep,
-        int32  newRep
+        bytes32 memberId,
+        int32   oldRep,
+        int32   newRep
     ) private {
         int32 oldPos = oldRep > 0 ? oldRep : int32(0);
         int32 newPos = newRep > 0 ? newRep : int32(0);
@@ -147,9 +155,9 @@ library ReputationLib {
 
     function _removeMemberFromActiveList(
         ReputationStorage storage rs,
-        uint32 memberId
+        bytes32 memberId
     ) private {
-        uint32[] storage list = rs.membersWithPositiveReputation;
+        bytes32[] storage list = rs.membersWithPositiveReputation;
         uint256 len = list.length;
         for (uint256 i = 0; i < len; i++) {
             if (list[i] == memberId) {
@@ -166,10 +174,9 @@ library ReputationLib {
 
     function openElection(
         ReputationStorage storage rs,
-        uint32 candidateId,
-        uint32 opponent
+        bytes32 candidateId,
+        bytes32 opponent
     ) internal {
-        // Enforce: no active election may already exist
         uint256 len = rs.elections.length;
         if (len > 0 && rs.elections[len - 1].active)
             revert RS_ActiveElectionExists();
@@ -179,7 +186,7 @@ library ReputationLib {
             rs.memberToWallet[opponent]    == address(0)
         ) revert RS_InvalidCandidate();
 
-        uint32[] memory candidates = new uint32[](2);
+        bytes32[] memory candidates = new bytes32[](2);
         candidates[0] = candidateId;
         candidates[1] = opponent;
 
@@ -191,20 +198,18 @@ library ReputationLib {
             active:                  true,
             totalVotesCast:          0,
             potentialRemainingVotes: rs.totalPotentialVotes,
-            winnerId:                0,
+            winnerId:                bytes32(0),
             winningVotes:            0
         }));
 
-        emit ElectionOpened(
-            rs.electionCounter, candidateId, block.timestamp, block.timestamp + 30 days
-        );
+        emit ElectionOpened(rs.electionCounter, candidateId, block.timestamp, block.timestamp + 30 days);
         rs.electionCounter++;
     }
 
     function addCandidate(
         ReputationStorage storage rs,
-        uint32 electionId,
-        uint32 candidateId
+        uint32  electionId,
+        bytes32 candidateId
     ) internal {
         _requireElectionActive(rs, electionId);
         rs.elections[electionId].candidates.push(candidateId);
@@ -213,9 +218,9 @@ library ReputationLib {
 
     function voteForModerator(
         ReputationStorage storage rs,
-        uint32 electionId,
-        uint32 candidateId,
-        uint32 memberId
+        uint32  electionId,
+        bytes32 candidateId,
+        bytes32 memberId
     ) internal {
         _requireElectionActive(rs, electionId);
 
@@ -256,7 +261,7 @@ library ReputationLib {
 
         e.active = false;
 
-        (uint32 winnerId, int32 winVotes,,) = _getTopTwoCandidates(rs, electionId);
+        (bytes32 winnerId, int32 winVotes,,) = _getTopTwoCandidates(rs, electionId);
         rs.isModerator[winnerId] = true;
         e.winnerId     = winnerId;
         e.winningVotes = winVotes;
@@ -264,7 +269,7 @@ library ReputationLib {
         emit ElectionClosed(electionId, winnerId, winVotes);
     }
 
-    // ─── ELECTION INTERNALS ──────────────────────────────────────────────────
+    // ─── ELECTION INTERNALS ──────────────────────────────────
 
     function _requireElectionActive(
         ReputationStorage storage rs,
@@ -282,8 +287,8 @@ library ReputationLib {
         IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
         if (e.candidates.length < 2) return;
 
-        (uint32 first, int32 fVotes,, int32 sVotes) = _getTopTwoCandidates(rs, electionId);
-        if (first == 0) return;
+        (bytes32 first, int32 fVotes,, int32 sVotes) = _getTopTwoCandidates(rs, electionId);
+        if (first == bytes32(0)) return;
 
         if (fVotes > sVotes + e.potentialRemainingVotes) {
             e.active       = false;
@@ -301,18 +306,18 @@ library ReputationLib {
         ReputationStorage storage rs,
         uint32 electionId
     ) private view returns (
-        uint32 firstId,  int32 firstVotes,
-        uint32 secondId, int32 secondVotes
+        bytes32 firstId,  int32 firstVotes,
+        bytes32 secondId, int32 secondVotes
     ) {
         IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
-        if (e.candidates.length == 0) return (0, 0, 0, 0);
+        if (e.candidates.length == 0) return (bytes32(0), 0, bytes32(0), 0);
 
         firstId    = e.candidates[0];
         firstVotes = rs.moderatorVotesReceived[firstId];
 
         for (uint256 i = 1; i < e.candidates.length; i++) {
-            uint32 cId    = e.candidates[i];
-            int32  cVotes = rs.moderatorVotesReceived[cId];
+            bytes32 cId    = e.candidates[i];
+            int32   cVotes = rs.moderatorVotesReceived[cId];
             if (cVotes > firstVotes) {
                 secondId = firstId;  secondVotes = firstVotes;
                 firstId  = cId;      firstVotes  = cVotes;
@@ -323,16 +328,15 @@ library ReputationLib {
     }
 
     // =========================================================================
-    //                        VIEW / PURE HELPERS
-    // (marked internal so they can be called from LoanMachine directly)
+    //                        VIEW HELPERS
     // =========================================================================
 
     function getTopTwoCandidatesView(
         ReputationStorage storage rs,
         uint32 electionId
     ) internal view returns (
-        uint32 firstId,  int32 firstVotes,
-        uint32 secondId, int32 secondVotes
+        bytes32 firstId,  int32 firstVotes,
+        bytes32 secondId, int32 secondVotes
     ) {
         return _getTopTwoCandidates(rs, electionId);
     }
