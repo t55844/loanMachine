@@ -1,4 +1,4 @@
-┌─────────────────────────────────────────────────────┐
+Rust-analyzer: Restart server┌─────────────────────────────────────────────────────┐
 │  LEPTOS                                             │
 │  What it is: a Rust UI framework (like React)       │
 │  What it does: components, signals, server fns      │

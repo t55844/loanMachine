@@ -3,56 +3,57 @@
 use std::sync::Arc;
 use axum::extract::FromRef;
 use leptos_config::LeptosOptions;
-use crate::services::blockchain::BlockchainService;
-
+use crate::services::blockchain::{BlockchainService};
+use crate::services::identity::IdentityService;
+use crate::services::privy::PrivyService;
+use crate::services::chain_config::ChainConfig;
+#[derive(Clone)]
+pub struct FactoryAddress(pub String);
 
 #[derive(Clone)]
 pub struct SubgraphUrl(pub String);
 
-#[derive(Clone)]
-pub struct ContractAddr(pub String);
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
-    pub subgraph_url:       SubgraphUrl,
-    pub factory_address:    ContractAddr,
-    pub blockchain_service: Arc<BlockchainService>,
     pub leptos_options:     LeptosOptions,
-    pub privy_app_id:      String,
-    pub chain_id:         u64,
+    pub subgraph_url:       SubgraphUrl,
+    pub factory_address:    FactoryAddress,
+    pub blockchain_service: Arc<BlockchainService>,
+    pub privy:              Arc<PrivyService>,
+    pub identity:           Arc<IdentityService>,
+    pub chain_config:       Arc<ChainConfig>,     
+
 }
 
 impl AppState {
     pub async fn new(leptos_options: LeptosOptions) -> Self {
-        dotenvy::dotenv().ok();
+
+        let identity = IdentityService::from_env()
+            .expect("COOP_SALT must be set");
+        let privy = PrivyService::from_env()
+            .expect("PRIVY_APP_ID must be set");
+        let chain_config = ChainConfig::from_env();
+
+        let rpc_url = chain_config.rpc_url.clone();
 
         let subgraph_url    = std::env::var("SUBGRAPH_URL")
             .expect("SUBGRAPH_URL must be set in .env");
-        let rpc_url         = std::env::var("RPC_URL")
-            .expect("RPC_URL must be set in .env");
         let factory_address = std::env::var("FACTORY_ADDRESS")
             .expect("FACTORY_ADDRESS must be set in .env");
-        let privy_app_id = std::env::var("PRIVY_APP_ID")
-            .expect("PRIVY_APP_ID must be set in .env");
-        let chain_id = std::env::var("CHAIN_ID")
-            .expect("CHAIN_ID must be set in .env")
-            .parse::<u64>()
-            .expect("CHAIN_ID must be a valid u64 integer");
 
-         // Initialize the blockchain service with explicit type annotation.
-        // Explicit type annotation — Rust sometimes needs help inferring
-        // the return type of async functions through .await chains.
         let service: BlockchainService = BlockchainService::init(&rpc_url, &factory_address)
             .await
             .expect("Failed to initialize BlockchainService");
 
         Self {
-            subgraph_url:       SubgraphUrl(subgraph_url),
-            factory_address:    ContractAddr(factory_address),
-            blockchain_service: Arc::new(service),
             leptos_options,
-            privy_app_id,
-            chain_id,
+            subgraph_url:       SubgraphUrl(subgraph_url),
+            factory_address:    FactoryAddress(factory_address),
+            blockchain_service: Arc::new(service),
+            identity:           Arc::new(identity),
+            privy:              Arc::new(privy),
+            chain_config:       Arc::new(chain_config),
         }
     }
 }

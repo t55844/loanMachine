@@ -1,6 +1,6 @@
 // src/services/blockchain/factory.rs
 //
-// All interactions with LoanMachineFactory and the
+// All interactions with CoopRegistry and the
 // per-cooperative LoanMachine instances it deploys.
 //
 // Responsible for:
@@ -15,7 +15,7 @@ use alloy::primitives::{Address, Bytes, FixedBytes, U256};
 use alloy::sol_types::SolCall;
 use std::sync::Arc;
 
-use super::abis::{LoanMachine, LoanMachineFactory};
+use super::abis::{LoanMachine, CoopRegistry};
 use super::provider::Provider;
 use super::BlockchainError; 
 use loan_machine_models::responses::CoopInfo;
@@ -42,7 +42,7 @@ impl FactoryService{
     /// For large scale, use the subgraph instead (it indexes MemberJoined events).
 
     pub async fn get_wallet_coop(&self,wallet: Address) -> Result<FixedBytes<32>, BlockchainError> {
-        let factory = LoanMachineFactory::new(self.factory_address, self.provider.clone());
+        let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
 
         let coop_ids = factory
         .getAllCoops()
@@ -75,7 +75,7 @@ impl FactoryService{
     }
 
     pub async fn get_coop_info(&self, coop_id: FixedBytes<32>) -> Result<CoopInfo, BlockchainError>{
-        let factory = LoanMachineFactory::new(self.factory_address, self.provider.clone());
+        let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
 
         let record = factory
         .coops(coop_id)
@@ -88,18 +88,17 @@ impl FactoryService{
         }
 
         let loan_machine = LoanMachine::new(record.loanMachine, self.provider.clone());
-        let active_loan_machine = loan_machine
-        .isCoopActive()
+         let coop_stats = loan_machine
+        .getCoopStats()
         .call()
         .await
-        .map_err(|e| BlockchainError::Call(e.to_string()))?
-        ._0;
+        .map_err(|e| BlockchainError::Call(e.to_string()))?;
 
         Ok(CoopInfo{
             coop_id: format!("0x{}", hex::encode(coop_id)),
             name: record.name,
             loan_machine: record.loanMachine.to_string(),
-            active: active_loan_machine,
+            active: coop_stats.isActive,
         })
         
 
@@ -108,7 +107,7 @@ impl FactoryService{
     /// Returns the LoanMachine contract address for a given coopId.
     pub async fn get_loan_machine(&self, coop_id: FixedBytes<32>) 
     -> Result<Address, BlockchainError>{
-        let factory = LoanMachineFactory::new(self.factory_address, self.provider.clone());
+        let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
 
         factory.getCoopInstance(coop_id)
         .call()
@@ -122,14 +121,13 @@ impl FactoryService{
         let loan_machine_addr = self.get_loan_machine(coop_id).await?;
         let loan_machine = LoanMachine::new(loan_machine_addr, self.provider.clone());
 
-        let active = loan_machine
-        .isCoopActive()
+        let coop_stats = loan_machine
+        .getCoopStats()
         .call()
         .await
-        .map_err(|e| BlockchainError::Call(e.to_string()))?
-        ._0;
+        .map_err(|e| BlockchainError::Call(e.to_string()))?;
         
-        if !active{
+        if !coop_stats.isActive{
             return Ok(false);
         }
 
@@ -169,7 +167,7 @@ impl FactoryService{
 
     /// Encodes LoanMachine.joinCoop(memberId, wallet, accessCode)
     /// This single call handles: access code check + member vinculation.
-    pub fn encode_join_coop(&self, member_id: u32, wallet: Address, access_code: &str)
+    pub fn encode_join_coop(&self, member_id: FixedBytes<32>, wallet: Address, access_code: &str)
     -> Bytes {
         Bytes::from(
             LoanMachine::joinCoopCall{
@@ -182,7 +180,7 @@ impl FactoryService{
     }
 
     /// Encodes LoanMachine.donate(amount, memberId)
-    pub fn encode_donate(&self, amount: U256, member_id: u32) -> Bytes {
+    pub fn encode_donate(&self, amount: U256, member_id: FixedBytes<32>) -> Bytes {
         Bytes::from(
             LoanMachine::donateCall {
                 amount,
@@ -197,7 +195,7 @@ impl FactoryService{
     pub async fn estimate_join_coop_gas(
         &self,
         loan_machine_addr: Address,
-        member_id:         u32,
+        member_id:         FixedBytes<32>,
         wallet:            Address,
         access_code:       &str,
     ) -> Result<U256, BlockchainError> {
@@ -215,7 +213,7 @@ impl FactoryService{
         &self,
         loan_machine_addr: Address,
         amount:            U256,
-        member_id:         u32,
+        member_id:         FixedBytes<32>,
         from:              Address,
     ) -> Result<U256, BlockchainError> {
         let gas = LoanMachine::new(loan_machine_addr, self.provider.clone())

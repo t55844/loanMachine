@@ -119,16 +119,15 @@ pub enum BtnVariant { Primary, Secondary, Ghost, Danger }
 #[derive(Clone, PartialEq)]
 pub enum BtnSize { Sm, Md, Lg }
 
-/// Universal button
 #[component]
 pub fn Button(
     #[prop(optional, default=BtnVariant::Primary)] variant: BtnVariant,
     #[prop(optional, default=BtnSize::Md)]         size: BtnSize,
     #[prop(optional)]                              full_width: bool,
-    #[prop(optional)]                              loading: bool,
-    #[prop(optional)]                              disabled: bool,
+    #[prop(optional, into)]                        loading: Signal<bool>,
+    #[prop(optional, into)]                        disabled: Signal<bool>,
     #[prop(optional)]                              on_click: Option<Box<dyn Fn() + 'static>>,
-    children: Children,
+    children: ChildrenFn,
 ) -> impl IntoView {
     let variant_class = match variant {
         BtnVariant::Primary   => "btn btn-primary",
@@ -151,13 +150,13 @@ pub fn Button(
     view! {
         <button
             class=class
-            disabled=disabled || loading
+            disabled=move || disabled.get() || loading.get()
             on:click=handle_click
         >
-            {if loading {
+            {move || if loading.get() {
                 view! { <span class="spinner"></span> }.into_any()
             } else {
-                view! { {children()} }.into_any()
+                children().into_any()
             }}
         </button>
     }
@@ -201,34 +200,35 @@ pub fn TextInput(
     label: &'static str,
     #[prop(optional, default="")] placeholder: &'static str,
     #[prop(optional)]             hint: Option<&'static str>,
-    #[prop(optional)]             error: Option<String>,
+    #[prop(optional, into)]       error: Signal<String>,
     value: ReadSignal<String>,
     set_value: WriteSignal<String>,
 ) -> impl IntoView {
-    let input_class = if error.is_some() {
-        "form-input"
-    } else {
-        "form-input"
-    };
-    let border_style = if error.is_some() {
-        "border-color: var(--c-red);"
-    } else {
-        ""
-    };
 
-    view! {
+view! {
         <div class="form-group">
             <label class="form-label">{label}</label>
             <input
-                class=input_class
-                style=border_style
+                class="form-input"
+                style=move || if !error.get().is_empty() {
+                    "border-color: var(--c-red);"
+                } else {
+                    ""
+                }
                 type="text"
                 placeholder=placeholder
                 prop:value=value
                 on:input=move |ev| set_value.set(event_target_value(&ev))
             />
             {hint.map(|h| view! { <span class="form-hint">{h}</span> })}
-            {error.map(|e| view! { <span class="form-error">"⚠ "{e}</span> })}
+            {move || {
+                let e = error.get();
+                if e.is_empty() {
+                    ().into_any()
+                } else {
+                    view! { <span class="form-error">"⚠ "{e}</span> }.into_any()
+                }
+            }}
         </div>
     }
 }

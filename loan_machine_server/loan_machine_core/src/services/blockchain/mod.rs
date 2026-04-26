@@ -13,7 +13,8 @@
 pub mod abis;
 pub mod factory;
 pub mod provider;
-
+#[cfg(any(test, feature = "deployable"))]
+pub mod deployable;
 // Future modules (uncomment when implemented):
 // pub mod loans;
 // pub mod account;
@@ -24,6 +25,9 @@ use std::sync::Arc;
 
 pub use factory::FactoryService;
 pub use provider::Provider;
+
+pub mod contract_errors;
+pub use contract_errors::{translate_revert, friendly_from_error};
 
 // ── ERRORS ───────────────────────────────────────────────────
 // One central error type for all blockchain operations.

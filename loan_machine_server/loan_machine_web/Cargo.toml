@@ -65,7 +65,8 @@ hex        = { version = "0.4", optional = true }
 
 [dev-dependencies]
 leptos = { version = "0.8", features = ["ssr"] }
-any_spawner = { version = "0.3", features = ["tokio"] }
+any_spawner = { version = "*", features = ["tokio"] }
+tokio = { version = "*", features = ["rt", "macros"] }
 http = "1.0"
 mime = "0.3"
 loan_machine_core = { path = "../loan_machine_core" }
@@ -78,6 +79,7 @@ alloy = { workspace = true, features = [
     "signer-local", "node-bindings",
 ] }
 
+
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 
@@ -86,11 +88,5 @@ output-name  = "loan_machine_web"
 site-root    = "target/site"
 site-pkg-dir = "pkg"
 bin-features = ["ssr"]
-assets-dir   = "public"
 lib-features = ["hydrate"]
-tokio     = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
-alloy     = { workspace = true, features = [
-    "contract", "providers", "transport-http",
-    "sol-types", "rpc-types", "network",
-    "signer-local", "node-bindings",
-]}
+assets-dir   = "public"

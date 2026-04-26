@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: Simplified LoanMachine contract indexing
+description: LoanMachine v3 — cooperative credit with governance
 repository: https://github.com/your-repo/loan-machine-subgraph
 schema:
   file: schema.graphql
@@ -15,17 +15,35 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: LoanMachine/LoanMachine.wasm
+      file: LoanMachine\LoanMachine.wasm
       entities:
+        - ProposalCreatedEvent
+        - ProposalConfirmedEvent
+        - ProposalExecutedEvent
+        - AdminAddedEvent
+        - AdminRemovedEvent
+        - AdminTransferredEvent
+        - ThresholdChangedEvent
+        - WalletApprovalProposedEvent
+        - WalletApprovalModeratorSignedEvent
+        - WalletApprovedEvent
+        - WalletRevokedEvent
+        - MemberJoinedEvent
+        - AccessCodeRotatedEvent
+        - CoopDeactivatedEvent
+        - CoopReactivatedEvent
+        - WithdrawalRequestedEvent
+        - WithdrawalExecutedEvent
+        - WithdrawalBlockedEvent
+        - WithdrawalCancelledEvent
         - DonatedEvent
+        - WithdrawnEvent
         - BorrowedEvent
         - RepaidEvent
         - TotalDonationsUpdatedEvent
         - TotalBorrowedUpdatedEvent
         - AvailableBalanceUpdatedEvent
         - NewDonorEvent
-        - NewBorrowerEvent
-        - BorrowLimitReachedEvent
         - LoanRequisitionCreatedCancelledEvent
         - LoanCoveredEvent
         - LoanFundedEvent
@@ -33,17 +51,64 @@ dataSources:
         - ParcelPaidEvent
         - LenderRepaidEvent
         - LoanCompletedEvent
-        - WithdrawnEvent
+        - LoanUncoveredEvent
         - BorrowerOverdueEvent
         - BorrowerDebtSettledEvent
-        - PeriodicCheckRunEvent
-        - LoanUncoveredEvent
+        - MemberToWalletVinculationEvent
+        - ReputationChangedEvent
+        - AuthorizedCallerUpdatedEvent
+        - ElectionOpenedEvent
+        - CandidateAddedEvent
+        - VoteCastEvent
+        - ElectionClosedEvent
+        - UnbeatableMajorityReachedEvent
+        - NewModeratorEvent
       abis:
         - name: LoanMachine
-          file: LoanMachine/LoanMachine.json
+          file: LoanMachine\LoanMachine.json
       eventHandlers:
+        - event: ProposalCreated(indexed uint256,indexed uint8,indexed address)
+          handler: handleProposalCreated
+        - event: ProposalConfirmed(indexed uint256,indexed address,uint256)
+          handler: handleProposalConfirmed
+        - event: ProposalExecuted(indexed uint256,indexed uint8)
+          handler: handleProposalExecuted
+        - event: AdminAdded(indexed address)
+          handler: handleAdminAdded
+        - event: AdminRemoved(indexed address)
+          handler: handleAdminRemoved
+        - event: AdminTransferred(indexed address,indexed address)
+          handler: handleAdminTransferred
+        - event: ThresholdChanged(uint256,uint256)
+          handler: handleThresholdChanged
+        - event: WalletApprovalProposed(indexed uint256,indexed address,indexed address)
+          handler: handleWalletApprovalProposed
+        - event: WalletApprovalModeratorSigned(indexed uint256,indexed address,indexed bytes32)
+          handler: handleWalletApprovalModeratorSigned
+        - event: WalletApproved(indexed address)
+          handler: handleWalletApproved
+        - event: WalletRevoked(indexed address)
+          handler: handleWalletRevoked
+        - event: MemberJoined(indexed address,indexed bytes32)
+          handler: handleMemberJoined
+        - event: AccessCodeRotated()
+          handler: handleAccessCodeRotated
+        - event: CoopDeactivated()
+          handler: handleCoopDeactivated
+        - event: CoopReactivated()
+          handler: handleCoopReactivated
+        - event: WithdrawalRequested(indexed uint256,indexed address,uint256,uint256)
+          handler: handleWithdrawalRequested
+        - event: WithdrawalExecuted(indexed uint256,indexed address,uint256)
+          handler: handleWithdrawalExecuted
+        - event: WithdrawalBlocked(indexed uint256,indexed address)
+          handler: handleWithdrawalBlocked
+        - event: WithdrawalCancelled(indexed uint256,indexed address)
+          handler: handleWithdrawalCancelled
         - event: Donated(indexed address,uint256,uint256)
           handler: handleDonated
+        - event: Withdrawn(indexed address,uint256,uint256)
+          handler: handleWithdrawn
         - event: Borrowed(indexed address,uint256,uint256)
           handler: handleBorrowed
         - event: Repaid(indexed address,uint256,uint256)
@@ -56,10 +121,6 @@ dataSources:
           handler: handleAvailableBalanceUpdated
         - event: NewDonor(indexed address)
           handler: handleNewDonor
-        - event: NewBorrower(indexed address)
-          handler: handleNewBorrower
-        - event: BorrowLimitReached(indexed address)
-          handler: handleBorrowLimitReached
         - event: LoanRequisitionCreatedCancelled(indexed uint256,indexed
             address,uint256,uint32,uint8)
           handler: handleLoanRequisitionCreatedCancelled
@@ -76,57 +137,27 @@ dataSources:
           handler: handleLenderRepaid
         - event: LoanCompleted(indexed uint256)
           handler: handleLoanCompleted
-        - event: Withdrawn(indexed address,uint256,uint256)
-          handler: handleWithdrawn
+        - event: LoanUncovered(indexed uint256,indexed address,uint256)
+          handler: handleLoanUncovered
         - event: BorrowerOverdue(indexed uint256,indexed address,uint256)
           handler: handleBorrowerOverdue
         - event: BorrowerDebtSettled(indexed uint256,indexed address)
           handler: handleBorrowerDebtSettled
-        - event: PeriodicCheckRun(uint256,uint256)
-          handler: handlePeriodicCheckRun
-        - event: LoanUncovered(indexed uint256,indexed address,uint256)
-          handler: handleLoanUncovered
-  - kind: ethereum/contract
-    name: ReputationSystem
-    network: local
-    source:
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
-      abi: ReputationSystem
-      startBlock: 0
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.6
-      language: wasm/assemblyscript
-      file: LoanMachine/LoanMachine.wasm
-      entities:
-        - MemberToWalletVinculationEvent
-        - ReputationChangedEvent
-        - AuthorizedCallerUpdatedEvent
-        - ElectionOpenedEvent
-        - CandidateAddedEvent
-        - VoteCastEvent
-        - ElectionClosedEvent
-        - UnbeatableMajorityReachedEvent
-        - NewModeratorEvent
-      abis:
-        - name: ReputationSystem
-          file: ReputationSystem/ReputationSystem.json
-      eventHandlers:
-        - event: MemberToWalletVinculation(indexed uint32,indexed address,address[],uint256)
+        - event: MemberToWalletVinculation(indexed bytes32,indexed address,address[],uint256)
           handler: handleMemberToWalletVinculation
-        - event: ReputationChanged(indexed uint32,int32,bool,int32,uint256)
+        - event: ReputationChanged(indexed bytes32,int32,bool,int32,uint256)
           handler: handleReputationChanged
         - event: AuthorizedCallerUpdated(indexed address,bool)
           handler: handleAuthorizedCallerUpdated
-        - event: ElectionOpened(indexed uint32,indexed uint32,uint256,uint256)
+        - event: ElectionOpened(indexed uint32,indexed bytes32,uint256,uint256)
           handler: handleElectionOpened
-        - event: CandidateAdded(indexed uint32,indexed uint32)
+        - event: CandidateAdded(indexed uint32,indexed bytes32)
           handler: handleCandidateAdded
-        - event: VoteCast(indexed uint32,indexed uint32,indexed uint32,int32)
+        - event: VoteCast(indexed uint32,indexed bytes32,indexed bytes32,int32)
           handler: handleVoteCast
-        - event: ElectionClosed(indexed uint32,indexed uint32,int32)
+        - event: ElectionClosed(indexed uint32,indexed bytes32,int32)
           handler: handleElectionClosed
-        - event: UnbeatableMajorityReached(indexed uint32,indexed uint32,int32)
+        - event: UnbeatableMajorityReached(indexed uint32,indexed bytes32,int32)
           handler: handleUnbeatableMajorityReached
-        - event: NewModerator(indexed uint32,uint32)
+        - event: NewModerator(indexed bytes32,uint32)
           handler: handleNewModerator

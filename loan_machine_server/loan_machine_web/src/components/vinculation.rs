@@ -2,9 +2,14 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos::ev::SubmitEvent;
+use leptos::web_sys; 
+use wasm_bindgen::JsCast;
 
 use crate::components::ui::*;
 use loan_machine_models::responses::{CoopInfo, VinculationBundle};
+use loan_machine_models::requests::{DocKind};
+
+use crate::server_fns::vinculation::{get_wallet_coop, prepare_first_vinculation};
 
 // ── GATE ─────────────────────────────────────────────────────
 #[derive(Clone, PartialEq)]
@@ -92,19 +97,23 @@ pub fn FirstVinculationForm(
         view! {
             <div class="flex-col gap-8">
 
-            <IdentifyCard  error=error loading=loading 
-                on_submit=move |id, cid, code| {
-                set_loading.set(true);
-                set_error.set(None);
-                let w = wallet.clone();
-                spawn_local(async move {
-                    match prepare_first_vinculation(id, w, cid, code).await {
-                        Ok(b)  => set_bundle.set(Some(b)),
-                        Err(e) => set_error.set(Some(e.to_string())),
-                    }
-                    set_loading.set(false);
-                });
-            }/>
+            <IdentifyCard
+                error=error
+                loading=loading
+                on_submit=Callback::new(move |(kind, document, cid, code):
+                    (DocKind, String, String, String)| {
+                    set_loading.set(true);
+                    set_error.set(None);
+                    let w = wallet.clone();
+                    spawn_local(async move {
+                        match prepare_first_vinculation(kind, document, w, cid, code).await {
+                            Ok(b)  => set_bundle.set(Some(b)),
+                            Err(e) => set_error.set(Some(e.to_string())),
+                        }
+                        set_loading.set(false);
+                    });
+                })
+            />
 
         // ── CARD 2: sign button — only shown when bundle exists ──
         // This card disappears once tx is sent (tx_status != Idle)
@@ -130,58 +139,137 @@ pub fn FirstVinculationForm(
 
 #[component]
 fn IdentifyCard(
-    on_submit:   impl Fn(u32, String, String) + Send + Sync + 'static,
+    on_submit: Callback<(DocKind, String, String, String)>,
     error: ReadSignal<Option<String>>,
     loading: ReadSignal<bool>,
 
 ) -> impl IntoView {
 
-    let (member_id,   set_member_id)   = signal(0u32);
+    let (doc_kind, set_doc_kind) = signal(DocKind::Cpf);
+    let (document, set_document) = signal(String::new());
     let (coop_id,     set_coop_id)     = signal(String::new());
     let (access_code, set_access_code) = signal(String::new());
 
-    let on_prepare = move |ev: leptos::ev::SubmitEvent| {
-        ev.prevent_default();
-        on_submit(member_id.get(), coop_id.get(), access_code.get());
+    let switch_to = move |kind: DocKind|{
+        set_doc_kind.set(kind);
+        set_document.set(String::new());
     };
 
-     view! {
+    let on_document_input = move |ev: leptos::ev::Event|{
+        let target = ev.target()
+        .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
 
+        let Some(input) = target else { return };
+
+        let raw = input.value();
+        let max_len = doc_kind.get().max_input_len();
+
+        let cleaned: String = raw
+        .chars()
+        .filter(|c| c.is_ascii_digit() || matches!(c,'.'|'-'|'/' ))
+        .take(max_len)
+        .collect();
+
+        if cleaned != raw{
+            input.set_value(&cleaned);
+        }
+        set_document.set(cleaned);
+    };
+
+    let on_prepare = move |ev: SubmitEvent|{
+        ev.prevent_default();
+        on_submit.run((
+            doc_kind.get(),
+            document.get(),
+            coop_id.get(),
+            access_code.get()
+        ));
+    };
+
+      view! {
         // ── TITLE ──────────────────────────────────────────
         <div class="t-center">
             <h1 class="t-display-lg t-yellow">"VINCULE SUA CARTEIRA"</h1>
             <p class="t-mono-sm t-muted mt-4">
-                "Conecte seu ID de membro ao seu endereço blockchain."
+                "Conecte seu documento ao seu endereço blockchain."
             </p>
         </div>
 
-        // ── CARD 1: form inputs (unchanged) ────────────────
         <Card variant=CardVariant::Yellow tag="PASSO 01 — IDENTIFICAÇÃO" hover=false>
             <form
                 on:submit=on_prepare
                 style="display:flex; flex-direction:column; gap:var(--sp-6); margin-top:var(--sp-4)"
             >
-                <NumberInput
-                    label="ID do Membro"
-                    value=member_id
-                    set_value=set_member_id
-                    hint="Seu número de membro na cooperativa"
-                />
+                // ── CPF / CNPJ toggle ──────────────────────
+                <div class="doc-kind-toggle" role="tablist">
+                    <button
+                        type="button"
+                        role="tab"
+                        class=move || {
+                            if doc_kind.get() == DocKind::Cpf {
+                                "toggle-btn toggle-btn-active"
+                            } else {
+                                "toggle-btn"
+                            }
+                        }
+                        on:click=move |_| switch_to(DocKind::Cpf)
+                    >
+                        "CPF"
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        class=move || {
+                            if doc_kind.get() == DocKind::Cnpj {
+                                "toggle-btn toggle-btn-active"
+                            } else {
+                                "toggle-btn"
+                            }
+                        }
+                        on:click=move |_| switch_to(DocKind::Cnpj)
+                    >
+                        "CNPJ"
+                    </button>
+                </div>
+
+                // ── Document input ─────────────────────────
+                <div class="form-group">
+                    <label class="form-label">
+                        {move || doc_kind.get().label()}
+                    </label>
+                    <input
+                        class="form-input"                       
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        prop:value=document
+                        placeholder=move || doc_kind.get().placeholder()
+                        maxlength=move || doc_kind.get().max_input_len() as i32
+                        on:input=on_document_input
+                    />
+                    <span class="form-hint">                       
+                        {move || match doc_kind.get() {
+                            DocKind::Cpf  => "11 dígitos — formatação opcional",
+                            DocKind::Cnpj => "14 dígitos — formatação opcional",
+                        }}
+                    </span>
+                </div>
+
                 <TextInput
                     label="ID da Cooperativa"
                     placeholder="0xabc123..."
                     hint="O identificador bytes32 da sua cooperativa"
                     value=coop_id
                     set_value=set_coop_id
-                    error=String::new()
+                    // error prop omitted → defaults to empty Signal
                 />
+
                 <TextInput
                     label="Código de Acesso"
                     placeholder="Fornecido pelo administrador"
-                    hint=""
                     value=access_code
                     set_value=set_access_code
-                    error=error.get().unwrap_or_default()
+                    error=Signal::derive(move || error.get().unwrap_or_default())
                 />
 
                 {move || error.get().map(|e| view! {
@@ -192,13 +280,13 @@ fn IdentifyCard(
                     variant=BtnVariant::Primary
                     size=BtnSize::Lg
                     full_width=true
-                    loading=loading.get()
+                    loading=loading        // ← ReadSignal<bool> passes directly via `into`
                 >
                     "PREPARAR VINCULAÇÃO"
                 </Button>
             </form>
         </Card>
-     }
+    }
 }
 
 
@@ -323,144 +411,3 @@ fn send_bundle_to_privy(bundle: VinculationBundle) {
     let _ = bundle;
 }
 
-
-#[server(GetWalletCoop, "/api")]
-pub async fn get_wallet_coop(
-    smart_wallet: String,
-) -> Result<Option<CoopInfo>, ServerFnError> {
-    #[cfg(feature = "ssr")]
-    use loan_machine_core::services::blockchain::BlockchainError;
-    #[cfg(feature = "ssr")]
-    use alloy::primitives::{Address, FixedBytes};
-
-    let state = use_context::<loan_machine_core::config::AppState>()
-        .ok_or_else(|| ServerFnError::new("AppState not found"))?;
-
-    let wallet: Address = smart_wallet
-        .parse()
-        .map_err(|_| ServerFnError::new("Invalid wallet address"))?;
-
-    // Explicit type: FixedBytes<32>
-    let coop_id: FixedBytes<32> = state
-        .blockchain_service
-        .factory
-        .get_wallet_coop(wallet)
-        .await
-        .map_err(|e: BlockchainError| ServerFnError::new(e.to_string()))?;
-
-    if coop_id == FixedBytes::<32>::ZERO {
-        return Ok(None);
-    }
-
-    // Explicit type: CoopInfo
-    let info: CoopInfo = state
-        .blockchain_service
-        .factory
-        .get_coop_info(coop_id)
-        .await
-        .map_err(|e: BlockchainError| ServerFnError::new(e.to_string()))?;
-
-    Ok(Some(info))
-}
-
-#[server(PrepareFirstVinculation, "/api")]
-pub async fn prepare_first_vinculation(
-    member_id:    u32,
-    smart_wallet: String,
-    coop_id:      String,
-    access_code:  String,
-) -> Result<VinculationBundle, ServerFnError> {
-    #[cfg(feature = "ssr")]
-    use loan_machine_core::services::blockchain::BlockchainError;
-    #[cfg(feature = "ssr")]
-    use alloy::primitives::{Address, FixedBytes, U256};
-
-    let state = use_context::<loan_machine_core::config::AppState>()
-        .ok_or_else(|| ServerFnError::new("AppState not found"))?;
-
-    let wallet: Address = smart_wallet
-        .parse()
-        .map_err(|_| ServerFnError::new("Invalid wallet address"))?;
-
-    let coop_id_bytes: FixedBytes<32> = coop_id
-        .parse()
-        .map_err(|_| ServerFnError::new("Invalid coop ID format"))?;
-
-    let factory = &state.blockchain_service.factory;
-
-    // Explicit type: Address
-    let loan_machine_addr: Address = factory
-        .get_loan_machine(coop_id_bytes)
-        .await
-        .map_err(|e: BlockchainError| ServerFnError::new(e.to_string()))?;
-
-    // Explicit type: bool
-    let approved: bool = factory
-        .is_wallet_approved(loan_machine_addr, wallet)
-        .await
-        .map_err(|e: BlockchainError| ServerFnError::new(e.to_string()))?;
-
-    if !approved {
-        return Err(ServerFnError::new(
-            "Carteira não aprovada. Entre em contato com o administrador.",
-        ));
-    }
-
-    verify_member_not_vinculated(&state.subgraph_url.0, member_id)
-        .await
-        .map_err(ServerFnError::new)?;
-
-    let join_calldata = factory.encode_join_coop(member_id, wallet, &access_code);
-
-    // Explicit type: U256
-    let gas: U256 = factory
-        .estimate_join_coop_gas(loan_machine_addr, member_id, wallet, &access_code)
-        .await
-        .map_err(|e: BlockchainError| ServerFnError::new(e.to_string()))?;
-
-    Ok(VinculationBundle {
-        join_calldata:        format!("0x{}", hex::encode(join_calldata.as_ref())),
-        loan_machine_address: loan_machine_addr.to_string(),
-        factory_address:      state.factory_address.0.clone(),
-        gas_join:             gas.to_string(),
-    })
-}
-
-// ── SUBGRAPH ──────────────────────────────────────────────────
-
-#[cfg(feature = "ssr")]
-async fn verify_member_not_vinculated(
-    subgraph_url: &str,
-    member_id:    u32,
-) -> Result<(), String> {
-    if member_id == 0 {
-        return Err("Member ID cannot be zero".into());
-    }
-
-    let query = format!(r#"{{
-        memberToWalletVinculations(where: {{ memberId: "{member_id}" }}) {{
-            memberId
-            wallet
-        }}
-    }}"#);
-
-    let resp: serde_json::Value = reqwest::Client::new()
-        .post(subgraph_url)
-        .json(&serde_json::json!({ "query": query }))
-        .send()
-        .await
-        .map_err(|e| format!("Subgraph unreachable: {e}"))?
-        .json()
-        .await
-        .map_err(|e| format!("Subgraph parse error: {e}"))?;
-
-    let entries = resp["data"]["memberToWalletVinculations"]
-        .as_array()
-        .ok_or("Unexpected subgraph response")?;
-
-    if !entries.is_empty() {
-        return Err("Este ID de membro já está vinculado a uma carteira.".into());
-    }
-
-    Ok(())
-}

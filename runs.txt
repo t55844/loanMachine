@@ -62,9 +62,12 @@ docker exec -it loan-machine-playwright-1 npx playwright test tests/07-electionS
 -----------------------------------------------------------
 proximos possos:
 
+rever a forma como os contratos são lançados, atualmente gera um novo contrato para cada cooperativa, mas talvez consuma algo
+
+privy app id no lugar errado, não deveria estar no app
+
 refatorar todos os components para perguntar o custo de gas
 
 refatorar todos os components para devolver sucesso se tiver tido
 
-data da eleição ta esquisita, votos também
 --------------------------------------------------------------

@@ -1,8 +1,189 @@
+# ═══════════════════════════════════════════════════════════════
+#  LoanMachine v3 — Subgraph Schema
+#
+#  CHANGES FROM v1:
+#  - memberId: Int → Bytes (bytes32 hashed CPF/CNPJ)
+#  - NEW: governance events (Proposal*, Admin*, Threshold*)
+#  - NEW: wallet approval co-sign events
+#  - NEW: withdrawal delay events
+#  - NEW: MemberJoined, CoopDeactivated/Reactivated
+#  - REMOVED: NewBorrowerEvent, BorrowLimitReachedEvent, PeriodicCheckRunEvent
+#  - All reputation/election events now use Bytes for memberId/candidateId
+# ═══════════════════════════════════════════════════════════════
+
+# ── GOVERNANCE: MULTISIG ADMIN ────────────────────────────────
+
+type ProposalCreatedEvent @entity(immutable: true) {
+  id: ID!
+  proposalId: BigInt!
+  pType: Int!            # ProposalType enum as uint8
+  proposer: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type ProposalConfirmedEvent @entity(immutable: true) {
+  id: ID!
+  proposalId: BigInt!
+  admin: Bytes!
+  confirmations: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type ProposalExecutedEvent @entity(immutable: true) {
+  id: ID!
+  proposalId: BigInt!
+  pType: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type AdminAddedEvent @entity(immutable: true) {
+  id: ID!
+  admin: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type AdminRemovedEvent @entity(immutable: true) {
+  id: ID!
+  admin: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type AdminTransferredEvent @entity(immutable: true) {
+  id: ID!
+  oldAdmin: Bytes!
+  newAdmin: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type ThresholdChangedEvent @entity(immutable: true) {
+  id: ID!
+  oldThreshold: BigInt!
+  newThreshold: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+# ── GOVERNANCE: WALLET APPROVAL CO-SIGN ───────────────────────
+
+type WalletApprovalProposedEvent @entity(immutable: true) {
+  id: ID!
+  requestId: BigInt!
+  wallet: Bytes!
+  proposer: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WalletApprovalModeratorSignedEvent @entity(immutable: true) {
+  id: ID!
+  requestId: BigInt!
+  wallet: Bytes!
+  moderatorId: Bytes!    # bytes32 hashed memberId
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WalletApprovedEvent @entity(immutable: true) {
+  id: ID!
+  wallet: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WalletRevokedEvent @entity(immutable: true) {
+  id: ID!
+  wallet: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+# ── MEMBERSHIP ────────────────────────────────────────────────
+
+type MemberJoinedEvent @entity(immutable: true) {
+  id: ID!
+  wallet: Bytes!
+  memberId: Bytes!       # bytes32 hashed CPF/CNPJ
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type AccessCodeRotatedEvent @entity(immutable: true) {
+  id: ID!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type CoopDeactivatedEvent @entity(immutable: true) {
+  id: ID!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type CoopReactivatedEvent @entity(immutable: true) {
+  id: ID!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+# ── WITHDRAWAL (48h delay) ───────────────────────────────────
+
+type WithdrawalRequestedEvent @entity(immutable: true) {
+  id: ID!
+  requestId: BigInt!
+  requester: Bytes!
+  amount: BigInt!
+  executableAfter: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WithdrawalExecutedEvent @entity(immutable: true) {
+  id: ID!
+  requestId: BigInt!
+  requester: Bytes!
+  amount: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WithdrawalBlockedEvent @entity(immutable: true) {
+  id: ID!
+  requestId: BigInt!
+  blocker: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WithdrawalCancelledEvent @entity(immutable: true) {
+  id: ID!
+  requestId: BigInt!
+  requester: Bytes!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+# ── FINANCIAL ─────────────────────────────────────────────────
+
 type DonatedEvent @entity(immutable: true) {
   id: ID!
   donor: Bytes!
   amount: BigInt!
   totalDonation: BigInt!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type WithdrawnEvent @entity(immutable: true) {
+  id: ID!
+  donor: Bytes!
+  amount: BigInt!
+  donations: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
@@ -53,21 +234,8 @@ type NewDonorEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type NewBorrowerEvent @entity(immutable: true) {
-  id: ID!
-  borrower: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
+# ── LOAN LIFECYCLE ────────────────────────────────────────────
 
-type BorrowLimitReachedEvent @entity(immutable: true) {
-  id: ID!
-  borrower: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-# Updated to match the new combined event
 type LoanRequisitionCreatedCancelledEvent @entity(immutable: false) {
   id: ID!
   requisitionId: BigInt!
@@ -132,99 +300,15 @@ type LoanCompletedEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type MemberToWalletVinculationEvent @entity(immutable: true) {
+type LoanUncoveredEvent @entity(immutable: true) {
   id: ID!
-  memberId: Int!
-  wallet: Bytes!
-  walletVinculated: [Bytes!]!
-  timestamp: String!
+  requisitionId: BigInt!
+  lender: Bytes!
+  amountReturnedToLender: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
-type ReputationChangedEvent @entity(immutable: true) {
-  id: ID!
-  memberId: Int!
-  points: Int!
-  increase: Boolean!
-  newReputation: Int!
-  timestamp: String!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type AuthorizedCallerUpdatedEvent @entity(immutable: true) {
-  id: ID!
-  caller: Bytes!
-  authorized: Boolean!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type ElectionOpenedEvent @entity(immutable: true) {
-  id: ID!
-  electionId: Int!
-  candidateId: Int!
-  startTime: String!
-  endTime: String!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type CandidateAddedEvent @entity(immutable: true) {
-  id: ID!
-  electionId: Int!
-  candidateId: Int!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type VoteCastEvent @entity(immutable: true) {
-  id: ID!
-  electionId: Int!
-  candidateId: Int!
-  memberId: Int!
-  voteWeight: Int!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type ElectionClosedEvent @entity(immutable: true) {
-  id: ID!
-  electionId: Int!
-  winnerId: Int!
-  winningVotes: Int!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type UnbeatableMajorityReachedEvent @entity(immutable: true) {
-  id: ID!
-  electionId: Int!
-  winnerId: Int!
-  winningVotes: Int!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type WithdrawnEvent @entity(immutable: true) {
-  id: ID!
-  donor: Bytes!
-  amount: BigInt!
-  donations: BigInt!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type NewModeratorEvent @entity(immutable: true) {
-  id: ID!
-  memberId: Int!
-  electionId: Int!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-# New events from the contract changes
 type BorrowerOverdueEvent @entity(immutable: true) {
   id: ID!
   requisitionId: BigInt!
@@ -242,19 +326,89 @@ type BorrowerDebtSettledEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type PeriodicCheckRunEvent @entity(immutable: true) {
+# ── REPUTATION (memberId is now Bytes = bytes32) ─────────────
+
+type MemberToWalletVinculationEvent @entity(immutable: true) {
   id: ID!
-  itemsChecked: BigInt!
-  nextIndex: BigInt!
+  memberId: Bytes!          # bytes32 hashed CPF/CNPJ
+  wallet: Bytes!
+  walletVinculated: [Bytes!]!
+  timestamp: String!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
-type LoanUncoveredEvent @entity(immutable: true) {
+type ReputationChangedEvent @entity(immutable: true) {
   id: ID!
-  requisitionId: BigInt!
-  lender: Bytes!
-  amountReturnedToLender: BigInt!
+  memberId: Bytes!          # bytes32
+  points: Int!
+  increase: Boolean!
+  newReputation: Int!
+  timestamp: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type AuthorizedCallerUpdatedEvent @entity(immutable: true) {
+  id: ID!
+  caller: Bytes!
+  authorized: Boolean!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+# ── ELECTIONS (candidateId/memberId/winnerId are now Bytes) ───
+
+type ElectionOpenedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  candidateId: Bytes!       # bytes32
+  startTime: String!
+  endTime: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type CandidateAddedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  candidateId: Bytes!       # bytes32
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type VoteCastEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  candidateId: Bytes!       # bytes32
+  memberId: Bytes!          # bytes32
+  voteWeight: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type ElectionClosedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  winnerId: Bytes!          # bytes32
+  winningVotes: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type UnbeatableMajorityReachedEvent @entity(immutable: true) {
+  id: ID!
+  electionId: Int!
+  winnerId: Bytes!          # bytes32
+  winningVotes: Int!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
+
+type NewModeratorEvent @entity(immutable: true) {
+  id: ID!
+  memberId: Bytes!          # bytes32
+  electionId: Int!
   blockTimestamp: String!
   transactionHash: Bytes!
 }

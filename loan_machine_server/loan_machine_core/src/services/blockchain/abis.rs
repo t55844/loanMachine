@@ -5,111 +5,269 @@
 // the generated types in the file that uses them.
 //
 // Rule: one sol! block per contract. No business logic here.
+//
+// v3 CHANGES:
+// - memberId: uint32 → bytes32 (hashed CPF/CNPJ)
+// - Single admin → multisig (proposeAction/confirmProposal)
+// - Wallet approval: admin + moderator co-signature
+// - Withdrawal: 48h delay (request → wait → execute)
+// - Views: consolidated into getCoopStats() and getUserFinancials()
+// - LoanMachineFactory → CoopRegistry (lightweight)
 
 use alloy::sol;
 
 // ── LOAN MACHINE ─────────────────────────────────────────────
 // The cooperative savings/lending contract.
-// One instance per cooperative, deployed by LoanMachineFactory.
+// One instance per cooperative, deployed directly by server.
+// ReputationLib is inlined — all events emit from this address.
 
 sol! {
     #[sol(rpc)]
     contract LoanMachine {
-        // Member vinculation
+
+        // ── INITIALIZATION (called once after deploy) ────────
+        function initializeMultisig(
+            address[] calldata admins,
+            uint256   threshold,
+            string calldata accessCode
+        ) external;
+
+        // ── MULTISIG ADMIN ───────────────────────────────────
+        // ProposalType enum: 0=TransferAdmin, 1=AddAdmin, 2=RemoveAdmin,
+        // 3=RotateAccessCode, 4=RevokeWallet, 5=Deactivate,
+        // 6=Reactivate, 7=SetAuthorizedCaller, 8=ChangeThreshold
+
+        function proposeAction(
+            uint8 pType,
+            bytes calldata data
+        ) external returns (uint256 proposalId);
+
+        function confirmProposal(uint256 proposalId) external;
+
+        // ── WALLET APPROVAL (admin + moderator co-sign) ──────
+        function proposeWalletApproval(address wallet) external returns (uint256 requestId);
+
+        function signWalletApproval(
+            uint256 requestId,
+            bytes32 moderatorMemberId
+        ) external;
+
+        // Bootstrap: no moderator yet, requires unanimous admin
+        function bootstrapApproveWallet(address wallet) external returns (uint256 proposalId);
+        function confirmBootstrapApproval(uint256 proposalId) external;
+
+        // ── MEMBER JOIN ──────────────────────────────────────
         function joinCoop(
-            uint32 memberId,
+            bytes32 memberId,
             address wallet,
             string calldata accessCode
         ) external;
 
-        // Donations
-        function donate(uint256 amount, uint32 memberId) external;
+        function vinculationMemberToWallet(
+            bytes32 memberId,
+            address wallet
+        ) external;
 
-        // Loan lifecycle
+        // ── DONATIONS ────────────────────────────────────────
+        function donate(uint256 amount, bytes32 memberId) external;
+
+        // ── WITHDRAWAL (48h delay) ───────────────────────────
+        function requestWithdrawal(
+            uint256 amount,
+            bytes32 memberId
+        ) external returns (uint256 requestId);
+
+        function executeWithdrawal(
+            uint256 requestId,
+            bytes32 memberId
+        ) external;
+
+        function cancelWithdrawal(uint256 requestId) external;
+        function blockWithdrawal(uint256 requestId) external;
+
+        // ── LOAN LIFECYCLE ───────────────────────────────────
         function createLoanRequisition(
             uint256 amount,
             uint32  minimumCoverage,
             uint32  parcelscount,
-            uint32  memberId,
+            bytes32 memberId,
             uint32  daysIntervalOfPayment
         ) external returns (uint256);
 
         function coverLoan(
             uint256 requisitionId,
             uint32  coveragePercentage,
-            uint32  memberId
+            bytes32 memberId
         ) external;
 
         function repay(
             uint256 requisitionId,
             uint256 amount,
-            uint32  memberId
+            bytes32 memberId
         ) external;
 
-        // Admin (called by coopAdmin wallet)
-        function initializeAdmin(
-            address coopAdmin,
-            string calldata accessCode
+        function cancelLoanRequisition(
+            uint256 requisitionId,
+            bytes32 memberId
+        ) external returns (uint256 totalUncoveredAmount);
+
+        // ── ELECTIONS ────────────────────────────────────────
+        function openElection(bytes32 candidateId, bytes32 opponent) external;
+        function addCandidate(uint32 electionId, bytes32 candidateId) external;
+        function voteForModerator(
+            uint32  electionId,
+            bytes32 candidateId,
+            bytes32 memberId
         ) external;
+        function closeElection(uint32 electionId) external;
 
-        function approveWallet(address wallet) external;
-        function approveWalletBatch(address[] calldata wallets) external;
-        function revokeWallet(address wallet) external;
-        function transferAdmin(address newAdmin) external;
-        function rotateAccessCode(string calldata newCode) external;
-        function deactivateCoop() external;
+        // ── CONSOLIDATED VIEWS ───────────────────────────────
+        function getCoopStats() external view returns (
+            uint256 totalDonations,
+            uint256 totalBorrowed,
+            uint256 availableBalance,
+            uint256 contractBalance,
+            bool    isActive,
+            uint32  activeMemberCount,
+            int32   averageReputation
+        );
 
-        // Views
+        function getUserFinancials(address user) external view returns (
+            uint256 donation,
+            uint256 borrowing,
+            uint256 lastBorrowTime,
+            uint256 inCoverage,
+            uint256 withdrawable,
+            uint256 allowance
+        );
+
+        // ── INDIVIDUAL VIEWS ─────────────────────────────────
         function isWalletApproved(address wallet) external view returns (bool);
         function isMember(address wallet)         external view returns (bool);
-        function isCoopActive()                   external view returns (bool);
-        function coopAdmin()                      external view returns (address);
-        function getReputation(uint32 memberId)   external view returns (int32);
-        function getMemberId(address wallet)      external view returns (uint32);
+        function getReputation(bytes32 memberId)  external view returns (int32);
+        function getMemberId(address wallet)      external view returns (bytes32);
         function isWalletVinculated(address wallet) external view returns (bool);
-        function getDonation(address user)        external view returns (uint256);
-        function getAvailableBalance()            external view returns (uint256);
-        function getTotalDonations()              external view returns (uint256);
+        function isModerator(bytes32 memberId)    external view returns (bool);
+        function canUserBorrow(address user, uint256 amount) external view returns (bool);
+
+        // Admin views
+        function getAdmins()        external view returns (address[] memory);
+        function isAdmin(address a) external view returns (bool);
+        function adminThreshold()   external view returns (uint256);
+
+        function getProposal(uint256 proposalId) external view returns (
+            uint8   pType,
+            uint256 confirmations,
+            bool    executed,
+            uint256 createdAt
+        );
+
+        // Withdrawal views
+        function getWithdrawalRequest(uint256 requestId) external view returns (
+            address requester,
+            uint256 amount,
+            uint256 requestedAt,
+            uint256 executableAfter,
+            bool    executed,
+            bool    blocked
+        );
+        function getUserWithdrawalRequests(address user) external view returns (uint256[] memory);
+
+        // Loan views
+        function getRequisitionInfo(uint256 requisitionId) external view returns (
+            uint256   requisitionId_,
+            address   borrower,
+            uint256   amount,
+            uint32    minimumCoverage,
+            uint32    currentCoverage,
+            uint8     status,
+            uint256   creationTime,
+            address[] coveringLenders,
+            uint32    parcelsCount
+        );
+
+        function getLoanContract(uint256 requisitionId) external view returns (
+            address   walletAddress,
+            uint256   requisitionId_,
+            uint8     status,
+            uint32    parcelsCount,
+            uint32    parcelsPending,
+            uint256   parcelsValues,
+            uint256[] paymentDates,
+            uint256[] parcelsAmounts,
+            uint256   creationTime
+        );
+
+        function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay);
+        function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);
+        function getPaymentDates(uint256 requisitionId) external view returns (uint256[] memory);
+        function getCoveringLenders(uint256 id)         external view returns (address[] memory);
+        function getLenderCoverage(uint256 id, address l) external view returns (uint256);
+        function getBorrowerRequisitions(address b)     external view returns (uint256[] memory);
+        function isBorrowerOverdue(uint256 requisitionId) external view returns (bool);
+
+        function getRepaymentSummary(uint256 requisitionId) external view returns (
+            uint256 totalRemainingDebt,
+            uint256 nextPaymentAmount,
+            uint256 parcelsRemaining,
+            uint256 totalParcels,
+            bool    isActive
+        );
+
+        // Election views
+        function getCurrentElectionId() external view returns (int32);
+        function getElectionInfo(uint32 electionId) external view returns (
+            uint32    id,
+            bytes32[] candidates,
+            uint256   startTime,
+            uint256   endTime,
+            bool      isActive,
+            bytes32   winnerId,
+            int32     winningVotes,
+            int32     totalVotesCast
+        );
+        function getCandidateVotes(bytes32 candidateId) external view returns (int32);
+        function hasMemberVoted(uint32 electionId, bytes32 memberId) external view returns (bool);
     }
 }
 
-// ── LOAN MACHINE FACTORY ──────────────────────────────────────
-// Deploys new LoanMachine instances (one per cooperative).
-// After deployment it has ZERO authority over the instance.
+// ── COOP REGISTRY ────────────────────────────────────────────
+// Lightweight on-chain registry.  Does NOT deploy LoanMachine.
+// Server deploys LoanMachine directly, then registers here.
 
 sol! {
     #[sol(rpc)]
-    contract LoanMachineFactory {
-        function deployCoop(
-            string  calldata name,
-            address          usdtToken,
-            address          coopAdmin,
-            string  calldata accessCode
-        ) external returns (bytes32 coopId, address loanMachine);
+    contract CoopRegistry {
+        function registerCoop(
+            string calldata name,
+            address loanMachine
+        ) external returns (bytes32 coopId);
 
         function getCoopInstance(bytes32 coopId) external view returns (address);
         function getAllCoops()                   external view returns (bytes32[] memory);
+        function getCoopCount()                  external view returns (uint256);
+        function transferPlatformAdmin(address newAdmin) external;
 
         function coops(bytes32 coopId) external view returns (
             address loanMachine,
             string  name,
-            uint256 deployedAt,
+            uint256 registeredAt,
             bool    exists
         );
     }
 }
 
 // ── COOP ACCOUNT ─────────────────────────────────────────────
-// Smart wallet for each member (ERC-4337 compatible).
-// Deployed by CoopAccountFactory, one per member.
+// Smart wallet per member, target-locked to LoanMachine.
+// memberId is bytes32 (hashed CPF/CNPJ).
 
 sol! {
     #[sol(rpc)]
     contract CoopAccount {
         function initialize(
-            address          owner,
-            address          loanMachine,
-            uint32           memberId,
+            address            owner,
+            address            loanMachine,
+            bytes32            memberId,
             address[] calldata guardians
         ) external;
 
@@ -117,29 +275,12 @@ sol! {
 
         function approveRecovery(address proposedOwner) external;
 
-        function getGuardians()                       external view returns (address[] memory);
-        function getRecoveryApprovalCount(address p)  external view returns (uint256);
+        function getGuardians()                           external view returns (address[] memory);
+        function getRecoveryApprovalCount(address p)      external view returns (uint256);
         function hasGuardianApproved(address g, address p) external view returns (bool);
 
         function owner()       external view returns (address);
         function loanMachine() external view returns (address);
-        function memberId()    external view returns (uint32);
-    }
-}
-
-// ── COOP ACCOUNT FACTORY ─────────────────────────────────────
-// Creates CoopAccount instances for members.
-
-sol! {
-    #[sol(rpc)]
-    contract CoopAccountFactory {
-        function createAccount(
-            address          owner,
-            address          loanMachine,
-            uint32           memberId,
-            address[] calldata guardians
-        ) external returns (address account);
-
-        function getAccount(address owner) external view returns (address);
+        function memberId()    external view returns (bytes32);
     }
 }

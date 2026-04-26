@@ -5,15 +5,35 @@
         "internalType": "address",
         "name": "_usdtToken",
         "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_reputationSystem",
-        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_AdminNotYetProposed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_AlreadyAdmin",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_AlreadyConfirmed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_AlreadyInitialized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_AlreadyMember",
+    "type": "error"
   },
   {
     "inputs": [],
@@ -22,12 +42,7 @@
   },
   {
     "inputs": [],
-    "name": "LoanMachine_CheckIntervalNotYetPassed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "LoanMachine_ExcessiveDonation",
+    "name": "LoanMachine_CoopNotActive",
     "type": "error"
   },
   {
@@ -52,6 +67,11 @@
   },
   {
     "inputs": [],
+    "name": "LoanMachine_InvalidAccessCode",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "LoanMachine_InvalidAmount",
     "type": "error"
   },
@@ -63,6 +83,11 @@
   {
     "inputs": [],
     "name": "LoanMachine_InvalidParcelsCount",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_InvalidThreshold",
     "type": "error"
   },
   {
@@ -82,11 +107,6 @@
   },
   {
     "inputs": [],
-    "name": "LoanMachine_MinimumDonationRequired",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "LoanMachine_MinimumPercentageCover",
     "type": "error"
   },
@@ -97,7 +117,27 @@
   },
   {
     "inputs": [],
-    "name": "LoanMachine_NotLoanRequisitionCreator",
+    "name": "LoanMachine_NotAdmin",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_NotApproved",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_NotEnoughAdmins",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_NotModerator",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_OnlyAdminOrModerator",
     "type": "error"
   },
   {
@@ -112,17 +152,12 @@
   },
   {
     "inputs": [],
-    "name": "LoanMachine_ParcelAlreadyPaid",
+    "name": "LoanMachine_ProposalAlreadyExecuted",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "LoanMachine_RepaymentExceedsBorrowed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "LoanMachine_RequisitionAlreadyActive",
+    "name": "LoanMachine_ProposalNotFound",
     "type": "error"
   },
   {
@@ -137,18 +172,148 @@
   },
   {
     "inputs": [],
-    "name": "LoanMachine_RequisitionNotFound",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "LoanMachine_TokenTransferFailed",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "LoanMachine_WalletAlreadyVinculated",
+    "name": "LoanMachine_WalletApprovalAlreadyExecuted",
     "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WalletApprovalNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WithdrawalAlreadyExecuted",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WithdrawalBlocked",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WithdrawalNotOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WithdrawalNotReady",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_ActiveElectionExists",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_ElectionNotActive",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_InvalidCandidate",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_MemberAlreadyVoted",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_MemberIdOrWalletInvalid",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_NoCandidates",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_WalletAlreadyLinkedToAnotherMember",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RS_WalletAlreadyVinculated",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "AccessCodeRotated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "admin",
+        "type": "address"
+      }
+    ],
+    "name": "AdminAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "admin",
+        "type": "address"
+      }
+    ],
+    "name": "AdminRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldAdmin",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newAdmin",
+        "type": "address"
+      }
+    ],
+    "name": "AdminTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "authorized",
+        "type": "bool"
+      }
+    ],
+    "name": "AuthorizedCallerUpdated",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -161,19 +326,6 @@
       }
     ],
     "name": "AvailableBalanceUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      }
-    ],
-    "name": "BorrowLimitReached",
     "type": "event"
   },
   {
@@ -250,6 +402,37 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "CandidateAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "CoopDeactivated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "CoopReactivated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "donor",
         "type": "address"
@@ -268,6 +451,62 @@
       }
     ],
     "name": "Donated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "winnerId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "winningVotes",
+        "type": "int32"
+      }
+    ],
+    "name": "ElectionClosed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "ElectionOpened",
     "type": "event"
   },
   {
@@ -463,11 +702,48 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "borrower",
+        "name": "wallet",
         "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
       }
     ],
-    "name": "NewBorrower",
+    "name": "MemberJoined",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "walletVinculated",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "MemberToWalletVinculation",
     "type": "event"
   },
   {
@@ -481,6 +757,25 @@
       }
     ],
     "name": "NewDonor",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      }
+    ],
+    "name": "NewModerator",
     "type": "event"
   },
   {
@@ -506,19 +801,69 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
-        "name": "itemsChecked",
+        "name": "proposalId",
         "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "admin",
+        "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "nextIndex",
+        "name": "confirmations",
         "type": "uint256"
       }
     ],
-    "name": "PeriodicCheckRun",
+    "name": "ProposalConfirmed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "enum LoanMachine.ProposalType",
+        "name": "pType",
+        "type": "uint8"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      }
+    ],
+    "name": "ProposalCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "enum LoanMachine.ProposalType",
+        "name": "pType",
+        "type": "uint8"
+      }
+    ],
+    "name": "ProposalExecuted",
     "type": "event"
   },
   {
@@ -544,6 +889,62 @@
       }
     ],
     "name": "Repaid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "points",
+        "type": "int32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "increase",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "newReputation",
+        "type": "int32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "ReputationChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldThreshold",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newThreshold",
+        "type": "uint256"
+      }
+    ],
+    "name": "ThresholdChanged",
     "type": "event"
   },
   {
@@ -577,6 +978,232 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "winnerId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "winningVotes",
+        "type": "int32"
+      }
+    ],
+    "name": "UnbeatableMajorityReached",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "voteWeight",
+        "type": "int32"
+      }
+    ],
+    "name": "VoteCast",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "moderatorId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "WalletApprovalModeratorSigned",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      }
+    ],
+    "name": "WalletApprovalProposed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "WalletApproved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "WalletRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "blocker",
+        "type": "address"
+      }
+    ],
+    "name": "WithdrawalBlocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "requester",
+        "type": "address"
+      }
+    ],
+    "name": "WithdrawalCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "requester",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "WithdrawalExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "requester",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "executableAfter",
+        "type": "uint256"
+      }
+    ],
+    "name": "WithdrawalRequested",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "donor",
         "type": "address"
@@ -599,7 +1226,46 @@
   },
   {
     "inputs": [],
-    "name": "CHECK_INTERVAL",
+    "name": "REPUTATION_GAIN_BY_COVERING_LOAN",
+    "outputs": [
+      {
+        "internalType": "int32",
+        "name": "",
+        "type": "int32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "REPUTATION_GAIN_BY_REPAYNG_DEBT",
+    "outputs": [
+      {
+        "internalType": "int32",
+        "name": "",
+        "type": "int32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "REPUTATION_LOSS_BY_DEBT_NOT_PAYD",
+    "outputs": [
+      {
+        "internalType": "int32",
+        "name": "",
+        "type": "int32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WITHDRAWAL_DELAY",
     "outputs": [
       {
         "internalType": "uint256",
@@ -613,17 +1279,24 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
       },
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
       }
     ],
-    "name": "borrowerRequisitions",
+    "name": "addCandidate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "adminThreshold",
     "outputs": [
       {
         "internalType": "uint256",
@@ -632,6 +1305,76 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "admins",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "authorizedCallers",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "blockWithdrawal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "bootstrapApproveWallet",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -662,12 +1405,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_user",
+        "name": "user",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_amount",
+        "name": "amount",
         "type": "uint256"
       }
     ],
@@ -690,9 +1433,9 @@
         "type": "uint256"
       },
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
     "name": "cancelLoanRequisition",
@@ -710,6 +1453,58 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "cancelWithdrawal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      }
+    ],
+    "name": "closeElection",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "confirmBootstrapApproval",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "confirmProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "requisitionId",
         "type": "uint256"
       },
@@ -719,9 +1514,9 @@
         "type": "uint32"
       },
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
     "name": "coverLoan",
@@ -747,9 +1542,9 @@
         "type": "uint32"
       },
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       },
       {
         "internalType": "uint32",
@@ -772,50 +1567,34 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "amount",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
       }
     ],
-    "name": "debtWatchlist",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "requisitionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "borrower",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "nextDueDate",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "isOverdue",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "donate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "amount",
+        "name": "requestId",
         "type": "uint256"
       },
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
-    "name": "donate",
+    "name": "executeWithdrawal",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -884,7 +1663,7 @@
       },
       {
         "internalType": "uint256[]",
-        "name": "requisitionIds",
+        "name": "ids",
         "type": "uint256[]"
       }
     ],
@@ -892,45 +1671,13 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getAllowance",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
-    "name": "getAvailableBalance",
+    "name": "getAdmins",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address[]",
         "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getAvailableBorrowAmount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "type": "address[]"
       }
     ],
     "stateMutability": "view",
@@ -940,7 +1687,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "borrower",
+        "name": "b",
         "type": "address"
       }
     ],
@@ -958,17 +1705,17 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
       }
     ],
-    "name": "getBorrowing",
+    "name": "getCandidateVotes",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "int32",
         "name": "",
-        "type": "uint256"
+        "type": "int32"
       }
     ],
     "stateMutability": "view",
@@ -976,12 +1723,42 @@
   },
   {
     "inputs": [],
-    "name": "getContractBalance",
+    "name": "getCoopStats",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_totalDonations",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_totalBorrowed",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_availableBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_contractBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_isActive",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_activeMemberCount",
+        "type": "uint32"
+      },
+      {
+        "internalType": "int32",
+        "name": "_averageReputation",
+        "type": "int32"
       }
     ],
     "stateMutability": "view",
@@ -991,7 +1768,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "requisitionId",
+        "name": "id",
         "type": "uint256"
       }
     ],
@@ -1001,6 +1778,19 @@
         "internalType": "address[]",
         "name": "",
         "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getCurrentElectionId",
+    "outputs": [
+      {
+        "internalType": "int32",
+        "name": "",
+        "type": "int32"
       }
     ],
     "stateMutability": "view",
@@ -1033,7 +1823,7 @@
             "type": "bool"
           }
         ],
-        "internalType": "struct LoanMachine.DebtWatchItem[]",
+        "internalType": "struct ILoanMachine.DebtWatchItem[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -1044,17 +1834,52 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
       }
     ],
-    "name": "getDonation",
+    "name": "getElectionInfo",
     "outputs": [
       {
+        "internalType": "uint32",
+        "name": "id",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "candidates",
+        "type": "bytes32[]"
+      },
+      {
         "internalType": "uint256",
-        "name": "",
+        "name": "startTime",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isActive",
+        "type": "bool"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "winnerId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "int32",
+        "name": "winningVotes",
+        "type": "int32"
+      },
+      {
+        "internalType": "int32",
+        "name": "totalVotesCast",
+        "type": "int32"
       }
     ],
     "stateMutability": "view",
@@ -1063,51 +1888,13 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "lender",
-        "type": "address"
-      }
-    ],
-    "name": "getDonationsInCoverage",
-    "outputs": [
-      {
         "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "getLastBorrowTime",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "requisitionId",
+        "name": "id",
         "type": "uint256"
       },
       {
         "internalType": "address",
-        "name": "lender",
+        "name": "l",
         "type": "address"
       }
     ],
@@ -1199,9 +1986,9 @@
     "name": "getMemberId",
     "outputs": [
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -1254,6 +2041,40 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getProposal",
+    "outputs": [
+      {
+        "internalType": "enum LoanMachine.ProposalType",
+        "name": "pType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "confirmations",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "executed",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "requisitionId",
         "type": "uint256"
       }
@@ -1292,9 +2113,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
     "name": "getReputation",
@@ -1375,38 +2196,43 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getTotalBorrowed",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getTotalDonations",
+    "name": "getUserFinancials",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "donation",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getUSDTBalance",
-    "outputs": [
+      },
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "borrowing",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_lastBorrowTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "inCoverage",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "withdrawable",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "allowance",
         "type": "uint256"
       }
     ],
@@ -1421,12 +2247,129 @@
         "type": "address"
       }
     ],
-    "name": "getWithdrawableBalance",
+    "name": "getUserWithdrawalRequests",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint256[]",
         "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
         "type": "uint256"
+      }
+    ],
+    "name": "getWithdrawalRequest",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "requester",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "requestedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "executableAfter",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "blocked",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ILoanMachine.WithdrawalRequest",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "hasMemberVoted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_admins",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_threshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "accessCode",
+        "type": "string"
+      }
+    ],
+    "name": "initializeMultisig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isAdmin",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -1441,6 +2384,63 @@
       }
     ],
     "name": "isBorrowerOverdue",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isMember",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "isModerator",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "isWalletApproved",
     "outputs": [
       {
         "internalType": "bool",
@@ -1471,70 +2471,49 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "lastPeriodicCheckTimestamp",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "loanContracts",
-    "outputs": [
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
+      },
       {
         "internalType": "address",
-        "name": "walletAddress",
+        "name": "wallet",
         "type": "address"
       },
       {
-        "internalType": "uint256",
-        "name": "requisitionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum ILoanMachine.ContractStatus",
-        "name": "status",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint32",
-        "name": "parcelsCount",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "parcelsPending",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint256",
-        "name": "parcelsValues",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "creationTime",
-        "type": "uint256"
+        "internalType": "string",
+        "name": "accessCode",
+        "type": "string"
       }
     ],
-    "stateMutability": "view",
+    "name": "joinCoop",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "opponent",
+        "type": "bytes32"
+      }
+    ],
+    "name": "openElection",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "nextCheckIndex",
+    "name": "proposalCounter",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1548,13 +2527,43 @@
   {
     "inputs": [
       {
+        "internalType": "enum LoanMachine.ProposalType",
+        "name": "pType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "proposeAction",
+    "outputs": [
+      {
         "internalType": "uint256",
-        "name": "batchSize",
+        "name": "proposalId",
         "type": "uint256"
       }
     ],
-    "name": "performPeriodicDebtCheck",
-    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      }
+    ],
+    "name": "proposeWalletApproval",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -1571,9 +2580,9 @@
         "type": "uint256"
       },
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
     "name": "repay",
@@ -1582,16 +2591,27 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "reputationSystem",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "contract ReputationSystem",
-        "name": "",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "memberId",
+        "type": "bytes32"
       }
     ],
-    "stateMutability": "view",
+    "name": "requestWithdrawal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1605,6 +2625,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "moderatorMemberId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "signWalletApproval",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1623,9 +2661,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       },
       {
         "internalType": "address",
@@ -1641,19 +2679,94 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
+        "internalType": "uint32",
+        "name": "electionId",
+        "type": "uint32"
       },
       {
-        "internalType": "uint32",
+        "internalType": "bytes32",
+        "name": "candidateId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
         "name": "memberId",
-        "type": "uint32"
+        "type": "bytes32"
       }
     ],
-    "name": "withdraw",
+    "name": "voteForModerator",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "walletApprovalCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "walletApprovalRequests",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "adminApproved",
+        "type": "bool"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "moderatorId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "moderatorApproved",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "executed",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawalRequestCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ]

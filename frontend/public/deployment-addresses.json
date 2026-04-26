@@ -1,8 +1,0 @@
-{
-  "mockUSDT": "0x2107997bd769396b1B1f05A872f4e0a2BF16d54A",
-  "reputationSystem": "0xf9B64b3242DDFc7627cd764825617e6d9310Ce95",
-  "reputationSystemTxHash": "0x6f20cd4b360a93f0ef2afd11c80c6720720a9c372820042e272891f263a5af74",
-  "loanMachine": "0xE797948c05aa26369825bA03D2b5e0eBB4ed28C1",  
-  "loanMachineTxHash": "0x6f20cd4b360a93f0ef2afd11c80c6720720a9c372820042e272891f263a5af74",
-
-}

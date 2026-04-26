@@ -1,8 +1,80 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\ILoanMachine.sol": {
-      "lastModificationDate": 1776136323388,
+    "/home/thorim/projects/loan-machine/hardhat/contracts/CoopAccount.sol": {
+      "lastModificationDate": 1776824620977,
+      "contentHash": "7d75d3e350bd32e1bcd5d21997528b8c",
+      "sourceName": "contracts/CoopAccount.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 10
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "CoopAccount"
+      ]
+    },
+    "/home/thorim/projects/loan-machine/hardhat/contracts/CoopRegistry.sol": {
+      "lastModificationDate": 1776824626993,
+      "contentHash": "5986ef01800422ec7b52f6fdbfff01db",
+      "sourceName": "contracts/CoopRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 10
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "CoopRegistry"
+      ]
+    },
+    "/home/thorim/projects/loan-machine/hardhat/contracts/ILoanMachine.sol": {
+      "lastModificationDate": 1776551179230,
       "contentHash": "8345f26beeafc378612f35813917e46a",
       "sourceName": "contracts/ILoanMachine.sol",
       "solcConfig": {
@@ -37,8 +109,8 @@
         "ILoanMachine"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\structs\\LoanStructs.sol": {
-      "lastModificationDate": 1771206445979,
+    "/home/thorim/projects/loan-machine/hardhat/contracts/structs/LoanStructs.sol": {
+      "lastModificationDate": 1776551179467,
       "contentHash": "851f9bc6cd127aa8594bf3a68e19ca95",
       "sourceName": "contracts/structs/LoanStructs.sol",
       "solcConfig": {
@@ -75,8 +147,8 @@
         "LoanStructs"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachine.sol": {
-      "lastModificationDate": 1776136337300,
+    "/home/thorim/projects/loan-machine/hardhat/contracts/LoanMachine.sol": {
+      "lastModificationDate": 1776551179467,
       "contentHash": "0a25c212eac1b2f97f7f050a0fecbeb3",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
@@ -117,8 +189,44 @@
         "LoanMachine"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\ReputationLib.sol": {
-      "lastModificationDate": 1776135008987,
+    "/home/thorim/projects/loan-machine/hardhat/contracts/IReputationSystem.sol": {
+      "lastModificationDate": 1776551179230,
+      "contentHash": "50d8a34de4919f7ac3c63b0ba3553598",
+      "sourceName": "contracts/IReputationSystem.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 10
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "IReputationSystem"
+      ]
+    },
+    "/home/thorim/projects/loan-machine/hardhat/contracts/ReputationLib.sol": {
+      "lastModificationDate": 1776551179467,
       "contentHash": "fbf17177a5a8814828f5c20dfe350892",
       "sourceName": "contracts/ReputationLib.sol",
       "solcConfig": {
@@ -155,80 +263,8 @@
         "ReputationLib"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\IReputationSystem.sol": {
-      "lastModificationDate": 1776136348186,
-      "contentHash": "50d8a34de4919f7ac3c63b0ba3553598",
-      "sourceName": "contracts/IReputationSystem.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 10
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "IReputationSystem"
-      ]
-    },
-    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1762399977279,
-      "contentHash": "df36f7051335cd1e748b1b6463b7fdd3",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 10
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "IERC20"
-      ]
-    },
-    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
-      "lastModificationDate": 1762399977362,
+    "/home/thorim/projects/loan-machine/hardhat/node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+      "lastModificationDate": 1776825577048,
       "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
       "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
       "solcConfig": {
@@ -263,8 +299,44 @@
         "ReentrancyGuard"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
-      "lastModificationDate": 1762399977282,
+    "/home/thorim/projects/loan-machine/hardhat/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+      "lastModificationDate": 1776825576900,
+      "contentHash": "df36f7051335cd1e748b1b6463b7fdd3",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 10
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "/home/thorim/projects/loan-machine/hardhat/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+      "lastModificationDate": 1776825576904,
       "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
@@ -301,8 +373,8 @@
         "IERC20Metadata"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
-      "lastModificationDate": 1762399977125,
+    "/home/thorim/projects/loan-machine/hardhat/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+      "lastModificationDate": 1776825576704,
       "contentHash": "3ae5166c6827a9cf1a7a462d1632b464",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
@@ -341,8 +413,8 @@
         "ERC20"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1762399976998,
+    "/home/thorim/projects/loan-machine/hardhat/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+      "lastModificationDate": 1776825576580,
       "contentHash": "f07feb4a44b1a4872370da5aa70e8e46",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
@@ -377,8 +449,8 @@
         "Context"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\MockUSDT.sol": {
-      "lastModificationDate": 1776131668328,
+    "/home/thorim/projects/loan-machine/hardhat/contracts/MockUSDT.sol": {
+      "lastModificationDate": 1776551179467,
       "contentHash": "350008f1afd9397cd715c796f69f9357",
       "sourceName": "contracts/MockUSDT.sol",
       "solcConfig": {
@@ -415,8 +487,8 @@
         "MockUSDT"
       ]
     },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\libraries\\LoanCalculations.sol": {
-      "lastModificationDate": 1771897999553,
+    "/home/thorim/projects/loan-machine/hardhat/contracts/libraries/LoanCalculations.sol": {
+      "lastModificationDate": 1776551179467,
       "contentHash": "045ed599e609cfcba74a9c3af7876241",
       "sourceName": "contracts/libraries/LoanCalculations.sol",
       "solcConfig": {
@@ -449,78 +521,6 @@
       ],
       "artifacts": [
         "LoanCalculations"
-      ]
-    },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\LoanMachineFactory.sol": {
-      "lastModificationDate": 1776134945964,
-      "contentHash": "5986ef01800422ec7b52f6fdbfff01db",
-      "sourceName": "contracts/LoanMachineFactory.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 10
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "CoopRegistry"
-      ]
-    },
-    "C:\\codigos\\loan-machine\\hardhat\\contracts\\SimpleAccount.sol": {
-      "lastModificationDate": 1776134953868,
-      "contentHash": "7d75d3e350bd32e1bcd5d21997528b8c",
-      "sourceName": "contracts/SimpleAccount.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 10
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "CoopAccount"
       ]
     }
   }

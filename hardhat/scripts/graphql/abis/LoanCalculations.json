@@ -1,0 +1,21 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "LoanCalculations",
+  "sourceName": "contracts/libraries/LoanCalculations.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "CoverageExceeds100",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidCoveragePercentage",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea26469706673582212203dc4b7c69876e716cf220367fe61bb866a438dad121e0d5d6189172f2b63046b64736f6c63430008130033",
+  "deployedBytecode": "0x600080fdfea26469706673582212203dc4b7c69876e716cf220367fe61bb866a438dad121e0d5d6189172f2b63046b64736f6c63430008130033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

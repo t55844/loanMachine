@@ -44,6 +44,7 @@ tower-http = { version = "0.5", default-features = false, features = [
     "cors", "trace", "fs",
 ] }
 tower = { version = "0.4", default-features = false }
+rand    = "0.8"
 
 [dev-dependencies]
 alloy = { workspace = true, features = [
@@ -51,7 +52,16 @@ alloy = { workspace = true, features = [
     "sol-types", "rpc-types", "network",
     "signer-local","node-bindings",
 ] }
+loan_machine_core = { path = ".", features = ["deployable"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 axum-test = "15"
 tokio     = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+
+[features]
+deployable = ["alloy/signer-local"]
+
+[[bin]]
+name = "deploy_local"
+path = "src/bin/deploy_local.rs"
+required-features = ["deployable"]

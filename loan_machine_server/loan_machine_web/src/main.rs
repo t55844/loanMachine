@@ -1,23 +1,25 @@
 #![recursion_limit = "256"]
 
+use axum::Router;
 use leptos::prelude::*;
-use leptos::hydration::HydrationScripts;          
+use leptos::hydration::HydrationScripts;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use leptos_config::{get_configuration, LeptosOptions};
-use loan_machine_web::app::App;
 use loan_machine_core::config::AppState;
-use loan_machine_web::create_app;
+use loan_machine_web::app::App;
 use tower_http::services::ServeDir;
 
 #[component]
-fn Shell(options: LeptosOptions) -> impl IntoView {
-    let app_id = std::env::var("PRIVY_APP_ID").unwrap_or_default();
-    let rpc_url = std::env::var("RPC_URL").unwrap_or_default();
-    let chain  = std::env::var("CHAIN_ID").unwrap_or_else(|_| "31337".into());
+fn Shell(
+    options: LeptosOptions,
+    privy_app_id: String,
+    rpc_url:      String,
+    chain_id:     u64,
+    ) -> impl IntoView {
 
     let config_js = format!(
         "window.APP_CONFIG = {{ privyAppId: '{}', rpcUrl: '{}', chainId: {} }};",
-        app_id, rpc_url, chain
+        privy_app_id, rpc_url, chain_id
     );
 
     view! {
@@ -42,7 +44,7 @@ fn Shell(options: LeptosOptions) -> impl IntoView {
 
 #[tokio::main]
 async fn main() {
-    dotenvy::dotenv().ok();
+    dotenvy::from_filename(".env").ok();
     tracing_subscriber::fmt::init();
 
     let conf = get_configuration(None).unwrap();
@@ -53,14 +55,24 @@ async fn main() {
     let state = AppState::new(leptos_options.clone()).await;
     let routes = generate_route_list(App);
 
-    let router = create_app()
+    let shell_app_id   = state.privy.app_id().to_string();
+    let shell_rpc      = state.chain_config.rpc_url.clone();
+    let shell_chain    = state.chain_config.chain_id;
+
+    let router = Router::new()
         .leptos_routes(
             &state,
             routes,
             {
                 let opts = leptos_options.clone();
-                // ✅ Use view! macro to instantiate the component correctly
-                move || view! { <Shell options=opts.clone()/> }
+                move || view!{
+                    <Shell
+                        options=opts.clone()
+                        privy_app_id=shell_app_id.clone()
+                        rpc_url=shell_rpc.clone()
+                        chain_id=shell_chain
+                    />
+                }
             },
         )
         .fallback_service(ServeDir::new(&*site_root))

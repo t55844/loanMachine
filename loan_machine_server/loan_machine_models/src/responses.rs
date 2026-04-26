@@ -20,7 +20,7 @@ pub struct CoopInfo {
 /// Everything the browser needs to submit the vinculation transaction.
 /// joinCoop now handles both joining AND vinculation in one tx,
 /// so we only need one calldata instead of two.
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct VinculationBundle {
     pub join_calldata:        String,   // encoded joinCoop(memberId, wallet, accessCode)
     pub loan_machine_address: String,   // target contract for the tx

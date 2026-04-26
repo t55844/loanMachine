@@ -11,5 +11,5 @@ mod home_test;
 #[cfg(all(test, feature = "ssr"))]
 mod auth_bar_test;
 
-#[cfg(all(test, feature = "ssr"))]
+#[cfg(test)]
 mod vinculation_test;
