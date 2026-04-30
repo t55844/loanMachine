@@ -8,14 +8,16 @@ use crate::components::auth_bar::AuthBar;
 use crate::components::home::HomePage;
 use std::sync::Arc;
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::{JsCast, JsValue};
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::closure::Closure;
 // ── ROOT ──────────────────────────────────────────────────────
 
 #[component]
 pub fn App() -> impl IntoView {
-    view! {       
+    view! {
         <Navbar title="LOAN MACHINE" />
-        // WalletRouter owns the wallet signal and passes it down
-        // It must wrap both AuthBar and Router so both share the same signal
         <WalletRouter />
     }
 }
@@ -28,114 +30,72 @@ pub fn App() -> impl IntoView {
 fn WalletRouter() -> impl IntoView {
     let (wallet, set_wallet) = signal::<Option<String>>(None);
 
-    // ── Listen for privy_wallet_ready → set wallet ────────────
+    // Browser-only setup: register listeners + trigger session restore.
+    // Runs once per hydration, directly in the component body — no Effect needed.
     #[cfg(target_arch = "wasm32")]
     {
         use wasm_bindgen::prelude::*;
-        use wasm_bindgen::JsCast;
 
-        let set_w = set_wallet.clone();
-        let closure = Closure::<dyn Fn(web_sys::CustomEvent)>::new(
+        let window = web_sys::window().expect("no window");
+
+        // ── privy_wallet_ready → set wallet ──
+        let on_ready = Closure::<dyn Fn(web_sys::CustomEvent)>::new(
             move |e: web_sys::CustomEvent| {
-                let address = js_sys::Reflect::get(
-                    &e.detail(),
-                    &JsValue::from_str("address"),
-                )
-                .ok()
-                .and_then(|v: JsValue| v.as_string());
-
+                let address = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("address"))
+                    .ok()
+                    .and_then(|v| v.as_string());
                 if let Some(addr) = address {
-                    set_w.set(Some(addr));
+                    web_sys::console::log_1(
+                        &JsValue::from_str(&format!("[rust] privy_wallet_ready received: {addr}"))
+                    );
+                    set_wallet.set(Some(addr));
                 }
             },
         );
-        web_sys::window()
-            .expect("no window")
+        window
             .add_event_listener_with_callback(
                 "privy_wallet_ready",
-                closure.as_ref().unchecked_ref(),
+                on_ready.as_ref().unchecked_ref(),
             )
-            .expect("failed to add event listener");
-        closure.forget();
-    }
+            .expect("add privy_wallet_ready listener");
+        on_ready.forget(); // keep alive for page lifetime
 
-    // ── Listen for privy_logged_out → clear wallet ────────────
-    #[cfg(target_arch = "wasm32")]
-    {
-        use wasm_bindgen::prelude::*;
-        use wasm_bindgen::JsCast;
-
-        let set_w = set_wallet.clone();
-        let closure = Closure::<dyn Fn(web_sys::CustomEvent)>::new(
+        // ── privy_logged_out → clear wallet ──
+        let on_logout = Closure::<dyn Fn(web_sys::CustomEvent)>::new(
             move |_e: web_sys::CustomEvent| {
-                set_w.set(None);
+                web_sys::console::log_1(&JsValue::from_str("[rust] privy_logged_out received"));
+                set_wallet.set(None);
             },
         );
-        web_sys::window()
-            .expect("no window")
+        window
             .add_event_listener_with_callback(
                 "privy_logged_out",
-                closure.as_ref().unchecked_ref(),
+                on_logout.as_ref().unchecked_ref(),
             )
-            .expect("failed to add event listener");
-        closure.forget();
+            .expect("add privy_logged_out listener");
+        on_logout.forget();
+
+        // ── Trigger restore (listeners are armed) ──
+        web_sys::console::log_1(&JsValue::from_str("[rust] calling loan_machine_try_restore"));
+        call_window_fn_when_ready("loan_machine_try_restore", 30, 100);
+
     }
 
-    // Helper closures — defined once, reused across routes
-    // WHY not inline: the wasm_bindgen extern block can't be written
-    // inside a move closure cleanly — extract to a plain fn call
+    // ── Login / logout closures ──
     let login_fn: Arc<dyn Fn() + Send + Sync> = Arc::new(|| {
-            #[cfg(target_arch = "wasm32")]
-            {
-                use wasm_bindgen::JsValue;
-                use js_sys::Function;
-                use wasm_bindgen::JsCast;
+        #[cfg(target_arch = "wasm32")]
+        call_window_fn("loan_machine_init_privy");
+    });
 
-                let window = web_sys::window().unwrap();
-                // Look up the function on window at runtime — not compile-time binding
-                match js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_init_privy")) {
-                    Ok(val) => {
-                        if let Ok(func) = val.dyn_into::<Function>() {
-                            let _ = func.call0(&JsValue::NULL);
-                        } else {
-                            web_sys::console::error_1(
-                                &JsValue::from_str("loan_machine_init_privy is not a function — bridge not loaded?")
-                            );
-                        }
-                    }
-                    Err(_) => {
-                        web_sys::console::error_1(
-                            &JsValue::from_str("loan_machine_init_privy not found on window — bridge not loaded?")
-                        );
-                    }
-                }
-            }
-        });
-
-        let logout_fn: Arc<dyn Fn() + Send + Sync> = Arc::new(|| {
-            #[cfg(target_arch = "wasm32")]
-            {
-                use wasm_bindgen::JsValue;
-                use js_sys::Function;
-                use wasm_bindgen::JsCast;
-
-                let window = web_sys::window().unwrap();
-                match js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_logout")) {
-                    Ok(val) => {
-                        if let Ok(func) = val.dyn_into::<Function>() {
-                            let _ = func.call0(&JsValue::NULL);
-                        }
-                    }
-                    Err(_) => {}
-                }
-            }
-        });
+    let logout_fn: Arc<dyn Fn() + Send + Sync> = Arc::new(|| {
+        #[cfg(target_arch = "wasm32")]
+        call_window_fn("loan_machine_logout");
+    });
 
     view! {
-        // AuthBar: always visible, shows connect or address
         <AuthBar
             wallet=wallet
-            on_login=Arc::clone(&login_fn)  
+            on_login=Arc::clone(&login_fn)
             on_logout=Arc::clone(&logout_fn)
         />
 
@@ -143,16 +103,12 @@ fn WalletRouter() -> impl IntoView {
             <Routes fallback=|| view! {
                 <section class="section">
                     <div class="container-sm">
-                        <Alert kind=AlertKind::Error>
-                            "Página não encontrada."
-                        </Alert>
+                        <Alert kind=AlertKind::Error>"Página não encontrada."</Alert>
                     </div>
                 </section>
             }>
-
-                // ── / ─────────────────────────────────────────
                 <Route path=path!("/") view=move || {
-                let login = Arc::clone(&login_fn);  
+                    let login = Arc::clone(&login_fn);
                     match wallet.get() {
                         None => view! {
                             <HomePage on_login=move || login() />
@@ -165,18 +121,14 @@ fn WalletRouter() -> impl IntoView {
                     }
                 }/>
 
-                // ── /vinculate ────────────────────────────────
                 <Route path=path!("/vinculate") view=move || {
                     match wallet.get() {
-                        // Not logged in: point to the AuthBar above
                         None => view! {
                             <section class="section">
                                 <div class="container-sm">
                                     <Card variant=CardVariant::Yellow hover=false>
                                         <div class="flex-col gap-6">
-                                            <h2 class="t-display-md t-yellow">
-                                                "LOGIN NECESSÁRIO"
-                                            </h2>
+                                            <h2 class="t-display-md t-yellow">"LOGIN NECESSÁRIO"</h2>
                                             <p class="t-mono-sm t-muted">
                                                 "Use o botão "
                                                 <span class="t-yellow">"CONECTAR"</span>
@@ -187,8 +139,6 @@ fn WalletRouter() -> impl IntoView {
                                 </div>
                             </section>
                         }.into_any(),
-
-                        // Logged in: show form directly
                         Some(addr) => view! {
                             <section class="section">
                                 <div class="container-sm">
@@ -210,7 +160,6 @@ fn WalletRouter() -> impl IntoView {
                     }
                 }/>
 
-                // ── /donate ───────────────────────────────────
                 <Route path=path!("/donate") view=|| view! {
                     <section class="section">
                         <div class="container-sm">
@@ -218,10 +167,95 @@ fn WalletRouter() -> impl IntoView {
                         </div>
                     </section>
                 }/>
-
             </Routes>
         </Router>
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn call_window_fn(name: &str) {
+    use js_sys::Function;
+    let window = web_sys::window().expect("window");
+    if let Ok(val) = js_sys::Reflect::get(&window, &JsValue::from_str(name)) {
+        if let Ok(func) = val.dyn_into::<Function>() {
+            let _ = func.call0(&JsValue::NULL);
+            return;
+        }
+    }
+    web_sys::console::error_1(
+        &JsValue::from_str(&format!("[rust] {name} not found / not a function"))
+    );
+}
+
+#[cfg(target_arch = "wasm32")]
+fn call_window_fn_when_ready(name: &'static str, max_attempts: u32, interval_ms: i32) {
+    use js_sys::Function;
+
+    fn try_now(name: &str) -> bool {
+        let window = match web_sys::window() {
+            Some(w) => w,
+            None    => return false,
+        };
+        if let Ok(val) = js_sys::Reflect::get(&window, &JsValue::from_str(name)) {
+            if let Ok(func) = val.dyn_into::<Function>() {
+                let _ = func.call0(&JsValue::NULL);
+                return true;
+            }
+        }
+        false
+    }
+
+    if try_now(name) {
+        return;
+    }
+
+    let attempts = std::rc::Rc::new(std::cell::Cell::new(0u32));
+    // We need a Closure that can re-schedule itself, which requires
+    // the Closure to be reachable from inside its own body. The
+    // Rc<RefCell<Option<Closure>>> dance below is the standard pattern.
+    let cb_holder: std::rc::Rc<std::cell::RefCell<Option<Closure<dyn FnMut()>>>> =
+        std::rc::Rc::new(std::cell::RefCell::new(None));
+
+    let cb_holder_clone = cb_holder.clone();
+    let attempts_clone  = attempts.clone();
+
+    let cb = Closure::<dyn FnMut()>::new(move || {
+        if try_now(name) {
+            // Done — drop the closure so it gets cleaned up.
+            cb_holder_clone.borrow_mut().take();
+            return;
+        }
+
+        let n = attempts_clone.get() + 1;
+        attempts_clone.set(n);
+
+        if n >= max_attempts {
+            web_sys::console::error_1(
+                &JsValue::from_str(&format!("[rust] {name} never became available after {n} attempts"))
+            );
+            cb_holder_clone.borrow_mut().take();
+            return;
+        }
+
+        // Re-schedule.
+        let window = web_sys::window().expect("window");
+        if let Some(cb) = cb_holder_clone.borrow().as_ref() {
+            let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                cb.as_ref().unchecked_ref(),
+                interval_ms,
+            );
+        }
+    });
+
+    // Schedule the first poll.
+    let window = web_sys::window().expect("window");
+    let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+        cb.as_ref().unchecked_ref(),
+        interval_ms,
+    );
+
+    // Store the closure so it stays alive across timer ticks.
+    *cb_holder.borrow_mut() = Some(cb);
 }
 
 // ── MAIN DASHBOARD ────────────────────────────────────────────

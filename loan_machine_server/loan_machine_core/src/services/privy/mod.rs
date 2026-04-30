@@ -19,6 +19,7 @@ pub enum PrivyError{
 
 pub struct PrivyService {
     app_id:String,
+
 }
 
 impl PrivyService {
@@ -28,10 +29,12 @@ impl PrivyService {
         if app_id.trim().is_empty(){
             return Err(PrivyError::MissingPrivyAppId);
         }
+
         Ok(Self { app_id })
     }
 
-    pub fn app_id(&self) -> &str {
-        &self.app_id
+    pub fn app_id(&self) -> String {
+        self.app_id.clone()
     }
+
 }

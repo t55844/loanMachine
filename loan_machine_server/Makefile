@@ -14,3 +14,5 @@ test-one:
 	cargo test -p loan_machine_core --features deployable $(NAME) -- --exact --nocapture
 
 test-all: test-web test-core
+
+# cargo run -p loan_machine_core --bin deploy_local --features deployable

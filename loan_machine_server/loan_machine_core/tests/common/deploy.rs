@@ -31,6 +31,10 @@ struct Deployed {
     access_code:          String,
     approved_wallet:      Address,
     unapproved_wallet:    Address,
+    platform_admin_key_hex:  String,  
+    second_admin:            Address,
+    third_admin:             Address,
+    loan_machine_bytecode:   Vec<u8>,
     _anvil:               AnvilInstance,
 }
 
@@ -45,6 +49,10 @@ pub struct DeployedEnv {
     pub access_code:          String,
     pub approved_wallet:      Address,
     pub unapproved_wallet:    Address,
+    pub platform_admin_key_hex:  String,    // hex of admin1's private key
+    pub second_admin:            Address,
+    pub third_admin:             Address,
+    pub loan_machine_bytecode:   Vec<u8>,
     pub blockchain:           Arc<BlockchainService>,
 }
 
@@ -66,6 +74,10 @@ pub async fn get_deployed() -> DeployedEnv {
         access_code:          d.access_code.clone(),
         approved_wallet:      d.approved_wallet,
         unapproved_wallet:    d.unapproved_wallet,
+        platform_admin_key_hex:  d.platform_admin_key_hex.clone(),
+        second_admin:            d.second_admin,
+        third_admin:             d.third_admin,
+        loan_machine_bytecode:   d.loan_machine_bytecode.clone(),
         blockchain:           Arc::new(blockchain),
     }
 }
@@ -153,6 +165,11 @@ async fn deploy() -> Deployed {
             .send().await.expect("send confirmBootstrapApproval")
             .watch().await.expect("mine confirmBootstrapApproval");
     }
+    let platform_admin_key_hex = format!(
+        "0x{}",
+        hex::encode(admin1.to_bytes())
+    );
+    let loan_machine_bytecode = LoanMachine::BYTECODE.to_vec();
 
     Deployed {
         rpc_url:              rpc_url.clone(),
@@ -164,5 +181,9 @@ async fn deploy() -> Deployed {
         approved_wallet:      member_addr,
         unapproved_wallet:    stranger_addr,
         _anvil:               anvil,
+        platform_admin_key_hex:  platform_admin_key_hex,
+        second_admin:            admin2_addr,
+        third_admin:             admin3_addr,
+        loan_machine_bytecode:   loan_machine_bytecode,
     }
 }

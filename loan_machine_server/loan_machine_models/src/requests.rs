@@ -46,3 +46,11 @@ impl DocKind{
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCoopRequest {
+    pub name:           String,         
+    pub founder_wallet: String,         
+    pub admin_wallets:  Vec<String>,    
+    pub threshold:      u32,            
+}
