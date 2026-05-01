@@ -15,4 +15,5 @@ test-one:
 
 test-all: test-web test-core
 
-# cargo run -p loan_machine_core --bin deploy_local --features deployable
+deploy-local:
+	cargo run -p loan_machine_core --bin deploy_local --features deployable

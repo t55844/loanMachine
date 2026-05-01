@@ -6,6 +6,8 @@ use crate::components::ui::*;
 use crate::components::vinculation::{VinculationGate, FirstVinculationForm};
 use crate::components::auth_bar::AuthBar;
 use crate::components::home::HomePage;
+use crate::components::create_coop::coop_choice::CoopChoicePage;
+use crate::components::create_coop::create_coop::CreateCoopPage;
 use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
@@ -113,13 +115,20 @@ fn WalletRouter() -> impl IntoView {
                         None => view! {
                             <HomePage on_login=move || login() />
                         }.into_any(),
-                        Some(addr) => view! {
-                            <VinculationGate smart_wallet=addr>
-                                <MainDashboard />
-                            </VinculationGate>
-                        }.into_any(),
+                        Some(addr) => view! { <CoopChoicePage /> }.into_any(),
                     }
                 }/>
+
+                <Route path=path!("/create-coop") view=move || {
+                    match wallet.get() {
+                        None => view! {  
+                            <div class="auth-bar-info">
+                                    <span class="auth-bar-btn-dot auth-bar-btn-dot-on"></span>
+                                    <span class="auth-bar-label">"CARTEIRA NÃO CONECTADA"</span>
+                                </div> }.into_any(),
+                        Some(addr) => view! { <CreateCoopPage founder_wallet=addr /> }.into_any(),
+                    }
+                } />
 
                 <Route path=path!("/vinculate") view=move || {
                     match wallet.get() {

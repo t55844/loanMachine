@@ -78,7 +78,6 @@ enum GateStatus {
     Vinculated(CoopInfo),
     Error(String),
 }
-
 // ── FIRST VINCULATION FORM ────────────────────────────────────
 
 #[component]

@@ -2,8 +2,8 @@
 use leptos::prelude::*;
 use leptos::server_fn::ServerFnError;
 
-use loan_machine_models::requests::{CreateCoopRequest};
-use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult, RegisterDeployedCoopRequest};
+use loan_machine_models::requests::{CreateCoopRequest,RegisterDeployedCoopRequest};
+use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult};
 
 #[server]
 pub async fn prepare_create_coop(req: CreateCoopRequest) -> Result<CoopDeployBundle, ServerFnError>{

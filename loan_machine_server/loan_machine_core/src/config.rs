@@ -11,6 +11,7 @@ use crate::services::chain_config::ChainConfig;
 use crate::services::privy_auth::PrivyAuthService;
 use crate::services::subgraph::SubgraphService;
 use crate::services::coop_deployment::CoopDeploymentService;
+use crate::services::blockchain::deployable::LoanMachine as LoanMachineBytecode;
 
 use secrecy::SecretString;
 
@@ -69,18 +70,9 @@ impl AppState {
             .into();
         let usdc_address = std::env::var("USDC_ADDRESS")
             .expect("USDC_ADDRESS must be set in .env");
-        let loan_machine_bytecode_path = std::env::var("LOAN_MACHINE_BYTECODE_PATH")
-            .expect("LOAN_MACHINE_BYTECODE_PATH must be set in .env");
 
-        let bytecode_json = std::fs::read_to_string(&loan_machine_bytecode_path)
-            .expect("Failed to read LoanMachine bytecode artifact");
-        let artifact: serde_json::Value = serde_json::from_str(&bytecode_json)
-            .expect("Failed to parse LoanMachine artifact JSON");
-        let bytecode_hex = artifact["bytecode"].as_str()
-            .expect("artifact.bytecode missing")
-            .trim_start_matches("0x");
-        let loan_machine_bytecode = hex::decode(bytecode_hex)
-            .expect("LoanMachine bytecode is not valid hex");
+
+        let loan_machine_bytecode = LoanMachineBytecode::BYTECODE.to_vec();
 
         let coop_deployment = CoopDeploymentService::new(
             platform_admin_key,

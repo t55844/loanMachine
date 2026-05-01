@@ -58,12 +58,6 @@ pub struct CoopDeployBundle {
     pub access_code:        String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RegisterDeployedCoopRequest {
-    pub name:                 String,
-    pub loan_machine_address: String,
-    pub founder_wallet:       String,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoopRegistrationResult {

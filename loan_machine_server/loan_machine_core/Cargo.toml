@@ -28,6 +28,8 @@ alloy = { workspace = true, features = [
     "sol-types",
     "rpc-types",
     "network",
+    "signers",
+    "signer-local",
 ] }
 axum        = { version = "0.8", default-features = false, features = ["macros"] }
 leptos_axum = { version = "0.8" }

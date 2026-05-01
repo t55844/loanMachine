@@ -3,6 +3,7 @@ pub mod ui;
 pub mod vinculation;
 pub mod home;
 pub mod auth_bar;
+pub mod create_coop;
 
 // test of components
 #[cfg(all(test, feature = "ssr"))]
