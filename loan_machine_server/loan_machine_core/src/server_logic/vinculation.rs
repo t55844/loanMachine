@@ -4,7 +4,6 @@ use loan_machine_models::requests::{DocKind};
 
 use crate::services::blockchain::BlockchainService;
 use crate::services::identity::IdentityService;
-
 use crate::services::blockchain::contract_errors::friendly_from_error;
 
 
@@ -58,25 +57,32 @@ pub async fn prepare_first_vinculation_logic(
     coop_id: String,
     access_code: String,
 ) -> Result<VinculationBundle, VinculationLogicError> {
+eprintln!("eprintln: enter the prepare_first_vinculation_logic");
 
     let member_id = match doc_kind{
         DocKind::Cpf => identity.cpf_to_member_id(&document),
         DocKind::Cnpj => identity.cnpj_to_member_id(&document),
     }
     .map_err(|e| VinculationLogicError::ServerLogicIdentity(e.to_string()))?;
+eprintln!("get member id correctly: {}",member_id);
 
     let wallet: Address = smart_wallet
         .parse()
         .map_err(|_| VinculationLogicError::ServerLogicInvalidWalletAddress)?;
+eprintln!("get wallet  correctly: {}",wallet);
 
     let coop_id_bytes: FixedBytes<32> = coop_id
         .parse()
         .map_err(|_| VinculationLogicError::ServerLogicInvalidCoopId)?;
+eprintln!("get coop_id_bytes correctly: {}",coop_id_bytes);
 
     let factory = &blockchain.factory;
+eprintln!("get factory correctly: ");
 
     let loan_machine_addr = factory.get_loan_machine(coop_id_bytes).await
         .map_err(|e| VinculationLogicError::ServerLogicBlockchain(e.to_string()))?;
+eprintln!("get loan_machine_addr correctly: ");
+
 
     let approved = factory.is_wallet_approved(loan_machine_addr, wallet).await
     .map_err(|e| VinculationLogicError::ServerLogicBlockchain(friendly_from_error(&e)))?;
@@ -86,6 +92,7 @@ pub async fn prepare_first_vinculation_logic(
     }
 
     let join_calldata = factory.encode_join_coop(member_id, wallet, &access_code);
+eprintln!("[vinc] calling joinCoop (estimating gas)");
 
     let gas = factory
         .estimate_join_coop_gas(loan_machine_addr, member_id, wallet, &access_code)
@@ -96,6 +103,6 @@ pub async fn prepare_first_vinculation_logic(
         join_calldata: format!("0x{}", hex::encode(join_calldata.as_ref())),
         loan_machine_address: loan_machine_addr.to_string(),
         factory_address: factory_address.to_string(),
-        gas_join: gas.to_string(),
+        gas_join: format!("0x{:x}", gas),
     })
 }

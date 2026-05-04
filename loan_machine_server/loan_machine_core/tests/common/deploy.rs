@@ -161,7 +161,7 @@ async fn deploy() -> Deployed {
         let lm_as_admin = LoanMachine::new(loan_machine_address, provider);
 
         lm_as_admin
-            .confirmBootstrapApproval(proposal_id)
+            .confirmProposal(proposal_id)
             .send().await.expect("send confirmBootstrapApproval")
             .watch().await.expect("mine confirmBootstrapApproval");
     }

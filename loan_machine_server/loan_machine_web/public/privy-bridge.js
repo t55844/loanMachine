@@ -91,13 +91,16 @@ async function buildWalletForUser(p, user) {
   await iframeReady;
 
   let walletMeta = getUserEmbeddedEthereumWallet(user);
+  let userForEntropy = user;                // ← track which user has entropy
+
   if (!walletMeta) {
     const created = await p.embeddedWallet.create({ recoveryMethod: 'privy' });
     walletMeta = getUserEmbeddedEthereumWallet(created.user);
+    userForEntropy = created.user;          // ← use the post-creation user
   }
   if (!walletMeta) throw new Error('failed to get wallet metadata');
 
-  const { entropyId, entropyIdVerifier } = getEntropyDetailsFromUser(user);
+  const { entropyId, entropyIdVerifier } = getEntropyDetailsFromUser(userForEntropy);
   embeddedWallet = await p.embeddedWallet.getEthereumProvider({
     wallet: walletMeta, entropyId, entropyIdVerifier,
   });
@@ -244,6 +247,7 @@ window.loan_machine_init_privy = async function () {
     const { user } = await p.auth.email.loginWithCode(email, code);
 
     const address = await buildWalletForUser(p, user);
+    await new Promise(r => setTimeout(r, 5000));   // ← test if delay fixes it
     fire('privy_wallet_ready', { address });
   } catch (err) {
     if (err.message === 'cancelled' || err.message === 'back') return;
@@ -261,16 +265,65 @@ window.loan_machine_send_tx = async function (txJson) {
   try {
     if (!embeddedWallet) throw new Error('wallet not ready');
     const tx = JSON.parse(txJson);
-    const txHash = await embeddedWallet.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        to:      tx.to,
-        data:    tx.data,
-        value:   tx.value ?? '0x0',
-        gas:     tx.gas,
-        chainId: '0x' + getChainId().toString(16),
-      }],
+
+    const rpcUrl  = HARDHAT_LOCAL.rpcUrls.default.http[0];
+    const chainId = getChainId();
+    const from    = (await embeddedWallet.request({ method: 'eth_accounts' }))[0];
+
+    const rpc = async (method, params) => {
+      const r = await fetch(rpcUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      });
+      const j = await r.json();
+      if (j.error) throw new Error(`${method}: ${j.error.message}`);
+      return j.result;
+    };
+
+    // Gas: prefer the value caller passed; fall back to estimating against Anvil
+    let gasLimit = tx.gas;
+    if (!gasLimit || gasLimit === '0x0' || gasLimit === '0x') {
+      gasLimit = await rpc('eth_estimateGas', [{
+        from, to: tx.to, data: tx.data, value: tx.value ?? '0x0',
+      }]);
+    }
+
+    const [nonce, feeData] = await Promise.all([
+      rpc('eth_getTransactionCount', [from, 'pending']),
+      rpc('eth_feeHistory', ['0x1', 'latest', [50]]),
+    ]);
+    const baseFee = BigInt(feeData.baseFeePerGas[feeData.baseFeePerGas.length - 1]);
+    const tip     = BigInt(feeData.reward[0][0]);
+    const maxFee  = baseFee * 2n + tip;
+
+    const unsigned = {
+      from,
+      to:                   tx.to,
+      data:                 tx.data,
+      value:                tx.value ?? '0x0',
+      nonce,
+      gasLimit,
+      maxFeePerGas:         '0x' + maxFee.toString(16),
+      maxPriorityFeePerGas: '0x' + tip.toString(16),
+      chainId:              '0x' + chainId.toString(16),
+      type:                 2,
+    };
+
+    const signedTx = await embeddedWallet.request({
+      method: 'eth_signTransaction',
+      params: [unsigned],
     });
+    const txHash = await rpc('eth_sendRawTransaction', [signedTx]);
+
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+    if (!receipt) throw new Error('tx receipt timeout');
+
     fire('privy_tx_complete', { tx_hash: txHash });
   } catch (err) {
     console.error('[privy-bridge] tx error:', err);
@@ -282,6 +335,89 @@ window.loan_machine_logout = async function () {
   try { await getClient()?.auth.logout(); } catch {}
   embeddedWallet = null;
   fire('privy_logged_out', {});
+};
+
+window.loan_machine_deploy_contract = async function (deployData, gasLimit) {
+  try {
+    if (!embeddedWallet) throw new Error('wallet not ready');
+
+    const rpcUrl  = HARDHAT_LOCAL.rpcUrls.default.http[0];
+    const chainId = getChainId();
+    const from    = (await embeddedWallet.request({ method: 'eth_accounts' }))[0];
+
+    // Helper: call any JSON-RPC method against the chain directly
+    const rpc = async (method, params) => {
+      const r = await fetch(rpcUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      });
+      const j = await r.json();
+      if (j.error) throw new Error(`${method}: ${j.error.message}`);
+      return j.result;
+    };
+
+    // Fetch the values Privy would have inserted itself.
+    // We do this BEFORE asking Privy to sign so the tx is fully-formed.
+    const [nonce, feeData] = await Promise.all([
+      rpc('eth_getTransactionCount', [from, 'pending']),
+      rpc('eth_feeHistory', ['0x1', 'latest', [50]]),
+    ]);
+
+    const baseFeeHex = feeData.baseFeePerGas[feeData.baseFeePerGas.length - 1];
+    const tipHex     = feeData.reward[0][0];
+    const baseFee    = BigInt(baseFeeHex);
+    const tip        = BigInt(tipHex);
+    const maxFee     = baseFee * 2n + tip; // generous headroom for next block
+
+console.log(baseFeeHex)
+console.log(tipHex)
+console.log(baseFee)
+console.log(tip)
+console.log(maxFee)
+
+    const unsigned = {
+      from,                                       // who's signing
+      nonce,                                      // already hex from RPC
+      gasLimit:                  gasLimit,             // OUR gas, not Privy's
+      maxFeePerGas:         '0x' + maxFee.toString(16),
+      maxPriorityFeePerGas: '0x' + tip.toString(16),
+      data:                 deployData,
+      value:                '0x0',
+      chainId:              '0x' + chainId.toString(16),
+      type:                 2,                
+      // Note: no `to` field — that's what makes it a deployment
+    };
+  console.log(unsigned)
+    // Ask Privy to sign WITHOUT broadcasting. The key stays in the iframe;
+    // we just get back the signed RLP bytes.
+    const signedTx = await embeddedWallet.request({
+      method: 'eth_signTransaction',
+      params: [unsigned],
+    });
+
+    // Broadcast to anvil ourselves, bypassing Privy's send path entirely
+    const txHash = await rpc('eth_sendRawTransaction', [signedTx]);
+
+    // Same poll-for-receipt logic as before
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+
+    if (!receipt)                  throw new Error('deploy receipt timeout');
+    if (!receipt.contractAddress)  throw new Error('no contract address in receipt');
+
+    fire('privy_deploy_complete', {
+      tx_hash:          txHash,
+      contract_address: receipt.contractAddress,
+    });
+  } catch (err) {
+    console.error('[privy-bridge] deploy error:', err);
+    fire('privy_tx_error', { error: err.message });
+  }
 };
 
 window.__privy_bridge_ready = true;

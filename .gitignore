@@ -75,3 +75,10 @@ frontend/playwright-report/data/*
 frontend/test-results/*
 loan_machine_server/target/debug/*
 frontend/playwright-report/*
+
+*info.txt
+info.txt
+*.npmrc
+.npmrc
+
+*mk_update.py

@@ -145,6 +145,27 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
             .add_event_listener_with_callback("privy_tx_complete", cl2.as_ref().unchecked_ref())
             .ok();
         cl2.forget();
+
+        // privy_tx_error → bridge surfaced an error from either tx
+        let cl3 = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
+            let msg = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("error"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_else(|| "Erro desconhecido".into());
+
+            set_error.set(format!("Falha na transação: {msg}"));
+
+            // Roll back the step so the user can retry
+            match step.get_untracked() {
+                CoopStep::WaitingDeploy => set_step.set(CoopStep::AccessCode),
+                CoopStep::SignInit      => {},                 // already on the retry screen
+                _                       => {},
+            }
+        });
+        web_sys::window().unwrap()
+            .add_event_listener_with_callback("privy_tx_error", cl3.as_ref().unchecked_ref())
+            .ok();
+        cl3.forget();
     }
 
     // ── Registration effect ───────────────────────────────────

@@ -15,7 +15,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: LoanMachine\LoanMachine.wasm
+      file: LoanMachine/LoanMachine.wasm
       entities:
         - ProposalCreatedEvent
         - ProposalConfirmedEvent
@@ -24,8 +24,7 @@ dataSources:
         - AdminRemovedEvent
         - AdminTransferredEvent
         - ThresholdChangedEvent
-        - WalletApprovalProposedEvent
-        - WalletApprovalModeratorSignedEvent
+        - ProposalCosignedEvent
         - WalletApprovedEvent
         - WalletRevokedEvent
         - MemberJoinedEvent
@@ -65,7 +64,7 @@ dataSources:
         - NewModeratorEvent
       abis:
         - name: LoanMachine
-          file: LoanMachine\LoanMachine.json
+          file: LoanMachine/LoanMachine.json
       eventHandlers:
         - event: ProposalCreated(indexed uint256,indexed uint8,indexed address)
           handler: handleProposalCreated
@@ -81,10 +80,8 @@ dataSources:
           handler: handleAdminTransferred
         - event: ThresholdChanged(uint256,uint256)
           handler: handleThresholdChanged
-        - event: WalletApprovalProposed(indexed uint256,indexed address,indexed address)
-          handler: handleWalletApprovalProposed
-        - event: WalletApprovalModeratorSigned(indexed uint256,indexed address,indexed bytes32)
-          handler: handleWalletApprovalModeratorSigned
+        - event: ProposalCosigned(indexed uint256,indexed bytes32)
+          handler: handleProposalCosigned
         - event: WalletApproved(indexed address)
           handler: handleWalletApproved
         - event: WalletRevoked(indexed address)

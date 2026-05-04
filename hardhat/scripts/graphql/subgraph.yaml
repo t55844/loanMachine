@@ -30,8 +30,7 @@ dataSources:
         - AdminTransferredEvent
         - ThresholdChangedEvent
         # Wallet approval
-        - WalletApprovalProposedEvent
-        - WalletApprovalModeratorSignedEvent
+        - ProposalCosignedEvent
         - WalletApprovedEvent
         - WalletRevokedEvent
         # Membership
@@ -97,10 +96,8 @@ dataSources:
           handler: handleThresholdChanged
 
         # ── Wallet approval co-sign ───────────────────────────
-        - event: WalletApprovalProposed(indexed uint256,indexed address,indexed address)
-          handler: handleWalletApprovalProposed
-        - event: WalletApprovalModeratorSigned(indexed uint256,indexed address,indexed bytes32)
-          handler: handleWalletApprovalModeratorSigned
+        - event: ProposalCosigned(indexed uint256,indexed bytes32)
+          handler: handleProposalCosigned
         - event: WalletApproved(indexed address)
           handler: handleWalletApproved
         - event: WalletRevoked(indexed address)

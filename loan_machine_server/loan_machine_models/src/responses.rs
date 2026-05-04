@@ -48,7 +48,7 @@ pub struct CoopDeployBundle {
     /// Deployment transaction. `to` is null for deployments —
     /// `data` is bytecode + ABI-encoded constructor args.
     pub deploy_data:        String,    // 0x-prefixed hex
-    pub gas_deploy:         String,    // estimated gas as decimal string
+    pub gas_deploy:         String,    // estimated gas 0x-prefixed hex
     /// Calldata for `initializeMultisig(admins, threshold, accessCode)`.
     /// The founder calls this AGAINST the address from the deploy receipt.
     pub initialize_data:    String,

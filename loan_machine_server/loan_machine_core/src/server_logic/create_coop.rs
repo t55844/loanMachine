@@ -44,10 +44,13 @@ pub async fn register_deployed_coop_logic(
     loan_machine_address: String,
     founder_wallet: String,
 ) -> Result<CoopRegistrationResult, CreateCoopLogicError>{
+
+eprintln!("enter register_deployed_coop_logic with success");
     let trimmed = name.trim();
     if trimmed.is_empty() || trimmed.len() > 100{
         return Err(CreateCoopLogicError::ServerLogicInvalidName);
     }
+eprintln!("trimmed with success");
 
     deployment
         .register_deployed_coop(trimmed, &loan_machine_address, &founder_wallet)

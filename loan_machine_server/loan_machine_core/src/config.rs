@@ -11,7 +11,7 @@ use crate::services::chain_config::ChainConfig;
 use crate::services::privy_auth::PrivyAuthService;
 use crate::services::subgraph::SubgraphService;
 use crate::services::coop_deployment::CoopDeploymentService;
-use crate::services::blockchain::deployable::LoanMachine as LoanMachineBytecode;
+use crate::services::blockchain::deployable::{LoanMachine as LoanMachineBytecode};
 
 use secrecy::SecretString;
 
@@ -68,9 +68,9 @@ impl AppState {
         let platform_admin_key: SecretString  = std::env::var("PLATFORM_ADMIN_PRIVATE_KEY")
             .expect("PLATFORM_ADMIN_PRIVATE_KEY must be set in .env")
             .into();
+
         let usdc_address = std::env::var("USDC_ADDRESS")
             .expect("USDC_ADDRESS must be set in .env");
-
 
         let loan_machine_bytecode = LoanMachineBytecode::BYTECODE.to_vec();
 

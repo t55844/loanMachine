@@ -161,9 +161,9 @@ impl CoopDeploymentService{
 
         Ok(CoopDeployBundle {
             deploy_data: format!("0x{}", hex::encode(deploy_data)),
-            gas_deploy: gas_deploy.to_string(),
+            gas_deploy: format!("0x{:x}", gas_deploy), 
             initialize_data: format!("0x{}", hex::encode(initialize_data)),
-            gas_initialize: gas_initialize.to_string(),
+            gas_initialize: format!("0x{:x}", gas_initialize),
             access_code,
         })
     }
@@ -174,26 +174,45 @@ impl CoopDeploymentService{
         loan_machine_address: &str,
         founder_wallet: &str,
     ) -> Result<CoopRegistrationResult, CoopDeploymentError>{
+
+eprintln!("enter register_deployed_coop on services with success");
         let lm_addr = Address::from_str(loan_machine_address)
             .map_err(|_| CoopDeploymentError::InvalidLoanMachineAddress)?;
+eprintln!("lm_addr on services with success");
+
         let founder_addr = Address::from_str(founder_wallet)
             .map_err(|_| CoopDeploymentError::InvalidAdminAddress(founder_wallet.to_string()))?;
+eprintln!("founder_addr on services with success");
 
         let rpc_url = self.rpc_url
             .parse()
             .map_err(|e| CoopDeploymentError::Network(format!("invalid rpc url: {e}")))?;
+eprintln!("rpc_url on services with success");
 
 
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .wallet(EthereumWallet::from(self.signer.clone()))
             .on_http(rpc_url);
-            
+eprintln!("provider on services with success");
+
+        let registry_code = provider.get_code_at(self.registry_address).await
+            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+eprintln!("registry_code on services with success");
+
+        if registry_code.is_empty() {
+            return Err(CoopDeploymentError::Network(
+                format!("CoopRegistry not deployed at {}", self.registry_address)
+            ));
+        }
+eprintln!("registry_code.is_empty() on services with success");
+        
         let code = provider.get_code_at(lm_addr).await
             .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
         if code.is_empty(){
             return Err(CoopDeploymentError::LoanMachineHasNoCode);
         }
+ eprintln!("code on services with success");
 
         let lm = LoanMachine::new(lm_addr, provider.clone());
         let admins = lm.getAdmins().call().await
@@ -202,8 +221,10 @@ impl CoopDeploymentService{
         if !admins.contains(&founder_addr){
             return Err(CoopDeploymentError::FounderNotAdminOfDeployedContract);
         }
+ eprintln!("lm and admins on services with success");
 
         let registry = CoopRegistry::new(self.registry_address, provider);
+ eprintln!("registry on services with success");
 
         let coop_id: FixedBytes<32> = registry
             .registerCoop(name.to_string(), lm_addr)
@@ -211,17 +232,21 @@ impl CoopDeploymentService{
             .call().await
             .map_err(|e| CoopDeploymentError::Network(e.to_string()))?
             .coopId;
+ eprintln!("coop_id on services with success");
 
         let pending = registry
             .registerCoop(name.to_string(), lm_addr)
             .from(self.signer.address())
             .send().await
             .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+ eprintln!("pending on services with success");
 
         let tx_hash = format!("0x{}", hex::encode(pending.tx_hash()));
+ eprintln!("tx_hash on services with success");
 
         pending.watch().await
             .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+ eprintln!("pending 2 on services with success");
 
         Ok(CoopRegistrationResult{
             coop_id_hex: format!("0x{}", hex::encode(coop_id)),

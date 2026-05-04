@@ -49,7 +49,7 @@ contract CoopRegistry {
     ) external onlyPlatformAdmin returns (bytes32 coopId) {
         if (bytes(name).length == 0) revert Registry_NameEmpty();
 
-        coopId = keccak256(abi.encodePacked(name, block.timestamp, loanMachine));
+        coopId = keccak256(abi.encodePacked(name, loanMachine));
         if (coops[coopId].exists) revert Registry_AlreadyRegistered();
 
         coops[coopId] = CoopRecord({

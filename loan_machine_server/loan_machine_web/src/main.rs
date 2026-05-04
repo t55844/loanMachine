@@ -45,7 +45,13 @@ fn Shell(
 #[tokio::main]
 async fn main() {
     dotenvy::from_filename(".env").ok();
-    tracing_subscriber::fmt::init();
+        tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive("loan_machine_web=debug".parse().unwrap())
+                .add_directive("loan_machine_core=debug".parse().unwrap())
+        )
+        .init();
 
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;

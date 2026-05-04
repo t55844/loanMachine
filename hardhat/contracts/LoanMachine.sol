@@ -59,6 +59,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     enum ProposalType {
         TransferAdmin,
         AddAdmin,
+        ApproveWallet,
         RemoveAdmin,
         RotateAccessCode,
         RevokeWallet,
@@ -74,16 +75,11 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         uint256 confirmations;
         bool    executed;
         uint256 createdAt;
+        bool    requiresUnanimous;        // bootstrap = true
+        bool    requiresModeratorCosign;  // ApproveWallet in steady state = true
+        bytes32 moderatorCosignedBy;      // 0 until cosigned
     }
 
-    struct WalletApprovalRequest {
-        address wallet;
-        bool    adminApproved;
-        bytes32 moderatorId;
-        bool    moderatorApproved;
-        bool    executed;
-        uint256 createdAt;
-    }
 
     // =============================================================
     //                    MULTISIG ADMIN STORAGE
@@ -106,17 +102,9 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     event AdminRemoved(address indexed admin);
     event ThresholdChanged(uint256 oldThreshold, uint256 newThreshold);
 
-    // =============================================================
-    //                  WALLET APPROVAL STORAGE
-    // =============================================================
-
-    uint256 public walletApprovalCounter;
-    mapping(uint256 => WalletApprovalRequest) public walletApprovalRequests;
-
-    event WalletApprovalProposed(uint256 indexed requestId, address indexed wallet, address indexed proposer);
-    event WalletApprovalModeratorSigned(uint256 indexed requestId, address indexed wallet, bytes32 indexed moderatorId);
     event WalletApproved(address indexed wallet);
     event WalletRevoked(address indexed wallet);
+    event ProposalCosigned(uint256 indexed proposalId, bytes32 indexed moderatorMemberId);
 
     // =============================================================
     //                   WITHDRAWAL DELAY STORAGE
@@ -197,10 +185,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_AlreadyConfirmed();
     error LoanMachine_ProposalNotFound();
 
-    error LoanMachine_WalletApprovalNotFound();
-    error LoanMachine_WalletApprovalAlreadyExecuted();
     error LoanMachine_NotModerator();
-    error LoanMachine_AdminNotYetProposed();
+    error LoanMachine_ModeratorCosignRequired();
 
     error LoanMachine_WithdrawalNotReady();
     error LoanMachine_WithdrawalBlocked();
@@ -330,32 +316,55 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //               MULTISIG ADMIN FUNCTIONS
     // =============================================================
 
-    function proposeAction(
+    function _createProposal(
         ProposalType pType,
-        bytes calldata data
-    ) external onlyAdmin returns (uint256 proposalId) {
+        bytes memory data,
+        bool requiresUnanimous,
+        bool requiresModeratorCosign
+    ) internal returns (uint256 proposalId) {
         proposalId = proposalCounter++;
         proposals[proposalId] = Proposal({
-            pType:         pType,
-            data:          data,
-            confirmations: 1,
-            executed:      false,
-            createdAt:     block.timestamp
+            pType:                   pType,
+            data:                    data,
+            confirmations:           1,
+            executed:                false,
+            createdAt:               block.timestamp,
+            requiresUnanimous:       requiresUnanimous,
+            requiresModeratorCosign: requiresModeratorCosign,
+            moderatorCosignedBy:     bytes32(0)
         });
         hasConfirmedProposal[proposalId][msg.sender] = true;
 
         emit ProposalCreated(proposalId, pType, msg.sender);
         emit ProposalConfirmed(proposalId, msg.sender, 1);
 
-        if (1 >= adminThreshold) {
-            _executeProposal(proposalId);
-        }
+        _maybeExecute(proposalId);
+    }
+
+    function proposeAction(
+        ProposalType pType,
+        bytes calldata data
+    ) external onlyAdmin returns (uint256 proposalId) {
+        // Wallet approvals require moderator cosign. Block this path for them
+        // so callers must use proposeWalletApproval or bootstrapApproveWallet.
+        if (pType == ProposalType.ApproveWallet) revert LoanMachine_ModeratorCosignRequired();
+
+        return _createProposal(pType, data, false, false);
+    }
+
+    function proposeWalletApproval(address wallet) external onlyAdmin returns (uint256 proposalId) {
+        return _createProposal(
+            ProposalType.ApproveWallet,
+            abi.encode(wallet),
+            false,           // doesn't need unanimous admin
+            true             // does need moderator cosign
+        );
     }
 
     function confirmProposal(uint256 proposalId) external onlyAdmin {
         Proposal storage p = proposals[proposalId];
-        if (p.executed)    revert LoanMachine_ProposalAlreadyExecuted();
         if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
+        if (p.executed)       revert LoanMachine_ProposalAlreadyExecuted();
         if (hasConfirmedProposal[proposalId][msg.sender])
             revert LoanMachine_AlreadyConfirmed();
 
@@ -364,7 +373,37 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
         emit ProposalConfirmed(proposalId, msg.sender, p.confirmations);
 
-        if (p.confirmations >= adminThreshold) {
+        _maybeExecute(proposalId);
+    }
+
+    function cosignProposal(
+        uint256 proposalId,
+        bytes32 moderatorMemberId
+    ) external {
+        Proposal storage p = proposals[proposalId];
+        if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
+        if (p.executed)       revert LoanMachine_ProposalAlreadyExecuted();
+        if (!p.requiresModeratorCosign) revert LoanMachine_ModeratorCosignRequired();
+
+        if (_rs.walletToMemberId[msg.sender] != moderatorMemberId)
+            revert LoanMachine_MemberIdOrWalletInvalid();
+        if (!_rs.isModerator[moderatorMemberId]) revert LoanMachine_NotModerator();
+
+        p.moderatorCosignedBy = moderatorMemberId;
+
+        emit ProposalCosigned(proposalId, moderatorMemberId);
+
+        _maybeExecute(proposalId);
+    }
+
+    function _maybeExecute(uint256 proposalId) internal {
+        Proposal storage p = proposals[proposalId];
+
+        uint256 confirmsNeeded = p.requiresUnanimous ? admins.length : adminThreshold;
+        bool    confirmsMet    = p.confirmations >= confirmsNeeded;
+        bool    cosignMet      = !p.requiresModeratorCosign || p.moderatorCosignedBy != bytes32(0);
+
+        if (confirmsMet && cosignMet) {
             _executeProposal(proposalId);
         }
     }
@@ -390,6 +429,10 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             address wallet = abi.decode(p.data, (address));
             approvedWallets[wallet] = false;
             emit WalletRevoked(wallet);
+        } else if (p.pType == ProposalType.ApproveWallet){
+            address wallet = abi.decode(p.data, (address));
+            approvedWallets[wallet] = true;
+            emit WalletApproved(wallet);
         } else if (p.pType == ProposalType.Deactivate) {
             active = false;
             emit CoopDeactivated();
@@ -452,84 +495,19 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //         WALLET APPROVAL WITH MODERATOR CO-SIGNATURE
     // =============================================================
 
-    function proposeWalletApproval(address wallet) external onlyAdmin returns (uint256 requestId) {
-        requestId = walletApprovalCounter++;
-        walletApprovalRequests[requestId] = WalletApprovalRequest({
-            wallet:            wallet,
-            adminApproved:     true,
-            moderatorId:       bytes32(0),
-            moderatorApproved: false,
-            executed:          false,
-            createdAt:         block.timestamp
-        });
-
-        emit WalletApprovalProposed(requestId, wallet, msg.sender);
-    }
-
-    function signWalletApproval(
-        uint256 requestId,
-        bytes32 moderatorMemberId
-    ) external {
-        WalletApprovalRequest storage req = walletApprovalRequests[requestId];
-        if (req.createdAt == 0)   revert LoanMachine_WalletApprovalNotFound();
-        if (req.executed)         revert LoanMachine_WalletApprovalAlreadyExecuted();
-        if (!req.adminApproved)   revert LoanMachine_AdminNotYetProposed();
-
-        if (_rs.walletToMemberId[msg.sender] != moderatorMemberId)
-            revert LoanMachine_MemberIdOrWalletInvalid();
-        if (!_rs.isModerator[moderatorMemberId])
-            revert LoanMachine_NotModerator();
-
-        req.moderatorApproved = true;
-        req.moderatorId       = moderatorMemberId;
-
-        approvedWallets[req.wallet] = true;
-        req.executed = true;
-
-        emit WalletApprovalModeratorSigned(requestId, req.wallet, moderatorMemberId);
-        emit WalletApproved(req.wallet);
-    }
+    
 
     /// @notice Bootstrap: no moderator exists yet. Requires ALL admins.
     function bootstrapApproveWallet(address wallet) external onlyAdmin returns (uint256 proposalId) {
-        proposalId = proposalCounter++;
-        proposals[proposalId] = Proposal({
-            pType:         ProposalType.RevokeWallet,
-            data:          abi.encode(wallet, true),
-            confirmations: 1,
-            executed:      false,
-            createdAt:     block.timestamp
-        });
-        hasConfirmedProposal[proposalId][msg.sender] = true;
-
-        emit ProposalCreated(proposalId, ProposalType.RevokeWallet, msg.sender);
-
-        if (admins.length == 1) {
-            approvedWallets[wallet] = true;
-            proposals[proposalId].executed = true;
-            emit WalletApproved(wallet);
-            emit ProposalExecuted(proposalId, ProposalType.RevokeWallet);
-        }
+        return _createProposal(
+            ProposalType.ApproveWallet,
+            abi.encode(wallet),
+            true,            // unanimous: every admin must confirm
+            false            // no moderator yet, can't require cosign
+        );
     }
 
-    function confirmBootstrapApproval(uint256 proposalId) external onlyAdmin {
-        Proposal storage p = proposals[proposalId];
-        if (p.executed) revert LoanMachine_ProposalAlreadyExecuted();
-        if (hasConfirmedProposal[proposalId][msg.sender])
-            revert LoanMachine_AlreadyConfirmed();
-
-        hasConfirmedProposal[proposalId][msg.sender] = true;
-        p.confirmations++;
-
-        if (p.confirmations >= admins.length) {
-            (address wallet,) = abi.decode(p.data, (address, bool));
-            approvedWallets[wallet] = true;
-            p.executed = true;
-            emit WalletApproved(wallet);
-            emit ProposalExecuted(proposalId, p.pType);
-        }
-    }
-
+    
     // =============================================================
     //               WITHDRAWAL WITH DELAY
     // =============================================================
@@ -999,10 +977,24 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     function getAdmins() external view returns (address[] memory) { return admins; }
 
     function getProposal(uint256 proposalId) external view returns (
-        ProposalType pType, uint256 confirmations, bool executed, uint256 createdAt
+        ProposalType pType,
+        uint256 confirmations,
+        bool    executed,
+        uint256 createdAt,
+        bool    requiresUnanimous,
+        bool    requiresModeratorCosign,
+        bytes32 moderatorCosignedBy
     ) {
         Proposal storage p = proposals[proposalId];
-        return (p.pType, p.confirmations, p.executed, p.createdAt);
+        return (
+            p.pType,
+            p.confirmations,
+            p.executed,
+            p.createdAt,
+            p.requiresUnanimous,
+            p.requiresModeratorCosign,
+            p.moderatorCosignedBy
+        );
     }
 
     function getWithdrawalRequest(uint256 requestId) external view returns (WithdrawalRequest memory) {

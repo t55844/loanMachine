@@ -658,6 +658,28 @@ export class ProposalConfirmed__Params {
   }
 }
 
+export class ProposalCosigned extends ethereum.Event {
+  get params(): ProposalCosigned__Params {
+    return new ProposalCosigned__Params(this);
+  }
+}
+
+export class ProposalCosigned__Params {
+  _event: ProposalCosigned;
+
+  constructor(event: ProposalCosigned) {
+    this._event = event;
+  }
+
+  get proposalId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get moderatorMemberId(): Bytes {
+    return this._event.parameters[1].value.toBytes();
+  }
+}
+
 export class ProposalCreated extends ethereum.Event {
   get params(): ProposalCreated__Params {
     return new ProposalCreated__Params(this);
@@ -877,58 +899,6 @@ export class VoteCast__Params {
 
   get voteWeight(): i32 {
     return this._event.parameters[3].value.toI32();
-  }
-}
-
-export class WalletApprovalModeratorSigned extends ethereum.Event {
-  get params(): WalletApprovalModeratorSigned__Params {
-    return new WalletApprovalModeratorSigned__Params(this);
-  }
-}
-
-export class WalletApprovalModeratorSigned__Params {
-  _event: WalletApprovalModeratorSigned;
-
-  constructor(event: WalletApprovalModeratorSigned) {
-    this._event = event;
-  }
-
-  get requestId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get wallet(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get moderatorId(): Bytes {
-    return this._event.parameters[2].value.toBytes();
-  }
-}
-
-export class WalletApprovalProposed extends ethereum.Event {
-  get params(): WalletApprovalProposed__Params {
-    return new WalletApprovalProposed__Params(this);
-  }
-}
-
-export class WalletApprovalProposed__Params {
-  _event: WalletApprovalProposed;
-
-  constructor(event: WalletApprovalProposed) {
-    this._event = event;
-  }
-
-  get requestId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get wallet(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get proposer(): Address {
-    return this._event.parameters[2].value.toAddress();
   }
 }
 
@@ -1390,12 +1360,26 @@ export class LoanMachine__getProposalResult {
   value1: BigInt;
   value2: boolean;
   value3: BigInt;
+  value4: boolean;
+  value5: boolean;
+  value6: Bytes;
 
-  constructor(value0: i32, value1: BigInt, value2: boolean, value3: BigInt) {
+  constructor(
+    value0: i32,
+    value1: BigInt,
+    value2: boolean,
+    value3: BigInt,
+    value4: boolean,
+    value5: boolean,
+    value6: Bytes,
+  ) {
     this.value0 = value0;
     this.value1 = value1;
     this.value2 = value2;
     this.value3 = value3;
+    this.value4 = value4;
+    this.value5 = value5;
+    this.value6 = value6;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
@@ -1407,6 +1391,9 @@ export class LoanMachine__getProposalResult {
     map.set("value1", ethereum.Value.fromUnsignedBigInt(this.value1));
     map.set("value2", ethereum.Value.fromBoolean(this.value2));
     map.set("value3", ethereum.Value.fromUnsignedBigInt(this.value3));
+    map.set("value4", ethereum.Value.fromBoolean(this.value4));
+    map.set("value5", ethereum.Value.fromBoolean(this.value5));
+    map.set("value6", ethereum.Value.fromFixedBytes(this.value6));
     return map;
   }
 
@@ -1424,6 +1411,18 @@ export class LoanMachine__getProposalResult {
 
   getCreatedAt(): BigInt {
     return this.value3;
+  }
+
+  getRequiresUnanimous(): boolean {
+    return this.value4;
+  }
+
+  getRequiresModeratorCosign(): boolean {
+    return this.value5;
+  }
+
+  getModeratorCosignedBy(): Bytes {
+    return this.value6;
   }
 }
 
@@ -1600,66 +1599,6 @@ export class LoanMachine__getWithdrawalRequestResultValue0Struct extends ethereu
 
   get blocked(): boolean {
     return this[5].toBoolean();
-  }
-}
-
-export class LoanMachine__walletApprovalRequestsResult {
-  value0: Address;
-  value1: boolean;
-  value2: Bytes;
-  value3: boolean;
-  value4: boolean;
-  value5: BigInt;
-
-  constructor(
-    value0: Address,
-    value1: boolean,
-    value2: Bytes,
-    value3: boolean,
-    value4: boolean,
-    value5: BigInt,
-  ) {
-    this.value0 = value0;
-    this.value1 = value1;
-    this.value2 = value2;
-    this.value3 = value3;
-    this.value4 = value4;
-    this.value5 = value5;
-  }
-
-  toMap(): TypedMap<string, ethereum.Value> {
-    let map = new TypedMap<string, ethereum.Value>();
-    map.set("value0", ethereum.Value.fromAddress(this.value0));
-    map.set("value1", ethereum.Value.fromBoolean(this.value1));
-    map.set("value2", ethereum.Value.fromFixedBytes(this.value2));
-    map.set("value3", ethereum.Value.fromBoolean(this.value3));
-    map.set("value4", ethereum.Value.fromBoolean(this.value4));
-    map.set("value5", ethereum.Value.fromUnsignedBigInt(this.value5));
-    return map;
-  }
-
-  getWallet(): Address {
-    return this.value0;
-  }
-
-  getAdminApproved(): boolean {
-    return this.value1;
-  }
-
-  getModeratorId(): Bytes {
-    return this.value2;
-  }
-
-  getModeratorApproved(): boolean {
-    return this.value3;
-  }
-
-  getExecuted(): boolean {
-    return this.value4;
-  }
-
-  getCreatedAt(): BigInt {
-    return this.value5;
   }
 }
 
@@ -2380,7 +2319,7 @@ export class LoanMachine extends ethereum.SmartContract {
   getProposal(proposalId: BigInt): LoanMachine__getProposalResult {
     let result = super.call(
       "getProposal",
-      "getProposal(uint256):(uint8,uint256,bool,uint256)",
+      "getProposal(uint256):(uint8,uint256,bool,uint256,bool,bool,bytes32)",
       [ethereum.Value.fromUnsignedBigInt(proposalId)],
     );
 
@@ -2389,6 +2328,9 @@ export class LoanMachine extends ethereum.SmartContract {
       result[1].toBigInt(),
       result[2].toBoolean(),
       result[3].toBigInt(),
+      result[4].toBoolean(),
+      result[5].toBoolean(),
+      result[6].toBytes(),
     );
   }
 
@@ -2397,7 +2339,7 @@ export class LoanMachine extends ethereum.SmartContract {
   ): ethereum.CallResult<LoanMachine__getProposalResult> {
     let result = super.tryCall(
       "getProposal",
-      "getProposal(uint256):(uint8,uint256,bool,uint256)",
+      "getProposal(uint256):(uint8,uint256,bool,uint256,bool,bool,bytes32)",
       [ethereum.Value.fromUnsignedBigInt(proposalId)],
     );
     if (result.reverted) {
@@ -2410,6 +2352,9 @@ export class LoanMachine extends ethereum.SmartContract {
         value[1].toBigInt(),
         value[2].toBoolean(),
         value[3].toBigInt(),
+        value[4].toBoolean(),
+        value[5].toBoolean(),
+        value[6].toBytes(),
       ),
     );
   }
@@ -2911,72 +2856,6 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
-  walletApprovalCounter(): BigInt {
-    let result = super.call(
-      "walletApprovalCounter",
-      "walletApprovalCounter():(uint256)",
-      [],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_walletApprovalCounter(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "walletApprovalCounter",
-      "walletApprovalCounter():(uint256)",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-
-  walletApprovalRequests(
-    param0: BigInt,
-  ): LoanMachine__walletApprovalRequestsResult {
-    let result = super.call(
-      "walletApprovalRequests",
-      "walletApprovalRequests(uint256):(address,bool,bytes32,bool,bool,uint256)",
-      [ethereum.Value.fromUnsignedBigInt(param0)],
-    );
-
-    return new LoanMachine__walletApprovalRequestsResult(
-      result[0].toAddress(),
-      result[1].toBoolean(),
-      result[2].toBytes(),
-      result[3].toBoolean(),
-      result[4].toBoolean(),
-      result[5].toBigInt(),
-    );
-  }
-
-  try_walletApprovalRequests(
-    param0: BigInt,
-  ): ethereum.CallResult<LoanMachine__walletApprovalRequestsResult> {
-    let result = super.tryCall(
-      "walletApprovalRequests",
-      "walletApprovalRequests(uint256):(address,bool,bytes32,bool,bool,uint256)",
-      [ethereum.Value.fromUnsignedBigInt(param0)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(
-      new LoanMachine__walletApprovalRequestsResult(
-        value[0].toAddress(),
-        value[1].toBoolean(),
-        value[2].toBytes(),
-        value[3].toBoolean(),
-        value[4].toBoolean(),
-        value[5].toBigInt(),
-      ),
-    );
-  }
-
   withdrawalRequestCounter(): BigInt {
     let result = super.call(
       "withdrawalRequestCounter",
@@ -3227,36 +3106,6 @@ export class CloseElectionCall__Outputs {
   }
 }
 
-export class ConfirmBootstrapApprovalCall extends ethereum.Call {
-  get inputs(): ConfirmBootstrapApprovalCall__Inputs {
-    return new ConfirmBootstrapApprovalCall__Inputs(this);
-  }
-
-  get outputs(): ConfirmBootstrapApprovalCall__Outputs {
-    return new ConfirmBootstrapApprovalCall__Outputs(this);
-  }
-}
-
-export class ConfirmBootstrapApprovalCall__Inputs {
-  _call: ConfirmBootstrapApprovalCall;
-
-  constructor(call: ConfirmBootstrapApprovalCall) {
-    this._call = call;
-  }
-
-  get proposalId(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class ConfirmBootstrapApprovalCall__Outputs {
-  _call: ConfirmBootstrapApprovalCall;
-
-  constructor(call: ConfirmBootstrapApprovalCall) {
-    this._call = call;
-  }
-}
-
 export class ConfirmProposalCall extends ethereum.Call {
   get inputs(): ConfirmProposalCall__Inputs {
     return new ConfirmProposalCall__Inputs(this);
@@ -3283,6 +3132,40 @@ export class ConfirmProposalCall__Outputs {
   _call: ConfirmProposalCall;
 
   constructor(call: ConfirmProposalCall) {
+    this._call = call;
+  }
+}
+
+export class CosignProposalCall extends ethereum.Call {
+  get inputs(): CosignProposalCall__Inputs {
+    return new CosignProposalCall__Inputs(this);
+  }
+
+  get outputs(): CosignProposalCall__Outputs {
+    return new CosignProposalCall__Outputs(this);
+  }
+}
+
+export class CosignProposalCall__Inputs {
+  _call: CosignProposalCall;
+
+  constructor(call: CosignProposalCall) {
+    this._call = call;
+  }
+
+  get proposalId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get moderatorMemberId(): Bytes {
+    return this._call.inputValues[1].value.toBytes();
+  }
+}
+
+export class CosignProposalCall__Outputs {
+  _call: CosignProposalCall;
+
+  constructor(call: CosignProposalCall) {
     this._call = call;
   }
 }
@@ -3620,7 +3503,7 @@ export class ProposeWalletApprovalCall__Outputs {
     this._call = call;
   }
 
-  get requestId(): BigInt {
+  get proposalId(): BigInt {
     return this._call.outputValues[0].value.toBigInt();
   }
 }
@@ -3698,40 +3581,6 @@ export class RequestWithdrawalCall__Outputs {
 
   get requestId(): BigInt {
     return this._call.outputValues[0].value.toBigInt();
-  }
-}
-
-export class SignWalletApprovalCall extends ethereum.Call {
-  get inputs(): SignWalletApprovalCall__Inputs {
-    return new SignWalletApprovalCall__Inputs(this);
-  }
-
-  get outputs(): SignWalletApprovalCall__Outputs {
-    return new SignWalletApprovalCall__Outputs(this);
-  }
-}
-
-export class SignWalletApprovalCall__Inputs {
-  _call: SignWalletApprovalCall;
-
-  constructor(call: SignWalletApprovalCall) {
-    this._call = call;
-  }
-
-  get requestId(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-
-  get moderatorMemberId(): Bytes {
-    return this._call.inputValues[1].value.toBytes();
-  }
-}
-
-export class SignWalletApprovalCall__Outputs {
-  _call: SignWalletApprovalCall;
-
-  constructor(call: SignWalletApprovalCall) {
-    this._call = call;
   }
 }
 

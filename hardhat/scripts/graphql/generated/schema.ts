@@ -694,7 +694,7 @@ export class ThresholdChangedEvent extends Entity {
   }
 }
 
-export class WalletApprovalProposedEvent extends Entity {
+export class ProposalCosignedEvent extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -704,26 +704,26 @@ export class WalletApprovalProposedEvent extends Entity {
     let id = this.get("id");
     assert(
       id != null,
-      "Cannot save WalletApprovalProposedEvent entity without an ID",
+      "Cannot save ProposalCosignedEvent entity without an ID",
     );
     if (id) {
       assert(
         id.kind == ValueKind.STRING,
-        `Entities of type WalletApprovalProposedEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+        `Entities of type ProposalCosignedEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
       );
-      store.set("WalletApprovalProposedEvent", id.toString(), this);
+      store.set("ProposalCosignedEvent", id.toString(), this);
     }
   }
 
-  static loadInBlock(id: string): WalletApprovalProposedEvent | null {
-    return changetype<WalletApprovalProposedEvent | null>(
-      store.get_in_block("WalletApprovalProposedEvent", id),
+  static loadInBlock(id: string): ProposalCosignedEvent | null {
+    return changetype<ProposalCosignedEvent | null>(
+      store.get_in_block("ProposalCosignedEvent", id),
     );
   }
 
-  static load(id: string): WalletApprovalProposedEvent | null {
-    return changetype<WalletApprovalProposedEvent | null>(
-      store.get("WalletApprovalProposedEvent", id),
+  static load(id: string): ProposalCosignedEvent | null {
+    return changetype<ProposalCosignedEvent | null>(
+      store.get("ProposalCosignedEvent", id),
     );
   }
 
@@ -740,8 +740,8 @@ export class WalletApprovalProposedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get requestId(): BigInt {
-    let value = this.get("requestId");
+  get proposalId(): BigInt {
+    let value = this.get("proposalId");
     if (!value || value.kind == ValueKind.NULL) {
       throw new Error("Cannot return null for a required field.");
     } else {
@@ -749,133 +749,8 @@ export class WalletApprovalProposedEvent extends Entity {
     }
   }
 
-  set requestId(value: BigInt) {
-    this.set("requestId", Value.fromBigInt(value));
-  }
-
-  get wallet(): Bytes {
-    let value = this.get("wallet");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set wallet(value: Bytes) {
-    this.set("wallet", Value.fromBytes(value));
-  }
-
-  get proposer(): Bytes {
-    let value = this.get("proposer");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set proposer(value: Bytes) {
-    this.set("proposer", Value.fromBytes(value));
-  }
-
-  get blockTimestamp(): string {
-    let value = this.get("blockTimestamp");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set blockTimestamp(value: string) {
-    this.set("blockTimestamp", Value.fromString(value));
-  }
-
-  get transactionHash(): Bytes {
-    let value = this.get("transactionHash");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set transactionHash(value: Bytes) {
-    this.set("transactionHash", Value.fromBytes(value));
-  }
-}
-
-export class WalletApprovalModeratorSignedEvent extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(
-      id != null,
-      "Cannot save WalletApprovalModeratorSignedEvent entity without an ID",
-    );
-    if (id) {
-      assert(
-        id.kind == ValueKind.STRING,
-        `Entities of type WalletApprovalModeratorSignedEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
-      );
-      store.set("WalletApprovalModeratorSignedEvent", id.toString(), this);
-    }
-  }
-
-  static loadInBlock(id: string): WalletApprovalModeratorSignedEvent | null {
-    return changetype<WalletApprovalModeratorSignedEvent | null>(
-      store.get_in_block("WalletApprovalModeratorSignedEvent", id),
-    );
-  }
-
-  static load(id: string): WalletApprovalModeratorSignedEvent | null {
-    return changetype<WalletApprovalModeratorSignedEvent | null>(
-      store.get("WalletApprovalModeratorSignedEvent", id),
-    );
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get requestId(): BigInt {
-    let value = this.get("requestId");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBigInt();
-    }
-  }
-
-  set requestId(value: BigInt) {
-    this.set("requestId", Value.fromBigInt(value));
-  }
-
-  get wallet(): Bytes {
-    let value = this.get("wallet");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set wallet(value: Bytes) {
-    this.set("wallet", Value.fromBytes(value));
+  set proposalId(value: BigInt) {
+    this.set("proposalId", Value.fromBigInt(value));
   }
 
   get moderatorId(): Bytes {

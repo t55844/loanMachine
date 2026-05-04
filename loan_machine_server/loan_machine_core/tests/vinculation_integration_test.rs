@@ -11,6 +11,11 @@ use loan_machine_models::requests::DocKind;
 // Known-valid CPF for tests
 const TEST_CPF: &str = "529.982.247-25";
 
+fn parse_hex_u64(s: &str) -> u64 {
+    u64::from_str_radix(s.trim_start_matches("0x"), 16)
+        .unwrap_or_else(|e| panic!("bad hex gas value {s:?}: {e}"))
+}
+
 #[tokio::test]
 async fn get_wallet_coop_returns_none_for_unapproved_wallet() {
     let env = common::get_deployed().await;
@@ -71,7 +76,7 @@ async fn prepare_vinculation_happy_path_returns_bundle() {
         bundle.loan_machine_address.to_lowercase(),
         env.loan_machine_address.to_lowercase(),
     );
-    assert!(bundle.gas_join.parse::<u64>().unwrap() > 0);
+    assert!(parse_hex_u64(&bundle.gas_join) > 0);
 }
 
 #[tokio::test]

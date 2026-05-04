@@ -2790,6 +2790,7 @@ dependencies = [
  "loan_machine_models",
  "mime",
  "reqwest",
+ "send_wrapper",
  "serde",
  "serde_json",
  "tokio",

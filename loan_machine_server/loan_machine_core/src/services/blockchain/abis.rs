@@ -47,15 +47,15 @@ sol! {
         // ── WALLET APPROVAL (admin + moderator co-sign) ──────
         function proposeWalletApproval(address wallet) external returns (uint256 requestId);
 
-        function signWalletApproval(
-            uint256 requestId,
-            bytes32 moderatorMemberId
-        ) external;
+        
 
         // Bootstrap: no moderator yet, requires unanimous admin
         function bootstrapApproveWallet(address wallet) external returns (uint256 proposalId);
-        function confirmBootstrapApproval(uint256 proposalId) external;
 
+        function cosignProposal(
+            uint256 proposalId,
+            bytes32 moderatorMemberId
+        ) external;
         // ── MEMBER JOIN ──────────────────────────────────────
         function joinCoop(
             bytes32 memberId,
@@ -159,7 +159,10 @@ sol! {
             uint8   pType,
             uint256 confirmations,
             bool    executed,
-            uint256 createdAt
+            uint256 createdAt,
+            bool    requiresUnanimous,
+            bool    requiresModeratorCosign,
+            bytes32 moderatorCosignedBy
         );
 
         // Withdrawal views
@@ -238,14 +241,13 @@ sol! {
 sol! {
     #[sol(rpc)]
     contract CoopRegistry {
-        function registerCoop(
-            string calldata name,
-            address loanMachine
-        ) external returns (bytes32 coopId);
+        function platformAdmin() external view returns (address);  // ← add this
 
+        function registerCoop(string calldata name, address loanMachine)
+            external returns (bytes32 coopId);
         function getCoopInstance(bytes32 coopId) external view returns (address);
-        function getAllCoops()                   external view returns (bytes32[] memory);
-        function getCoopCount()                  external view returns (uint256);
+        function getAllCoops() external view returns (bytes32[] memory);
+        function getCoopCount() external view returns (uint256);
         function transferPlatformAdmin(address newAdmin) external;
 
         function coops(bytes32 coopId) external view returns (

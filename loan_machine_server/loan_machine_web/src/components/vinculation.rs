@@ -92,6 +92,41 @@ pub fn FirstVinculationForm(
 
     let wallet = smart_wallet.clone();
 
+    use send_wrapper::SendWrapper;
+    use wasm_bindgen::closure::Closure;
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        use wasm_bindgen::{JsCast, JsValue, closure::Closure};
+
+        let on_complete = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
+            let hash = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("tx_hash"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_default();
+            set_tx_status.set(TxStatus::Complete(hash));
+        });
+        web_sys::window().unwrap()
+            .add_event_listener_with_callback(
+                "privy_tx_complete",
+                on_complete.as_ref().unchecked_ref(),
+            ).ok();
+        on_complete.forget();
+
+        let on_error = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
+            let err = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("error"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_else(|| "unknown".into());
+            set_tx_status.set(TxStatus::Failed(err));
+        });
+        web_sys::window().unwrap()
+            .add_event_listener_with_callback(
+                "privy_tx_error",
+                on_error.as_ref().unchecked_ref(),
+            ).ok();
+        on_error.forget();
+    }
    
         view! {
             <div class="flex-col gap-8">
@@ -271,9 +306,6 @@ fn IdentifyCard(
                     error=Signal::derive(move || error.get().unwrap_or_default())
                 />
 
-                {move || error.get().map(|e| view! {
-                    <Alert kind=AlertKind::Error>{e}</Alert>
-                })}
 
                 <Button
                     variant=BtnVariant::Primary
@@ -395,18 +427,21 @@ fn send_bundle_to_privy(bundle: VinculationBundle) {
         use js_sys::Function;
         use wasm_bindgen::JsCast;
 
-        if let Ok(json) = serde_json::to_string(&bundle) {
-            let window = web_sys::window().unwrap();
-            if let Ok(val) = js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_send_tx")) {
-                if let Ok(func) = val.dyn_into::<Function>() {
-                    let arg = JsValue::from_str(&json);
-                    let _ = func.call1(&JsValue::NULL, &arg);
-                }
+        // Map domain bundle → bridge's {to, data} shape
+        let json = format!(
+            r#"{{"to":"{}","data":"{}"}}"#,
+            bundle.loan_machine_address,
+            bundle.join_calldata,
+        );
+
+        let window = web_sys::window().unwrap();
+        if let Ok(val) = js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_send_tx")) {
+            if let Ok(func) = val.dyn_into::<Function>() {
+                let arg = JsValue::from_str(&json);
+                let _ = func.call1(&JsValue::NULL, &arg);
             }
         }
     }
-
     #[cfg(not(target_arch = "wasm32"))]
     let _ = bundle;
 }
-

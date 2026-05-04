@@ -108,6 +108,7 @@ impl FactoryService{
     pub async fn get_loan_machine(&self, coop_id: FixedBytes<32>) 
     -> Result<Address, BlockchainError>{
         let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
+eprintln!("create factory intance correctly: ");
 
         factory.getCoopInstance(coop_id)
         .call()

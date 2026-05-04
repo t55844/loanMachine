@@ -12,8 +12,7 @@ import {
   AdminTransferred,
   ThresholdChanged,
   // Wallet approval
-  WalletApprovalProposed,
-  WalletApprovalModeratorSigned,
+  ProposalCosigned,
   WalletApproved,
   WalletRevoked,
   // Membership
@@ -69,8 +68,7 @@ import {
   AdminTransferredEvent,
   ThresholdChangedEvent,
   // Wallet approval
-  WalletApprovalProposedEvent,
-  WalletApprovalModeratorSignedEvent,
+  ProposalCosignedEvent,
   WalletApprovedEvent,
   WalletRevokedEvent,
   // Membership
@@ -210,21 +208,10 @@ export function handleThresholdChanged(event: ThresholdChanged): void {
 //                  WALLET APPROVAL HANDLERS
 // ═════════════════════════════════════════════════════════════
 
-export function handleWalletApprovalProposed(event: WalletApprovalProposed): void {
-  let entity = new WalletApprovalProposedEvent(makeId(event))
-  entity.requestId = event.params.requestId
-  entity.wallet = event.params.wallet
-  entity.proposer = event.params.proposer
-  entity.blockTimestamp = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleWalletApprovalModeratorSigned(event: WalletApprovalModeratorSigned): void {
-  let entity = new WalletApprovalModeratorSignedEvent(makeId(event))
-  entity.requestId = event.params.requestId
-  entity.wallet = event.params.wallet
-  entity.moderatorId = event.params.moderatorId
+export function handleProposalCosigned(event: ProposalCosigned): void {
+  let entity = new ProposalCosignedEvent(makeId(event))
+  entity.proposalId = event.params.proposalId
+  entity.moderatorId = event.params.moderatorMemberId
   entity.blockTimestamp = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()

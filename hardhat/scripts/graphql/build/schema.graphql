@@ -71,20 +71,10 @@ type ThresholdChangedEvent @entity(immutable: true) {
 
 # ── GOVERNANCE: WALLET APPROVAL CO-SIGN ───────────────────────
 
-type WalletApprovalProposedEvent @entity(immutable: true) {
+type ProposalCosignedEvent @entity(immutable: true) {
   id: ID!
-  requestId: BigInt!
-  wallet: Bytes!
-  proposer: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type WalletApprovalModeratorSignedEvent @entity(immutable: true) {
-  id: ID!
-  requestId: BigInt!
-  wallet: Bytes!
-  moderatorId: Bytes!    # bytes32 hashed memberId
+  proposalId: BigInt!
+  moderatorId: Bytes!         # bytes32 hashed memberId
   blockTimestamp: String!
   transactionHash: Bytes!
 }
