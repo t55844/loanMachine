@@ -9,8 +9,295 @@ import {
   Bytes,
   BigInt,
   BigDecimal,
-  Int8,
 } from "@graphprotocol/graph-ts";
+
+export class Cooperative extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save Cooperative entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type Cooperative must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("Cooperative", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): Cooperative | null {
+    return changetype<Cooperative | null>(
+      store.get_in_block("Cooperative", id),
+    );
+  }
+
+  static load(id: string): Cooperative | null {
+    return changetype<Cooperative | null>(store.get("Cooperative", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get coopId(): Bytes {
+    let value = this.get("coopId");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set coopId(value: Bytes) {
+    this.set("coopId", Value.fromBytes(value));
+  }
+
+  get name(): string {
+    let value = this.get("name");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set name(value: string) {
+    this.set("name", Value.fromString(value));
+  }
+
+  get loanMachine(): Bytes {
+    let value = this.get("loanMachine");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set loanMachine(value: Bytes) {
+    this.set("loanMachine", Value.fromBytes(value));
+  }
+
+  get registeredAt(): BigInt {
+    let value = this.get("registeredAt");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set registeredAt(value: BigInt) {
+    this.set("registeredAt", Value.fromBigInt(value));
+  }
+
+  get active(): boolean {
+    let value = this.get("active");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set active(value: boolean) {
+    this.set("active", Value.fromBoolean(value));
+  }
+
+  get members(): MemberJoinedEventLoader {
+    return new MemberJoinedEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "members",
+    );
+  }
+
+  get donations(): DonatedEventLoader {
+    return new DonatedEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "donations",
+    );
+  }
+
+  get withdrawals(): WithdrawnEventLoader {
+    return new WithdrawnEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "withdrawals",
+    );
+  }
+
+  get borrows(): BorrowedEventLoader {
+    return new BorrowedEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "borrows",
+    );
+  }
+
+  get repayments(): RepaidEventLoader {
+    return new RepaidEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "repayments",
+    );
+  }
+
+  get loans(): LoanRequisitionCreatedCancelledEventLoader {
+    return new LoanRequisitionCreatedCancelledEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "loans",
+    );
+  }
+
+  get reputationLog(): ReputationChangedEventLoader {
+    return new ReputationChangedEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "reputationLog",
+    );
+  }
+
+  get elections(): ElectionOpenedEventLoader {
+    return new ElectionOpenedEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "elections",
+    );
+  }
+
+  get proposals(): ProposalCreatedEventLoader {
+    return new ProposalCreatedEventLoader(
+      "Cooperative",
+      this.get("id")!.toString(),
+      "proposals",
+    );
+  }
+}
+
+export class CoopRegisteredEvent extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save CoopRegisteredEvent entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type CoopRegisteredEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("CoopRegisteredEvent", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): CoopRegisteredEvent | null {
+    return changetype<CoopRegisteredEvent | null>(
+      store.get_in_block("CoopRegisteredEvent", id),
+    );
+  }
+
+  static load(id: string): CoopRegisteredEvent | null {
+    return changetype<CoopRegisteredEvent | null>(
+      store.get("CoopRegisteredEvent", id),
+    );
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get coopId(): Bytes {
+    let value = this.get("coopId");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set coopId(value: Bytes) {
+    this.set("coopId", Value.fromBytes(value));
+  }
+
+  get loanMachine(): Bytes {
+    let value = this.get("loanMachine");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set loanMachine(value: Bytes) {
+    this.set("loanMachine", Value.fromBytes(value));
+  }
+
+  get name(): string {
+    let value = this.get("name");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set name(value: string) {
+    this.set("name", Value.fromString(value));
+  }
+
+  get blockTimestamp(): string {
+    let value = this.get("blockTimestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set blockTimestamp(value: string) {
+    this.set("blockTimestamp", Value.fromString(value));
+  }
+
+  get transactionHash(): Bytes {
+    let value = this.get("transactionHash");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set transactionHash(value: Bytes) {
+    this.set("transactionHash", Value.fromBytes(value));
+  }
+}
 
 export class ProposalCreatedEvent extends Entity {
   constructor(id: string) {
@@ -53,6 +340,19 @@ export class ProposalCreatedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get proposalId(): BigInt {
@@ -167,6 +467,19 @@ export class ProposalConfirmedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get proposalId(): BigInt {
     let value = this.get("proposalId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -279,6 +592,19 @@ export class ProposalExecutedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get proposalId(): BigInt {
     let value = this.get("proposalId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -373,6 +699,19 @@ export class AdminAddedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get admin(): Bytes {
     let value = this.get("admin");
     if (!value || value.kind == ValueKind.NULL) {
@@ -454,6 +793,19 @@ export class AdminRemovedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get admin(): Bytes {
@@ -540,6 +892,19 @@ export class AdminTransferredEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get oldAdmin(): Bytes {
@@ -641,6 +1006,19 @@ export class ThresholdChangedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get oldThreshold(): BigInt {
     let value = this.get("oldThreshold");
     if (!value || value.kind == ValueKind.NULL) {
@@ -740,6 +1118,19 @@ export class ProposalCosignedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get proposalId(): BigInt {
     let value = this.get("proposalId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -836,6 +1227,19 @@ export class WalletApprovedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get wallet(): Bytes {
     let value = this.get("wallet");
     if (!value || value.kind == ValueKind.NULL) {
@@ -919,6 +1323,19 @@ export class WalletRevokedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get wallet(): Bytes {
     let value = this.get("wallet");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1000,6 +1417,19 @@ export class MemberJoinedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get wallet(): Bytes {
@@ -1101,6 +1531,19 @@ export class AccessCodeRotatedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get blockTimestamp(): string {
     let value = this.get("blockTimestamp");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1171,6 +1614,19 @@ export class CoopDeactivatedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get blockTimestamp(): string {
     let value = this.get("blockTimestamp");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1239,6 +1695,19 @@ export class CoopReactivatedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get blockTimestamp(): string {
@@ -1312,6 +1781,19 @@ export class WithdrawalRequestedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get requestId(): BigInt {
@@ -1439,6 +1921,19 @@ export class WithdrawalExecutedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requestId(): BigInt {
     let value = this.get("requestId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1551,6 +2046,19 @@ export class WithdrawalBlockedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requestId(): BigInt {
     let value = this.get("requestId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1650,6 +2158,19 @@ export class WithdrawalCancelledEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requestId(): BigInt {
     let value = this.get("requestId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1742,6 +2263,19 @@ export class DonatedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get donor(): Bytes {
@@ -1851,6 +2385,19 @@ export class WithdrawnEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get donor(): Bytes {
     let value = this.get("donor");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1958,6 +2505,19 @@ export class BorrowedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get borrower(): Bytes {
     let value = this.get("borrower");
     if (!value || value.kind == ValueKind.NULL) {
@@ -2063,6 +2623,19 @@ export class RepaidEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get borrower(): Bytes {
@@ -2177,6 +2750,19 @@ export class TotalDonationsUpdatedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get total(): BigInt {
     let value = this.get("total");
     if (!value || value.kind == ValueKind.NULL) {
@@ -2261,6 +2847,19 @@ export class TotalBorrowedUpdatedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get total(): BigInt {
@@ -2349,6 +2948,19 @@ export class AvailableBalanceUpdatedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get total(): BigInt {
     let value = this.get("total");
     if (!value || value.kind == ValueKind.NULL) {
@@ -2428,6 +3040,19 @@ export class NewDonorEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get donor(): Bytes {
@@ -2514,6 +3139,19 @@ export class LoanRequisitionCreatedCancelledEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get requisitionId(): BigInt {
@@ -2651,6 +3289,19 @@ export class LoanCoveredEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requisitionId(): BigInt {
     let value = this.get("requisitionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -2758,6 +3409,19 @@ export class LoanFundedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requisitionId(): BigInt {
     let value = this.get("requisitionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -2842,6 +3506,19 @@ export class LoanContractGeneratedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get walletAddress(): Bytes {
@@ -3003,6 +3680,19 @@ export class ParcelPaidEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requisitionId(): BigInt {
     let value = this.get("requisitionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -3097,6 +3787,19 @@ export class LenderRepaidEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get requisitionId(): BigInt {
@@ -3208,6 +3911,19 @@ export class LoanCompletedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requisitionId(): BigInt {
     let value = this.get("requisitionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -3289,6 +4005,19 @@ export class LoanUncoveredEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get requisitionId(): BigInt {
@@ -3398,6 +4127,19 @@ export class BorrowerOverdueEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get requisitionId(): BigInt {
@@ -3512,6 +4254,19 @@ export class BorrowerDebtSettledEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get requisitionId(): BigInt {
     let value = this.get("requisitionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -3609,6 +4364,19 @@ export class MemberToWalletVinculationEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get memberId(): Bytes {
@@ -3734,6 +4502,19 @@ export class ReputationChangedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get memberId(): Bytes {
@@ -3874,6 +4655,19 @@ export class AuthorizedCallerUpdatedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get caller(): Bytes {
     let value = this.get("caller");
     if (!value || value.kind == ValueKind.NULL) {
@@ -3968,6 +4762,19 @@ export class ElectionOpenedEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get electionId(): i32 {
@@ -4092,6 +4899,19 @@ export class CandidateAddedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get electionId(): i32 {
     let value = this.get("electionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -4184,6 +5004,19 @@ export class VoteCastEvent extends Entity {
 
   set id(value: string) {
     this.set("id", Value.fromString(value));
+  }
+
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
   }
 
   get electionId(): i32 {
@@ -4308,6 +5141,19 @@ export class ElectionClosedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get electionId(): i32 {
     let value = this.get("electionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -4420,6 +5266,19 @@ export class UnbeatableMajorityReachedEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get electionId(): i32 {
     let value = this.get("electionId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -4529,6 +5388,19 @@ export class NewModeratorEvent extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get cooperative(): string {
+    let value = this.get("cooperative");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cooperative(value: string) {
+    this.set("cooperative", Value.fromString(value));
+  }
+
   get memberId(): Bytes {
     let value = this.get("memberId");
     if (!value || value.kind == ValueKind.NULL) {
@@ -4579,5 +5451,167 @@ export class NewModeratorEvent extends Entity {
 
   set transactionHash(value: Bytes) {
     this.set("transactionHash", Value.fromBytes(value));
+  }
+}
+
+export class MemberJoinedEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): MemberJoinedEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<MemberJoinedEvent[]>(value);
+  }
+}
+
+export class DonatedEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): DonatedEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<DonatedEvent[]>(value);
+  }
+}
+
+export class WithdrawnEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): WithdrawnEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<WithdrawnEvent[]>(value);
+  }
+}
+
+export class BorrowedEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): BorrowedEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<BorrowedEvent[]>(value);
+  }
+}
+
+export class RepaidEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): RepaidEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<RepaidEvent[]>(value);
+  }
+}
+
+export class LoanRequisitionCreatedCancelledEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): LoanRequisitionCreatedCancelledEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<LoanRequisitionCreatedCancelledEvent[]>(value);
+  }
+}
+
+export class ReputationChangedEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): ReputationChangedEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<ReputationChangedEvent[]>(value);
+  }
+}
+
+export class ElectionOpenedEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): ElectionOpenedEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<ElectionOpenedEvent[]>(value);
+  }
+}
+
+export class ProposalCreatedEventLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): ProposalCreatedEvent[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<ProposalCreatedEvent[]>(value);
   }
 }

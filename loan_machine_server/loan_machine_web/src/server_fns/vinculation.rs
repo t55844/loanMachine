@@ -37,7 +37,7 @@ pub async fn prepare_first_vinculation(
     prepare_first_vinculation_logic(
         &state.identity,
         &state.blockchain_service,
-        &state.factory_address.0,
+        &state.coop_registry_address.0,
         doc_kind,
         document,
         smart_wallet,

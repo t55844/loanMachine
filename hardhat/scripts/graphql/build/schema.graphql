@@ -1,22 +1,51 @@
 # ═══════════════════════════════════════════════════════════════
-#  LoanMachine v3 — Subgraph Schema
+#  LoanMachine — Subgraph Schema (multi-coop)
 #
-#  CHANGES FROM v1:
-#  - memberId: Int → Bytes (bytes32 hashed CPF/CNPJ)
-#  - NEW: governance events (Proposal*, Admin*, Threshold*)
-#  - NEW: wallet approval co-sign events
-#  - NEW: withdrawal delay events
-#  - NEW: MemberJoined, CoopDeactivated/Reactivated
-#  - REMOVED: NewBorrowerEvent, BorrowLimitReachedEvent, PeriodicCheckRunEvent
-#  - All reputation/election events now use Bytes for memberId/candidateId
+#  CHANGES vs single-coop:
+#  - NEW: Cooperative entity (one per registered LoanMachine)
+#  - NEW: CoopRegisteredEvent
+#  - All event entities now have `cooperative: Cooperative!`
+#  - LoanRequisitionCreatedCancelledEvent ID is namespaced by coop
 # ═══════════════════════════════════════════════════════════════
+
+# ── COOPERATIVE (root entity) ─────────────────────────────────
+
+type Cooperative @entity(immutable: false) {
+  id: ID!                         # lowercased LoanMachine address
+  coopId: Bytes!                  # bytes32 from CoopRegistry
+  name: String!
+  loanMachine: Bytes!
+  registeredAt: BigInt!
+  active: Boolean!                # toggled by CoopDeactivated/Reactivated
+
+  # Reverse relations — query "give me everything for this coop"
+  members:        [MemberJoinedEvent!]!                    @derivedFrom(field: "cooperative")
+  donations:      [DonatedEvent!]!                         @derivedFrom(field: "cooperative")
+  withdrawals:    [WithdrawnEvent!]!                       @derivedFrom(field: "cooperative")
+  borrows:        [BorrowedEvent!]!                        @derivedFrom(field: "cooperative")
+  repayments:     [RepaidEvent!]!                          @derivedFrom(field: "cooperative")
+  loans:          [LoanRequisitionCreatedCancelledEvent!]! @derivedFrom(field: "cooperative")
+  reputationLog:  [ReputationChangedEvent!]!               @derivedFrom(field: "cooperative")
+  elections:      [ElectionOpenedEvent!]!                  @derivedFrom(field: "cooperative")
+  proposals:      [ProposalCreatedEvent!]!                 @derivedFrom(field: "cooperative")
+}
+
+type CoopRegisteredEvent @entity(immutable: true) {
+  id: ID!
+  coopId: Bytes!
+  loanMachine: Bytes!
+  name: String!
+  blockTimestamp: String!
+  transactionHash: Bytes!
+}
 
 # ── GOVERNANCE: MULTISIG ADMIN ────────────────────────────────
 
 type ProposalCreatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   proposalId: BigInt!
-  pType: Int!            # ProposalType enum as uint8
+  pType: Int!
   proposer: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -24,6 +53,7 @@ type ProposalCreatedEvent @entity(immutable: true) {
 
 type ProposalConfirmedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   proposalId: BigInt!
   admin: Bytes!
   confirmations: BigInt!
@@ -33,6 +63,7 @@ type ProposalConfirmedEvent @entity(immutable: true) {
 
 type ProposalExecutedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   proposalId: BigInt!
   pType: Int!
   blockTimestamp: String!
@@ -41,6 +72,7 @@ type ProposalExecutedEvent @entity(immutable: true) {
 
 type AdminAddedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   admin: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -48,6 +80,7 @@ type AdminAddedEvent @entity(immutable: true) {
 
 type AdminRemovedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   admin: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -55,6 +88,7 @@ type AdminRemovedEvent @entity(immutable: true) {
 
 type AdminTransferredEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   oldAdmin: Bytes!
   newAdmin: Bytes!
   blockTimestamp: String!
@@ -63,6 +97,7 @@ type AdminTransferredEvent @entity(immutable: true) {
 
 type ThresholdChangedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   oldThreshold: BigInt!
   newThreshold: BigInt!
   blockTimestamp: String!
@@ -73,14 +108,16 @@ type ThresholdChangedEvent @entity(immutable: true) {
 
 type ProposalCosignedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   proposalId: BigInt!
-  moderatorId: Bytes!         # bytes32 hashed memberId
+  moderatorId: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
 type WalletApprovedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   wallet: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -88,6 +125,7 @@ type WalletApprovedEvent @entity(immutable: true) {
 
 type WalletRevokedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   wallet: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -97,26 +135,30 @@ type WalletRevokedEvent @entity(immutable: true) {
 
 type MemberJoinedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   wallet: Bytes!
-  memberId: Bytes!       # bytes32 hashed CPF/CNPJ
+  memberId: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
 type AccessCodeRotatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
 type CoopDeactivatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
 type CoopReactivatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
@@ -125,6 +167,7 @@ type CoopReactivatedEvent @entity(immutable: true) {
 
 type WithdrawalRequestedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requestId: BigInt!
   requester: Bytes!
   amount: BigInt!
@@ -135,6 +178,7 @@ type WithdrawalRequestedEvent @entity(immutable: true) {
 
 type WithdrawalExecutedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requestId: BigInt!
   requester: Bytes!
   amount: BigInt!
@@ -144,6 +188,7 @@ type WithdrawalExecutedEvent @entity(immutable: true) {
 
 type WithdrawalBlockedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requestId: BigInt!
   blocker: Bytes!
   blockTimestamp: String!
@@ -152,6 +197,7 @@ type WithdrawalBlockedEvent @entity(immutable: true) {
 
 type WithdrawalCancelledEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requestId: BigInt!
   requester: Bytes!
   blockTimestamp: String!
@@ -162,6 +208,7 @@ type WithdrawalCancelledEvent @entity(immutable: true) {
 
 type DonatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   donor: Bytes!
   amount: BigInt!
   totalDonation: BigInt!
@@ -171,6 +218,7 @@ type DonatedEvent @entity(immutable: true) {
 
 type WithdrawnEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   donor: Bytes!
   amount: BigInt!
   donations: BigInt!
@@ -180,6 +228,7 @@ type WithdrawnEvent @entity(immutable: true) {
 
 type BorrowedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   borrower: Bytes!
   amount: BigInt!
   totalBorrowing: BigInt!
@@ -189,6 +238,7 @@ type BorrowedEvent @entity(immutable: true) {
 
 type RepaidEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   borrower: Bytes!
   amount: BigInt!
   remainingDebt: BigInt!
@@ -198,6 +248,7 @@ type RepaidEvent @entity(immutable: true) {
 
 type TotalDonationsUpdatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   total: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -205,6 +256,7 @@ type TotalDonationsUpdatedEvent @entity(immutable: true) {
 
 type TotalBorrowedUpdatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   total: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -212,6 +264,7 @@ type TotalBorrowedUpdatedEvent @entity(immutable: true) {
 
 type AvailableBalanceUpdatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   total: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -219,6 +272,7 @@ type AvailableBalanceUpdatedEvent @entity(immutable: true) {
 
 type NewDonorEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   donor: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -227,7 +281,8 @@ type NewDonorEvent @entity(immutable: true) {
 # ── LOAN LIFECYCLE ────────────────────────────────────────────
 
 type LoanRequisitionCreatedCancelledEvent @entity(immutable: false) {
-  id: ID!
+  id: ID!                       # = "{loanMachineAddr}-{requisitionId}"
+  cooperative: Cooperative!
   requisitionId: BigInt!
   borrower: Bytes!
   amount: BigInt!
@@ -239,6 +294,7 @@ type LoanRequisitionCreatedCancelledEvent @entity(immutable: false) {
 
 type LoanCoveredEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   lender: Bytes!
   coverageAmount: BigInt!
@@ -248,6 +304,7 @@ type LoanCoveredEvent @entity(immutable: true) {
 
 type LoanFundedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -255,6 +312,7 @@ type LoanFundedEvent @entity(immutable: true) {
 
 type LoanContractGeneratedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   walletAddress: Bytes!
   requisitionId: BigInt!
   status: Int!
@@ -268,6 +326,7 @@ type LoanContractGeneratedEvent @entity(immutable: true) {
 
 type ParcelPaidEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   parcelsRemaining: BigInt!
   blockTimestamp: String!
@@ -276,6 +335,7 @@ type ParcelPaidEvent @entity(immutable: true) {
 
 type LenderRepaidEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   lender: Bytes!
   amount: BigInt!
@@ -285,6 +345,7 @@ type LenderRepaidEvent @entity(immutable: true) {
 
 type LoanCompletedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -292,6 +353,7 @@ type LoanCompletedEvent @entity(immutable: true) {
 
 type LoanUncoveredEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   lender: Bytes!
   amountReturnedToLender: BigInt!
@@ -301,6 +363,7 @@ type LoanUncoveredEvent @entity(immutable: true) {
 
 type BorrowerOverdueEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   borrower: Bytes!
   dueDate: BigInt!
@@ -310,17 +373,19 @@ type BorrowerOverdueEvent @entity(immutable: true) {
 
 type BorrowerDebtSettledEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   requisitionId: BigInt!
   borrower: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
-# ── REPUTATION (memberId is now Bytes = bytes32) ─────────────
+# ── REPUTATION ────────────────────────────────────────────────
 
 type MemberToWalletVinculationEvent @entity(immutable: true) {
   id: ID!
-  memberId: Bytes!          # bytes32 hashed CPF/CNPJ
+  cooperative: Cooperative!
+  memberId: Bytes!
   wallet: Bytes!
   walletVinculated: [Bytes!]!
   timestamp: String!
@@ -330,7 +395,8 @@ type MemberToWalletVinculationEvent @entity(immutable: true) {
 
 type ReputationChangedEvent @entity(immutable: true) {
   id: ID!
-  memberId: Bytes!          # bytes32
+  cooperative: Cooperative!
+  memberId: Bytes!
   points: Int!
   increase: Boolean!
   newReputation: Int!
@@ -341,18 +407,20 @@ type ReputationChangedEvent @entity(immutable: true) {
 
 type AuthorizedCallerUpdatedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   caller: Bytes!
   authorized: Boolean!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
-# ── ELECTIONS (candidateId/memberId/winnerId are now Bytes) ───
+# ── ELECTIONS ─────────────────────────────────────────────────
 
 type ElectionOpenedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   electionId: Int!
-  candidateId: Bytes!       # bytes32
+  candidateId: Bytes!
   startTime: String!
   endTime: String!
   blockTimestamp: String!
@@ -361,17 +429,19 @@ type ElectionOpenedEvent @entity(immutable: true) {
 
 type CandidateAddedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   electionId: Int!
-  candidateId: Bytes!       # bytes32
+  candidateId: Bytes!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
 
 type VoteCastEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   electionId: Int!
-  candidateId: Bytes!       # bytes32
-  memberId: Bytes!          # bytes32
+  candidateId: Bytes!
+  memberId: Bytes!
   voteWeight: Int!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -379,8 +449,9 @@ type VoteCastEvent @entity(immutable: true) {
 
 type ElectionClosedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   electionId: Int!
-  winnerId: Bytes!          # bytes32
+  winnerId: Bytes!
   winningVotes: Int!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -388,8 +459,9 @@ type ElectionClosedEvent @entity(immutable: true) {
 
 type UnbeatableMajorityReachedEvent @entity(immutable: true) {
   id: ID!
+  cooperative: Cooperative!
   electionId: Int!
-  winnerId: Bytes!          # bytes32
+  winnerId: Bytes!
   winningVotes: Int!
   blockTimestamp: String!
   transactionHash: Bytes!
@@ -397,7 +469,8 @@ type UnbeatableMajorityReachedEvent @entity(immutable: true) {
 
 type NewModeratorEvent @entity(immutable: true) {
   id: ID!
-  memberId: Bytes!          # bytes32
+  cooperative: Cooperative!
+  memberId: Bytes!
   electionId: Int!
   blockTimestamp: String!
   transactionHash: Bytes!

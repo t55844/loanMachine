@@ -20,16 +20,16 @@ use super::provider::Provider;
 use super::BlockchainError; 
 use loan_machine_models::responses::CoopInfo;
 
-pub struct FactoryService{
+pub struct CoopRegistryService{
     pub provider: Arc<Provider>,
-    pub factory_address: Address,
+    pub coop_registry_address: Address,
 }
 
-impl FactoryService{
-    pub fn new(provider: Arc<Provider>, factory_address: Address) -> Self {
+impl CoopRegistryService{
+    pub fn new(provider: Arc<Provider>, coop_registry_address: Address) -> Self {
         Self {
             provider,
-            factory_address,
+            coop_registry_address,
         }
     }
 
@@ -42,7 +42,7 @@ impl FactoryService{
     /// For large scale, use the subgraph instead (it indexes MemberJoined events).
 
     pub async fn get_wallet_coop(&self,wallet: Address) -> Result<FixedBytes<32>, BlockchainError> {
-        let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
+        let factory = CoopRegistry::new(self.coop_registry_address, self.provider.clone());
 
         let coop_ids = factory
         .getAllCoops()
@@ -75,7 +75,7 @@ impl FactoryService{
     }
 
     pub async fn get_coop_info(&self, coop_id: FixedBytes<32>) -> Result<CoopInfo, BlockchainError>{
-        let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
+        let factory = CoopRegistry::new(self.coop_registry_address, self.provider.clone());
 
         let record = factory
         .coops(coop_id)
@@ -107,7 +107,7 @@ impl FactoryService{
     /// Returns the LoanMachine contract address for a given coopId.
     pub async fn get_loan_machine(&self, coop_id: FixedBytes<32>) 
     -> Result<Address, BlockchainError>{
-        let factory = CoopRegistry::new(self.factory_address, self.provider.clone());
+        let factory = CoopRegistry::new(self.coop_registry_address, self.provider.clone());
 eprintln!("create factory intance correctly: ");
 
         factory.getCoopInstance(coop_id)

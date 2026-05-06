@@ -8,6 +8,8 @@ use crate::components::auth_bar::AuthBar;
 use crate::components::home::HomePage;
 use crate::components::create_coop::coop_choice::CoopChoicePage;
 use crate::components::create_coop::create_coop::CreateCoopPage;
+use crate::components::gas_modal::{provide_gas_modal, GasModal};
+use crate::components::cooperatives::{CooperativesPage};
 use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
@@ -30,6 +32,9 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn WalletRouter() -> impl IntoView {
+
+    provide_gas_modal();
+    
     let (wallet, set_wallet) = signal::<Option<String>>(None);
 
     // Browser-only setup: register listeners + trigger session restore.
@@ -100,7 +105,7 @@ fn WalletRouter() -> impl IntoView {
             on_login=Arc::clone(&login_fn)
             on_logout=Arc::clone(&logout_fn)
         />
-
+        <GasModal />
         <Router>
             <Routes fallback=|| view! {
                 <section class="section">
@@ -118,6 +123,26 @@ fn WalletRouter() -> impl IntoView {
                         Some(addr) => view! { <CoopChoicePage /> }.into_any(),
                     }
                 }/>
+
+                <Route path=path!("/cooperatives") view=move || {
+                    match wallet.get() {
+                        None => view! {
+                            <section class="section">
+                                <div class="container-sm">
+                                    <Card variant=CardVariant::Yellow hover=false>
+                                        <h2 class="t-display-md t-yellow">"LOGIN NECESSÁRIO"</h2>
+                                        <p class="t-mono-sm t-muted mt-4">
+                                            "Conecte sua carteira para ver as cooperativas."
+                                        </p>
+                                    </Card>
+                                </div>
+                            </section>
+                        }.into_any(),
+                        Some(_) => view! {
+                            <CooperativesPage wallet=wallet />
+                        }.into_any(),
+                    }
+                } />
 
                 <Route path=path!("/create-coop") view=move || {
                     match wallet.get() {

@@ -813,3 +813,146 @@ body {
   background: var(--c-yellow);
   color: #111;
 }
+
+/* ── HASH DISPLAY — copyable variant ──────────────────────── */
+.hash-display-copyable {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+}
+
+.hash-display-text {
+    word-break: break-all;
+    min-width: 0;
+    flex: 1;
+}
+
+.hash-copy-btn {
+    flex-shrink: 0;
+    background: rgba(201,148,26,0.12);
+    border: 1px solid rgba(201,148,26,0.25);
+    color: var(--c-gold);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hash-copy-btn:hover {
+    background: rgba(201,148,26,0.22);
+    border-color: rgba(201,148,26,0.45);
+}
+
+/* ── GAS MODAL ────────────────────────────────────────────── */
+.gas-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: gas-modal-fadein 0.2s ease-out;
+}
+
+@keyframes gas-modal-fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.gas-modal-card {
+    background: linear-gradient(150deg, #1e1b00 0%, var(--c-surface) 100%);
+    border: 1px solid rgba(240,204,0,0.25);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-8);
+    max-width: 420px;
+    width: 90%;
+    box-shadow: var(--shadow-yellow), var(--shadow-lg);
+    animation: gas-modal-slidein 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes gas-modal-slidein {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Button spacing — the fix for "too close" ─────────────── */
+.gas-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    margin-top: var(--sp-8);
+}
+
+/* ── Estimate block with separator ────────────────────────── */
+.gas-estimate-block {
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--c-gray-2);
+}
+.gas-estimate-block:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* ── Price breakdown grid ─────────────────────────────────── */
+.gas-price-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-2) var(--sp-4);
+    margin-top: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    background: rgba(240,204,0,0.04);
+    border: 1px solid rgba(240,204,0,0.1);
+    border-radius: var(--radius-sm);
+}
+
+.gas-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gas-price-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--c-gray-4);
+}
+
+.gas-price-value {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--c-paper-dim);
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    .gas-modal-card {
+        padding: var(--sp-6);
+        width: calc(100% - var(--sp-8));
+        max-width: none;
+    }
+    .gas-price-breakdown {
+        grid-template-columns: 1fr;
+    }
+}
+
+.gas-price-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-top: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+}

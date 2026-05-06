@@ -1,38 +1,7 @@
 # docker-compose.dev.yml
-# This file is for DEVELOPMENT with HOT-RELOADING
-
-#version: '3.8'  # Add this to fix validation – specifies schema, allows custom services like 'cypress'
+# Subgraph indexing stack only. Anvil runs on the host (anvil --host 0.0.0.0).
 
 services:
-  # --- BLOCKCHAIN (UNCHANGED) ---
-  hardhat-node:
-    build:
-      context: ./hardhat
-      dockerfile: Dockerfile
-    ports:
-      - '8545:8545'
-    volumes:
-      - ./hardhat/scripts:/app/scripts
-      - ./hardhat/deployment-addresses.json:/app/deployment-addresses.json
-
-  # --- FRONTEND ---
-  #frontend:
-  #  build:
-  #    context: ./frontend
-  #    dockerfile: Dockerfile.dev
-  #  ports:
-  #    - '5173:5173'
-  #  volumes:
-  #    - ./frontend:/app
-  #    - /app/node_modules
-  #  environment:
-  #   - VITE_RUST_API_URL=http://loan_machine_server:3002 
-  #  depends_on:
-  #    - loan_machine_server
-  #    - graph-node
-  #    - hardhat-node
-
-  # --- GRAPHQL TO GET AND STORE EVENTS FROM ON-CHAIN AND SEND IT TO THE FRONT ---
   ipfs:
     image: ipfs/go-ipfs:v0.10.0
     ports:
@@ -43,7 +12,7 @@ services:
       - ./data/ipfs:/data/ipfs
 
   postgres:
-    image: postgres:12
+    image: postgres:14
     environment:
       POSTGRES_PASSWORD: letmein
       POSTGRES_USER: graph-node
@@ -54,7 +23,7 @@ services:
       - '5432:5432'
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-    command: 
+    command:
       - "postgres"
       - "-cshared_preload_libraries=pg_stat_statements"
       - "-clisten_addresses=*"
@@ -73,83 +42,53 @@ services:
       postgres_pass: letmein
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'local:http://hardhat-node:8545'
+      ethereum: 'local:http://host.docker.internal:8545'
       GRAPH_LOG: info
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - postgres
       - ipfs
-      - hardhat-node
 
- # --- PLAYWRIGHT TEST FRONTEND ---
-  #playwright:
-  #  image: mcr.microsoft.com/playwright:v1.58.2-jammy 
-  #  depends_on:
-  #    - frontend
-  #    - loan_machine_server
-  #    - graph-node
-  #    - hardhat-node  # Ensures full stack is up
-  #  volumes:
-  #    - ./frontend:/app  # Mount frontend code (including tests folder)
-  #  working_dir: /app
-  #  environment:
-  #    - PLAYWRIGHT_BASE_URL=http://frontend:5173  # Internal Docker URL for tests
-  #  command: bash -c "npm install && npx playwright test"  # Install deps, then run tests (adjust browser if needed)
-
-    # --- RUST SERVER ---
-  #loan_machine_server:
-  #  build:
-  #      context: ./loan_machine_server
-  #      dockerfile: Dockerfile.dev   # <--- usa o dev agora
-  #  ports:
-  #      - '3002:3002'
-  #  environment:
-  #      - SUBGRAPH_URL=http://graph-node:8000/subgraphs/name/loan-machine
-  #      - RPC_URL=http://hardhat-node:8545
-  #  volumes:
-  #      - ./loan_machine_server:/app          
-  #      # Opcional: cache de dependências pra compilar mais rápido
-  #      - cargo-registry:/usr/local/cargo/registry
-  #      - cargo-git:/usr/local/cargo/git
-  #  depends_on:
-  #      - graph-node
-  #      - hardhat-node
-  #      - subgraph-deploy   
-  #  restart: unless-stopped
-
-  # --- SUBGRAPH DEPLOY ----
   subgraph-deploy:
     image: node:20
     volumes:
       - ./hardhat/scripts/graphql:/app
     working_dir: /app
-    command: >
-      sh -c "
-        echo '=== Instalando graph-cli e dependências... ===' &&
-        npm install -g @graphprotocol/graph-cli &&
-        if [ -f yarn.lock ]; then yarn install; else npm install; fi &&
-
-        echo '=== Aguardando graph-node ficar pronto (90s)... ===' &&
-        sleep 90 &&
-
-        echo '=== Removendo subgraph antigo (se existir)... ===' &&
-        graph remove --node http://graph-node:8020/ loan-machine || true &&
-
-        echo '=== Criando subgraph... ===' &&
-        graph create --node http://graph-node:8020/ loan-machine &&
-
-        echo '=== Codegen e build... ===' &&
-        graph codegen &&
-        graph build &&
-
-        echo '=== Deploying subgraph no node LOCAL (versão automática v0.0.1)... ===' &&
-        graph deploy --node http://graph-node:8020/ --ipfs http://ipfs:5001/ loan-machine --version-label v0.0.1 &&
-        
-        echo '=== SUBGRAPH DEPLOYED COM SUCESSO! ==='
-      "
+    environment:
+      - COOP_REGISTRY_ADDRESS=${COOP_REGISTRY_ADDRESS}
+      - START_BLOCK=${START_BLOCK:-0}
     depends_on:
       - graph-node
       - ipfs
+    command: >
+      sh -c "
+        set -e &&
+        apt-get update -qq && apt-get install -y -qq gettext-base curl &&
+        npm install -g @graphprotocol/graph-cli@0.69.2 &&
+        if [ -f yarn.lock ]; then yarn install; else npm install; fi &&
 
-volumes:
-  cargo-registry:
-  cargo-git:
+        echo '=== Waiting for graph-node ===' &&
+        until [ \"\$$(curl -s -o /dev/null -w '%{http_code}' http://graph-node:8020/)\" != '000' ]; do sleep 2; done &&
+        echo '✓ graph-node ready' &&
+
+        echo '=== Rendering subgraph.yaml ===' &&
+        envsubst '\$${COOP_REGISTRY_ADDRESS} \$${START_BLOCK}' < subgraph.template.yaml > subgraph.yaml &&
+
+        echo '=== Removing old deploy ===' &&
+        graph remove loan-machine --node http://graph-node:8020/ || true &&
+
+        echo '=== Creating subgraph ===' &&
+        graph create loan-machine --node http://graph-node:8020/ &&
+
+        echo '=== Codegen ===' &&
+        graph codegen &&
+
+        echo '=== Build ===' &&
+        graph build &&
+
+        echo '=== Deploying ===' &&
+        IPFS_URL=http://ipfs:5001 \
+        GRAPH_NODE_URL=http://graph-node:8020 \
+        node deploy-local.js
+      "

@@ -11,7 +11,7 @@
 //   5. Wire it up in BlockchainService::init()
 
 pub mod abis;
-pub mod factory;
+pub mod coop_registry;
 pub mod provider;
 pub mod deployable;
 // Future modules (uncomment when implemented):
@@ -22,7 +22,7 @@ pub mod deployable;
 use alloy::primitives::Address;
 use std::sync::Arc;
 
-pub use factory::FactoryService;
+pub use coop_registry::CoopRegistryService;
 pub use provider::Provider;
 
 pub mod contract_errors;
@@ -54,7 +54,7 @@ pub enum BlockchainError {
 // Each domain gets its own sub-service.
 
 pub struct BlockchainService {
-    pub factory: FactoryService,
+    pub coop_registry: CoopRegistryService,
     // pub loans:   LoansService,      ← add when ready
     // pub account: AccountService,    ← add when ready
 }
@@ -62,17 +62,17 @@ pub struct BlockchainService {
 impl BlockchainService {
     pub async fn init(
         rpc_url:         &str,
-        factory_addr:    &str,
+        coop_registry_addr:    &str,
     ) -> Result<Self, BlockchainError> {
         // Build a single shared provider — all sub-services use the same connection
         let provider = Arc::new(provider::build_provider(rpc_url)?);
 
-        let factory_address: Address = factory_addr
+        let coop_registry_address: Address = coop_registry_addr
             .parse()
             .map_err(|_| BlockchainError::InvalidAddress)?;
 
         Ok(Self {
-            factory: FactoryService::new(provider.clone(), factory_address),
+            coop_registry: CoopRegistryService::new(provider.clone(), coop_registry_address),
         })
     }
 }

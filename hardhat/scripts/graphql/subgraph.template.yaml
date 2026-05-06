@@ -11,9 +11,9 @@ dataSources:
     name: CoopRegistry
     network: local
     source:
-      address: "0xa966451b622431217FEb5745a16FF60e147f7c4D"
+      address: "${COOP_REGISTRY_ADDRESS}"
       abi: CoopRegistry
-      startBlock: 2
+      startBlock: ${START_BLOCK}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6

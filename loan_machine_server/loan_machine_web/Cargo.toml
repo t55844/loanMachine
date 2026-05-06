@@ -52,7 +52,7 @@ dotenvy = { version = "0.15", optional = true }
 getrandom    = { version = "0.2", features = ["js"] }
 wasm-bindgen = { version = "0.2" }
 web-sys = { version = "0.3", features = [
-    "Window", "CustomEvent", "CustomEventInit", "EventTarget",
+    "Window", "CustomEvent", "CustomEventInit", "EventTarget","Navigator",
 ] }
 js-sys  = { version = "0.3" }
 alloy = { workspace = true, optional = true, features = ["sol-types", "rpc-types", "network", "contract", "providers", "transport-http"] }
@@ -62,6 +62,9 @@ tower-http = { version = "0.5", optional = true, default-features = false, featu
 reqwest    = { version = "0.12", optional = true, features = ["json"] }
 hex        = { version = "0.4", optional = true }
 send_wrapper = "0.6"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
 
 
 [dev-dependencies]

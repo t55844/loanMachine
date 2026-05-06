@@ -24,7 +24,7 @@ pub const TEST_ACCESS_CODE: &str = "test-access-code";
 /// Long-lived state: Anvil process + on-chain addresses. Initialized once.
 struct Deployed {
     rpc_url:              String,
-    factory_address:      String,
+    coop_registry_address:      String,
     loan_machine_address: String,
     usdt_address:         String,
     coop_id_hex:          String,
@@ -42,7 +42,7 @@ struct Deployed {
 /// rebuilt per test so its HTTP client lives on the test's own runtime.
 pub struct DeployedEnv {
     pub rpc_url:              String,
-    pub factory_address:      String,
+    pub coop_registry_address:      String,
     pub loan_machine_address: String,
     pub usdt_address:         String,
     pub coop_id_hex:          String,
@@ -61,13 +61,13 @@ static DEPLOYED: OnceCell<Deployed> = OnceCell::const_new();
 pub async fn get_deployed() -> DeployedEnv {
     let d = DEPLOYED.get_or_init(deploy).await;
 
-    let blockchain = BlockchainService::init(&d.rpc_url, &d.factory_address)
+    let blockchain = BlockchainService::init(&d.rpc_url, &d.coop_registry_address)
         .await
         .expect("BlockchainService::init (per-test)");
 
     DeployedEnv {
         rpc_url:              d.rpc_url.clone(),
-        factory_address:      d.factory_address.clone(),
+        coop_registry_address:      d.coop_registry_address.clone(),
         loan_machine_address: d.loan_machine_address.clone(),
         usdt_address:         d.usdt_address.clone(),
         coop_id_hex:          d.coop_id_hex.clone(),
@@ -173,7 +173,7 @@ async fn deploy() -> Deployed {
 
     Deployed {
         rpc_url:              rpc_url.clone(),
-        factory_address:      registry_address.to_string(),
+        coop_registry_address:      registry_address.to_string(),
         loan_machine_address: loan_machine_address.to_string(),
         usdt_address:         usdt_address.to_string(),
         coop_id_hex:          format!("0x{}", hex::encode(coop_id)),

@@ -29,7 +29,7 @@ pub async fn get_wallet_coop_logic(
         .parse()
         .map_err(|_| VinculationLogicError::ServerLogicInvalidWalletAddress)?;
     
-    let coop_id = blockchain.factory
+    let coop_id = blockchain.coop_registry
         .get_wallet_coop(wallet)
         .await
         .map_err(|e| VinculationLogicError::ServerLogicBlockchain(e.to_string()))?;
@@ -38,7 +38,7 @@ pub async fn get_wallet_coop_logic(
         return Ok(None);
     }    
 
-    let info = blockchain.factory
+    let info = blockchain.coop_registry
         .get_coop_info(coop_id)
         .await
         .map_err(|e| VinculationLogicError::ServerLogicBlockchain(e.to_string()))?;
@@ -50,7 +50,7 @@ pub async fn get_wallet_coop_logic(
 pub async fn prepare_first_vinculation_logic(
     identity: &IdentityService,
     blockchain: &BlockchainService,
-    factory_address: &str,
+    coop_registry_address: &str,
     doc_kind: DocKind,
     document: String,
     smart_wallet: String,
@@ -76,25 +76,25 @@ eprintln!("get wallet  correctly: {}",wallet);
         .map_err(|_| VinculationLogicError::ServerLogicInvalidCoopId)?;
 eprintln!("get coop_id_bytes correctly: {}",coop_id_bytes);
 
-    let factory = &blockchain.factory;
-eprintln!("get factory correctly: ");
+    let coop_registry = &blockchain.coop_registry;
+eprintln!("get coop_registry correctly: ");
 
-    let loan_machine_addr = factory.get_loan_machine(coop_id_bytes).await
+    let loan_machine_addr = coop_registry.get_loan_machine(coop_id_bytes).await
         .map_err(|e| VinculationLogicError::ServerLogicBlockchain(e.to_string()))?;
 eprintln!("get loan_machine_addr correctly: ");
 
 
-    let approved = factory.is_wallet_approved(loan_machine_addr, wallet).await
+    let approved = coop_registry.is_wallet_approved(loan_machine_addr, wallet).await
     .map_err(|e| VinculationLogicError::ServerLogicBlockchain(friendly_from_error(&e)))?;
 
     if !approved{
         return Err(VinculationLogicError::ServerLogicWalletNotApproved);
     }
 
-    let join_calldata = factory.encode_join_coop(member_id, wallet, &access_code);
+    let join_calldata = coop_registry.encode_join_coop(member_id, wallet, &access_code);
 eprintln!("[vinc] calling joinCoop (estimating gas)");
 
-    let gas = factory
+    let gas = coop_registry
         .estimate_join_coop_gas(loan_machine_addr, member_id, wallet, &access_code)
         .await
         .map_err(|e| VinculationLogicError::ServerLogicBlockchain(e.to_string()))?;
@@ -102,7 +102,7 @@ eprintln!("[vinc] calling joinCoop (estimating gas)");
     Ok(VinculationBundle{
         join_calldata: format!("0x{}", hex::encode(join_calldata.as_ref())),
         loan_machine_address: loan_machine_addr.to_string(),
-        factory_address: factory_address.to_string(),
+        coop_registry_address: coop_registry_address.to_string(),
         gas_join: format!("0x{:x}", gas),
     })
 }

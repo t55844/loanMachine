@@ -1,6 +1,17 @@
 // src/models/responses.rs
 use serde::{Deserialize, Serialize};
 
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CooperativeView {
+    pub id: String,
+    pub coop_id: String,
+    pub name: String,
+    pub loan_machine: String,
+    pub active: bool,
+    pub registered_at: u64,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TransactionResponse {
     pub to:           String,
@@ -25,7 +36,7 @@ pub struct CoopInfo {
 pub struct VinculationBundle {
     pub join_calldata:        String,   // encoded joinCoop(memberId, wallet, accessCode)
     pub loan_machine_address: String,   // target contract for the tx
-    pub factory_address:      String,   // factory address (for reference/display)
+    pub coop_registry_address:      String,   // coop_registry address (for reference/display)
     pub gas_join:             String,   // gas estimate as string
 }
 

@@ -238,3 +238,39 @@ fn progress_registering_step_five_badges_filled() {
 fn progress_done_step_all_six_badges_filled() {
     assert_eq!(progress_at(CoopStep::Done).matches("badge-filled-yellow").count(), 6);
 }
+
+// ── Error alert behavior ──────────────────────────────────────
+//
+// The CreateCoopPage owns a private `error` signal that drives a
+// conditional Alert. We can't poke that signal from outside (it's
+// component-local), but we CAN verify the initial render is clean —
+// which is what users see on a fresh visit.
+
+#[test]
+fn page_does_not_show_error_alert_initially() {
+    // Empty `error` signal → the (!e.is_empty()).then(...) branch
+    // returns None, so no alert-error class should be in the HTML.
+    assert!(!page_html().contains("alert-error"));
+}
+
+#[test]
+fn page_does_not_show_error_alert_icon_initially() {
+    // The Alert component prefixes an X icon for AlertKind::Error.
+    // If our conditional fails, that icon would leak in. Belt-and-suspenders
+    // version of the test above.
+    let html = page_html();
+    let error_alert_present = html.contains("alert-error") || html.contains("✕");
+    assert!(!error_alert_present);
+}
+
+// ── Why the "clear-on-forward, keep-on-backward" rule isn't
+//    asserted in SSR ────────────────────────────────────────────
+//
+// The directional `advance(next)` helper compares step indices and
+// only clears `error` when next > current. Validating that requires
+// driving the page through real transitions:
+//   1. dispatch privy_tx_error  → error set, step rolls back
+//   2. user retries             → forward transition clears error
+// Step 1 needs a CustomEvent dispatch + listener round-trip, which
+// is browser-only. The directional logic itself is straightforward
+// arithmetic on the CoopStep enum — covered by code review, not SSR.

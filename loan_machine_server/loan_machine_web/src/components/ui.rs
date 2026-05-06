@@ -3,7 +3,8 @@
 // Usage: use crate::components::ui::*;
 
 use leptos::prelude::*;
-
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
 // ── LAYOUT ──────────────────────────────────────────────────
 
 /// Page wrapper with navbar + content
@@ -67,9 +68,10 @@ pub fn Navbar(
             <div class="container navbar-inner">
                 <a href="/" class="navbar-brand">{title}</a>
                 <ul class="navbar-links">
-                    <li><a href="/" class="navbar-link">"Home"</a></li>
-                    <li><a href="/vinculate" class="navbar-link">"Vinculate"</a></li>
-                    <li><a href="/donate" class="navbar-link">"Donate"</a></li>
+                    <li><a href="/" class="navbar-link">"Pagina inicial"</a></li>
+                    <li><a href="/cooperatives" class="navbar-link">"Cooperativas"</a></li>
+                    <li><a href="/vinculate" class="navbar-link">"Vinculação"</a></li>
+                    <li><a href="/donate" class="navbar-link">"Doação"</a></li>
                     <li>
                         <span class="badge badge-live badge-yellow">"Live"</span>
                     </li>
@@ -312,17 +314,53 @@ pub fn StatBlock(
 /// Monospaced address/hash display with copy button
 #[component]
 pub fn HashDisplay(value: String) -> impl IntoView {
-    // Truncate long hashes for display
-    let display = if value.len() > 20 {
-        format!("{}...{}", &value[..10], &value[value.len()-8..])
-    } else {
-        value.clone()
+    let val_for_copy = value.clone();
+    let val_for_title = value.clone();
+
+    let (copied, set_copied) = signal(false);
+
+    let handle_copy = move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            use js_sys::{Function, Reflect};
+            use wasm_bindgen::{JsCast, JsValue};
+
+            let v = val_for_copy.clone();
+            let window = web_sys::window().unwrap();
+            let nav  = Reflect::get(&window, &JsValue::from_str("navigator")).unwrap();
+            let clip = Reflect::get(&nav, &JsValue::from_str("clipboard")).unwrap();
+            if let Ok(f) = Reflect::get(&clip, &JsValue::from_str("writeText"))
+                .and_then(|val| val.dyn_into::<Function>().map_err(|e| e.into()))
+            {
+                let _ = f.call1(&clip, &JsValue::from_str(&v));
+            }
+
+            set_copied.set(true);
+            let cb = wasm_bindgen::closure::Closure::<dyn FnMut()>::new(move || {
+                set_copied.set(false);
+            });
+            let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                cb.as_ref().unchecked_ref(),
+                2000,
+            );
+            cb.forget();
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = &val_for_copy;
+            let _ = set_copied;
+        }
     };
 
     view! {
-        <div class="hash-display" title=value>
-            <span style="color: var(--c-gold)">{"◈ "}</span>
-            {display}
+        <div class="hash-display hash-display-copyable" title=val_for_title>
+            <span class="hash-display-text">
+                <span style="color: var(--c-gold)">{"◈ "}</span>
+                {value}
+            </span>
+            <button class="hash-copy-btn" on:click=handle_copy>
+                {move || if copied.get() { "✓" } else { "⧉" }}
+            </button>
         </div>
     }
 }

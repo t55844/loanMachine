@@ -1,21 +1,42 @@
 specVersion: 0.0.4
-description: LoanMachine v3 — cooperative credit with governance
-repository: https://github.com/your-repo/loan-machine-subgraph
+description: LoanMachine — multi-cooperative credit indexer
 schema:
   file: schema.graphql
 dataSources:
   - kind: ethereum/contract
-    name: LoanMachine
+    name: CoopRegistry
     network: local
     source:
-      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-      abi: LoanMachine
-      startBlock: 0
+      address: "0xa966451b622431217FEb5745a16FF60e147f7c4D"
+      abi: CoopRegistry
+      startBlock: 2
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: LoanMachine/LoanMachine.wasm
+      file: CoopRegistry/CoopRegistry.wasm
+      entities:
+        - Cooperative
+        - CoopRegisteredEvent
+      abis:
+        - name: CoopRegistry
+          file: CoopRegistry/abis/CoopRegistry.json
+        - name: LoanMachine
+          file: CoopRegistry/abis/LoanMachine.json
+      eventHandlers:
+        - event: CoopRegistered(indexed bytes32,indexed address,string)
+          handler: handleCoopRegistered
+templates:
+  - kind: ethereum/contract
+    name: LoanMachine
+    network: local
+    source:
+      abi: LoanMachine
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: templates/LoanMachine/LoanMachine.wasm
       entities:
         - ProposalCreatedEvent
         - ProposalConfirmedEvent
@@ -64,7 +85,7 @@ dataSources:
         - NewModeratorEvent
       abis:
         - name: LoanMachine
-          file: LoanMachine/LoanMachine.json
+          file: LoanMachine/abis/LoanMachine.json
       eventHandlers:
         - event: ProposalCreated(indexed uint256,indexed uint8,indexed address)
           handler: handleProposalCreated

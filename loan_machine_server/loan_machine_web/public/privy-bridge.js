@@ -4,6 +4,7 @@ import Privy, {
   getEntropyDetailsFromUser,
 } from 'https://esm.sh/@privy-io/js-sdk-core@latest';
 
+
 // ── Config ─────────────────────────────────────────────────────
 const SDK_VERSION  = 'js-sdk-core:0.61.1';
 const SESSIONS_URL = 'https://auth.privy.io/api/v1/sessions';

@@ -25,7 +25,7 @@ use rand::Rng;
 
 use crate::services::blockchain::abis::{CoopRegistry, LoanMachine};
 use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult};
-
+use crate::services::blockchain::contract_errors::{friendly_from_error};
 
 #[derive(Debug)]
 pub enum CoopDeploymentError{
@@ -197,7 +197,7 @@ eprintln!("rpc_url on services with success");
 eprintln!("provider on services with success");
 
         let registry_code = provider.get_code_at(self.registry_address).await
-            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
 eprintln!("registry_code on services with success");
 
         if registry_code.is_empty() {
@@ -208,7 +208,7 @@ eprintln!("registry_code on services with success");
 eprintln!("registry_code.is_empty() on services with success");
         
         let code = provider.get_code_at(lm_addr).await
-            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
         if code.is_empty(){
             return Err(CoopDeploymentError::LoanMachineHasNoCode);
         }
@@ -216,7 +216,7 @@ eprintln!("registry_code.is_empty() on services with success");
 
         let lm = LoanMachine::new(lm_addr, provider.clone());
         let admins = lm.getAdmins().call().await
-            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?
+            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?
             ._0;
         if !admins.contains(&founder_addr){
             return Err(CoopDeploymentError::FounderNotAdminOfDeployedContract);
@@ -230,7 +230,7 @@ eprintln!("registry_code.is_empty() on services with success");
             .registerCoop(name.to_string(), lm_addr)
             .from(self.signer.address())
             .call().await
-            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?
+            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?
             .coopId;
  eprintln!("coop_id on services with success");
 
@@ -238,14 +238,14 @@ eprintln!("registry_code.is_empty() on services with success");
             .registerCoop(name.to_string(), lm_addr)
             .from(self.signer.address())
             .send().await
-            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
  eprintln!("pending on services with success");
 
         let tx_hash = format!("0x{}", hex::encode(pending.tx_hash()));
  eprintln!("tx_hash on services with success");
 
         pending.watch().await
-            .map_err(|e| CoopDeploymentError::Network(e.to_string()))?;
+            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
  eprintln!("pending 2 on services with success");
 
         Ok(CoopRegistrationResult{

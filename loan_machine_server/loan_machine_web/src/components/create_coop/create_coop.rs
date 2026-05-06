@@ -17,7 +17,7 @@ use crate::components::create_coop::create_coop_steps::{
     AccessCodeStep, DoneStep, FormStep, SignInitStep, StepProgress, WaitingStep,
 };
 use crate::server_fns::create_coop::{prepare_create_coop, register_deployed_coop};
-
+use crate::components::gas_modal::{use_gas_modal,GasEstimate,GasModalRequest};
 // ── Step state machine ────────────────────────────────────────
 // pub so create_coop_steps can import it for StepProgress.
 
@@ -107,6 +107,33 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
     let (error,       set_error)       = signal(String::new());
     let (reg_started, set_reg_started) = signal(false);
 
+    // Replace the simple advance helper with a directional one
+    let advance = move |next: CoopStep| {
+        let current_idx = match step.get_untracked() {
+            CoopStep::Form          => 0usize,
+            CoopStep::AccessCode    => 1,
+            CoopStep::WaitingDeploy => 2,
+            CoopStep::SignInit      => 3,
+            CoopStep::Registering   => 4,
+            CoopStep::Done          => 5,
+        };
+        let next_idx = match next {
+            CoopStep::Form          => 0,
+            CoopStep::AccessCode    => 1,
+            CoopStep::WaitingDeploy => 2,
+            CoopStep::SignInit      => 3,
+            CoopStep::Registering   => 4,
+            CoopStep::Done          => 5,
+        };
+
+        // Only clear the error when moving forward
+        if next_idx > current_idx {
+            set_error.set(String::new());
+        }
+
+        set_step.set(next);
+    };
+
     // StoredValue: plain String prop, not reactive — no clone on every render.
     let founder = StoredValue::new(founder_wallet);
 
@@ -126,7 +153,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
                 .unwrap_or_default();
             if !addr.is_empty() {
                 set_contract_address.set(addr);
-                set_step.set(CoopStep::SignInit);
+                advance(CoopStep::SignInit);
             }
         });
         web_sys::window().unwrap()
@@ -138,7 +165,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
         // listener (which fires the same event) doesn't accidentally advance us.
         let cl2 = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |_e: web_sys::CustomEvent| {
             if step.get_untracked() == CoopStep::SignInit {
-                set_step.set(CoopStep::Registering);
+                advance(CoopStep::Registering);
             }
         });
         web_sys::window().unwrap()
@@ -157,7 +184,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
 
             // Roll back the step so the user can retry
             match step.get_untracked() {
-                CoopStep::WaitingDeploy => set_step.set(CoopStep::AccessCode),
+                CoopStep::WaitingDeploy => advance(CoopStep::AccessCode),
                 CoopStep::SignInit      => {},                 // already on the retry screen
                 _                       => {},
             }
@@ -181,10 +208,10 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
             };
             spawn_local(async move {
                 match register_deployed_coop(req).await {
-                    Ok(r)  => { set_reg_result.set(Some(r)); set_step.set(CoopStep::Done); }
+                    Ok(r)  => { set_reg_result.set(Some(r)); advance(CoopStep::Done); }
                     Err(e) => {
                         set_error.set(e.to_string());
-                        set_step.set(CoopStep::Form);
+                        advance(CoopStep::Form);
                         set_reg_started.set(false);
                     }
                 }
@@ -252,7 +279,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
                                     };
                                     spawn_local(async move {
                                         match prepare_create_coop(req).await {
-                                            Ok(b)  => { set_bundle.set(Some(b)); set_step.set(CoopStep::AccessCode); }
+                                            Ok(b)  => { set_bundle.set(Some(b)); advance(CoopStep::AccessCode); }
                                             Err(e) => { set_error.set(e.to_string()); }
                                         }
                                         set_loading.set(false);
@@ -266,13 +293,28 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
                         let access_code = bundle.get().map(|b| b.access_code.clone()).unwrap_or_default();
                         let deploy_data = bundle.get().map(|b| b.deploy_data.clone()).unwrap_or_default();
                         let gas_deploy  = bundle.get().map(|b| b.gas_deploy.clone()).unwrap_or_default();
+
+                        let gas_modal = use_gas_modal();
+                        
                         view! {
                             <AccessCodeStep
                                 access_code
                                 code_saved set_code_saved
                                 on_sign=Box::new(move || {
-                                    set_step.set(CoopStep::WaitingDeploy);
-                                    js_deploy_contract(deploy_data.clone(), gas_deploy.clone());
+                                    let dd  = deploy_data.clone();
+                                    let gd  = gas_deploy.clone();
+
+                                    gas_modal.set(Some(GasModalRequest {
+                                        title: "CONFIRMAR DEPLOY".into(),
+                                        estimates: vec![GasEstimate {
+                                            label:   "Deploy do LoanMachine".into(),
+                                            gas_hex: gd.clone(),
+                                        }],
+                                        on_confirm: Callback::new(move |_| {
+                                            advance(CoopStep::WaitingDeploy);
+                                            js_deploy_contract(dd.clone(), gd.clone());
+                                        }),
+                                    }));
                                 })
                             />
                         }.into_any()
@@ -290,11 +332,27 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
                         let init_data = bundle.get().map(|b| b.initialize_data.clone()).unwrap_or_default();
                         let gas_init  = bundle.get().map(|b| b.gas_initialize.clone()).unwrap_or_default();
                         let addr_tx   = addr.clone();
+
+                        let gas_modal = use_gas_modal();
+
                         view! {
                             <SignInitStep
                                 contract_address=addr
                                 on_sign=Box::new(move || {
-                                    js_send_tx(addr_tx.clone(), init_data.clone(), gas_init.clone());
+                                    let a = addr_tx.clone();
+                                    let d = init_data.clone();
+                                    let g = gas_init.clone();
+
+                                    gas_modal.set(Some(GasModalRequest {
+                                        title: "CONFIRMAR INICIALIZAÇÃO".into(),
+                                        estimates: vec![GasEstimate {
+                                            label:   "Inicializar Multisig".into(),
+                                            gas_hex: g.clone(),
+                                        }],
+                                        on_confirm: Callback::new(move |_| {
+                                            js_send_tx(a.clone(), d.clone(), g.clone());
+                                        }),
+                                    }));
                                 })
                             />
                         }.into_any()

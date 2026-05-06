@@ -16,7 +16,7 @@ use crate::services::blockchain::deployable::{LoanMachine as LoanMachineBytecode
 use secrecy::SecretString;
 
 #[derive(Clone)]
-pub struct FactoryAddress(pub String);
+pub struct CoopRegistryAddress(pub String);
 
 #[derive(Clone)]
 pub struct SubgraphUrl(pub String);
@@ -25,7 +25,7 @@ pub struct SubgraphUrl(pub String);
 #[derive(Clone, FromRef)]
 pub struct AppState {    
     pub leptos_options:     LeptosOptions,
-    pub factory_address:    FactoryAddress,
+    pub coop_registry_address:    CoopRegistryAddress,
     pub blockchain_service: Arc<BlockchainService>,
     pub identity:           Arc<IdentityService>,
     pub chain_config:       Arc<ChainConfig>,
@@ -46,10 +46,10 @@ impl AppState {
         let rpc_url = chain_config.rpc_url.clone();
 
     
-        let factory_address = std::env::var("FACTORY_ADDRESS")
-            .expect("FACTORY_ADDRESS must be set in .env");
+        let coop_registry_address = std::env::var("COOP_REGISTRY_ADDRESS")
+            .expect("COOP_REGISTRY_ADDRESS must be set in .env");
 
-        let blockchain_service : BlockchainService = BlockchainService::init(&rpc_url, &factory_address)
+        let blockchain_service : BlockchainService = BlockchainService::init(&rpc_url, &coop_registry_address)
             .await
             .expect("Failed to initialize BlockchainService");
 
@@ -76,7 +76,7 @@ impl AppState {
 
         let coop_deployment = CoopDeploymentService::new(
             platform_admin_key,
-            &factory_address,           // CoopRegistry address (your "factory")
+            &coop_registry_address,           // CoopRegistry address (your "factory")
             &rpc_url,
             loan_machine_bytecode,
             &usdc_address,
@@ -84,7 +84,7 @@ impl AppState {
 
         Self {
             leptos_options,
-            factory_address:    FactoryAddress(factory_address),
+            coop_registry_address:    CoopRegistryAddress(coop_registry_address),
             blockchain_service: Arc::new(blockchain_service ),
             identity:           Arc::new(identity),
             privy:              Arc::new(privy),

@@ -92,8 +92,6 @@ pub fn FirstVinculationForm(
 
     let wallet = smart_wallet.clone();
 
-    use send_wrapper::SendWrapper;
-    use wasm_bindgen::closure::Closure;
 
     #[cfg(target_arch = "wasm32")]
     {
