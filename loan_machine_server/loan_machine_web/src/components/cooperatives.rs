@@ -86,7 +86,7 @@ fn LoadingState() -> impl IntoView {
 }
 
 #[component]
-fn CoopCard(coop: CooperativeView) -> impl IntoView {
+pub(crate) fn CoopCard(coop: CooperativeView) -> impl IntoView {
     let (variant, badge_color, badge_text) = if coop.active {
         (CardVariant::Yellow, BadgeColor::Green, "ACTIVE")
     } else {

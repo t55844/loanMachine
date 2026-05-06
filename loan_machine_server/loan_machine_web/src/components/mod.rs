@@ -19,3 +19,5 @@ mod vinculation_test;
 
 #[cfg(test)]
 mod gas_modal_test;
+#[cfg(test)]
+pub mod cooperatives_test;

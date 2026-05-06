@@ -58,6 +58,8 @@ alloy = { workspace = true, features = [
     "signer-local","node-bindings",
 ] }
 loan_machine_core = { path = ".", features = ["deployable"] }
+wiremock = "0.6"
+serde_json = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 axum-test = "15"
