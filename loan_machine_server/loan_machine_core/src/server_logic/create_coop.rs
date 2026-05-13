@@ -1,59 +1,60 @@
 // loan_machine_core/src/server_logic/create_coop.rs
-
-use crate::services::coop_deployment::{ CoopDeploymentService};
+use thiserror::Error;
+use loan_machine_models::wallet_address::{WalletAddress, to_alloy};
 use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult};
+use alloy::primitives::Address;
+use crate::services::coop_deployment::{CoopDeploymentService, CoopDeploymentError};
 
-#[derive(Debug)]
-pub enum CreateCoopLogicError{
-    ServerLogicInvalidName,
-    ServerLogicDeployment(String),
+#[derive(Debug, Error)]
+pub enum CreateCoopLogicError {
+    #[error("nome da cooperativa inválido")]
+    InvalidName,
+    #[error("endereço da LoanMachine inválido")]
+    InvalidLoanMachineAddress,
+    #[error(transparent)]
+    Deployment(#[from] CoopDeploymentError),
 }
-
-impl std::fmt::Display for CreateCoopLogicError{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result{
-        match self{
-            Self::ServerLogicInvalidName     => write!(f, "nome da cooperativa inválido"),
-            Self::ServerLogicDeployment(s)   => write!(f, "{s}"),
-        }
-    }
-}
-
-impl std::error::Error for CreateCoopLogicError{}
 
 pub async fn prepare_create_coop_logic(
     deployment: &CoopDeploymentService,
     name: String,
-    founder_wallet: String,
-    admin_wallets: Vec<String>,
+    founder_wallet: WalletAddress,
+    admin_wallets:  Vec<WalletAddress>,   // ← was Vec<String>
     threshold: u32,
-) -> Result<CoopDeployBundle, CreateCoopLogicError>{
+) -> Result<CoopDeployBundle, CreateCoopLogicError> {
     let trimmed = name.trim();
-    if trimmed.is_empty() || trimmed.len() > 100{
-        return Err(CreateCoopLogicError::ServerLogicInvalidName);
+    if trimmed.is_empty() || trimmed.len() > 100 {
+        return Err(CreateCoopLogicError::InvalidName);
     }
 
-    deployment
-        .prepare_deploy_bundle(&founder_wallet, &admin_wallets, threshold)
-        .await
-        .map_err(|e| CreateCoopLogicError::ServerLogicDeployment(e.to_string()))
+    // ── BOUNDARY: app domain → chain domain ──
+    let founder_addr = to_alloy(&founder_wallet);
+    let admin_addrs: Vec<Address> = admin_wallets.iter().map(to_alloy).collect();
+    // ── from here on, only chain vocabulary ──
+
+    let bundle = deployment
+        .prepare_deploy_bundle(founder_addr, &admin_addrs, threshold)
+        .await?;
+    Ok(bundle)
 }
 
 pub async fn register_deployed_coop_logic(
     deployment: &CoopDeploymentService,
     name: String,
-    loan_machine_address: String,
-    founder_wallet: String,
-) -> Result<CoopRegistrationResult, CreateCoopLogicError>{
-
-eprintln!("enter register_deployed_coop_logic with success");
+    loan_machine_address: String,         // ← parsed here
+    founder_wallet: WalletAddress,
+) -> Result<CoopRegistrationResult, CreateCoopLogicError> {
     let trimmed = name.trim();
-    if trimmed.is_empty() || trimmed.len() > 100{
-        return Err(CreateCoopLogicError::ServerLogicInvalidName);
+    if trimmed.is_empty() || trimmed.len() > 100 {
+        return Err(CreateCoopLogicError::InvalidName);
     }
-eprintln!("trimmed with success");
+
+    let lm_addr: Address = loan_machine_address.parse()
+        .map_err(|_| CreateCoopLogicError::InvalidLoanMachineAddress)?;
+    let founder_addr = to_alloy(&founder_wallet);
 
     deployment
-        .register_deployed_coop(trimmed, &loan_machine_address, &founder_wallet)
+        .register_deployed_coop(trimmed, lm_addr, founder_addr)
         .await
-        .map_err(|e| CreateCoopLogicError::ServerLogicDeployment(e.to_string()))
+        .map_err(Into::into)
 }

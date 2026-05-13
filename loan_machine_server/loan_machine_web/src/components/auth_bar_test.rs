@@ -1,124 +1,104 @@
 // src/components/auth_bar_test.rs
 
 use leptos::prelude::*;
-use std::sync::Arc;
-use crate::components::auth_bar::AuthBar;
+use loan_machine_models::wallet_address::WalletAddress;
 
-fn render_auth_bar(wallet_state: Option<String>) -> String {
+use crate::components::auth_bar::AuthBar;
+use crate::components::tests_helper::fake_wallet;
+use crate::wallet_auth::session::{WalletCtx, WalletSession};
+
+// ── Render helpers ────────────────────────────────────────────────────────
+//
+// AuthBar reads WalletCtx via expect_context, so every test needs to seed
+// the context before rendering. One helper per state.
+
+fn render_with(session: WalletSession) -> String {
     let owner = Owner::new();
     owner.with(|| {
-        let (wallet, _) = signal(wallet_state);
-        view! {
-            <AuthBar
-                wallet=wallet
-                on_login=Arc::new(|| {})
-                on_logout=Arc::new(|| {})
-            />
-        }.to_html()
+        let (s, set) = signal(session);
+        provide_context(WalletCtx { session: s, set });
+        view! { <AuthBar/> }.to_html()
     })
 }
 
-// ── DISCONNECTED STATE ────────────────────────────────────────────────────
-
-#[test]
-fn disconnected_has_correct_class() {
-    assert!(render_auth_bar(None).contains(r#"class="auth-bar auth-bar-disconnected""#));
+fn render_disconnected() -> String {
+    render_with(WalletSession::Disconnected)
 }
 
-#[test]
-fn disconnected_shows_privy_icon() {
-    assert!(render_auth_bar(None).contains("◈"));
+fn render_connected(wallet: WalletAddress) -> String {
+    render_with(WalletSession::Connected { wallet })
 }
 
-#[test]
-fn disconnected_shows_wallet_label() {
-    assert!(render_auth_bar(None).contains("CARTEIRA DIGITAL"));
+fn render_restoring() -> String {
+    render_with(WalletSession::Restoring)
 }
 
-#[test]
-fn disconnected_shows_privy_description() {
-    let html = render_auth_bar(None);
-    assert!(html.contains("Privy cria uma carteira blockchain para você via e-mail ou Google."));
-    assert!(html.contains("Sem extensão, sem seed phrase."));
-    assert!(html.contains("Sua chave fica protegida no enclave seguro deles."));
-}
+
+
+// ── DISCONNECTED ──────────────────────────────────────────────────────────
+
+
 
 #[test]
 fn disconnected_shows_connect_button() {
-    let html = render_auth_bar(None);
-    assert!(html.contains(r#"class="auth-bar-btn auth-bar-btn-connect""#));
+    assert!(render_disconnected().contains("CONECTAR"));
 }
 
 #[test]
-fn disconnected_button_has_off_dot() {
-    assert!(render_auth_bar(None).contains(r#"class="auth-bar-btn-dot auth-bar-btn-dot-off""#));
-}
-
-#[test]
-fn disconnected_does_not_show_connected_elements() {
-    let html = render_auth_bar(None);
-    assert!(!html.contains("CARTEIRA CONECTADA"));
+fn disconnected_hides_connected_elements() {
+    let html = render_disconnected();
     assert!(!html.contains("DESCONECTAR"));
-    assert!(!html.contains("auth-bar-connected"));
+    assert!(!html.contains("auth-bar-btn-dot-on"));
 }
 
-// ── CONNECTED STATE ───────────────────────────────────────────────────────
+// ── CONNECTED ─────────────────────────────────────────────────────────────
 
 #[test]
-fn connected_has_correct_class() {
-    let html = render_auth_bar(Some("0x1234567890abcdef".to_string()));
-    assert!(html.contains(r#"class="auth-bar auth-bar-connected""#));
-}
-
-#[test]
-fn connected_shows_connected_label() {
-    let html = render_auth_bar(Some("0x1234567890abcdef".to_string()));
-    assert!(html.contains("CARTEIRA CONECTADA"));
-}
-
-#[test]
-fn connected_shows_on_dot() {
-    let html = render_auth_bar(Some("0x1234567890abcdef".to_string()));
-    assert!(html.contains(r#"class="auth-bar-btn-dot auth-bar-btn-dot-on""#));
+fn connected_shows_short_wallet_address() {
+    // The component renders wallet.short() — verify the truncated form is
+    // in the output. Computing it from the wallet keeps the test honest:
+    // if short() changes shape, this test still passes for the right reason.
+    let wallet = fake_wallet();
+    let html = render_connected(wallet);
+    assert!(html.contains(&wallet.short()));
 }
 
 #[test]
 fn connected_shows_logout_button() {
-    let html = render_auth_bar(Some("0x1234567890abcdef".to_string()));
-    assert!(html.contains("DESCONECTAR"));
-    assert!(html.contains(r#"class="auth-bar-btn auth-bar-btn-logout""#));
+    assert!(render_connected(fake_wallet()).contains("DESCONECTAR"));
 }
 
 #[test]
-fn connected_does_not_show_disconnected_elements() {
-    let html = render_auth_bar(Some("0x1234567890abcdef".to_string()));
-    assert!(!html.contains(r#"class="auth-bar-btn auth-bar-btn-connect""#));
-    assert!(!html.contains("auth-bar-disconnected"));
-    assert!(!html.contains("Privy cria"));
-}
-
-// ── ADDRESS TRUNCATION ────────────────────────────────────────────────────
-
-#[test]
-fn long_address_is_truncated() {
-    // addr.len() > 12 → format!("{}...{}", &addr[..6], &addr[len-4..])
-    let html = render_auth_bar(Some("0x1234567890abcdef".to_string()));
-    assert!(html.contains("0x1234...cdef"));
+fn connected_shows_on_dot() {
+    assert!(render_connected(fake_wallet())
+        .contains(r#"class="auth-bar-btn-dot auth-bar-btn-dot-on""#));
 }
 
 #[test]
-fn short_address_is_not_truncated() {
-    // addr.len() <= 12 → shown as-is
-    let html = render_auth_bar(Some("0x1234".to_string()));
-    assert!(html.contains("0x1234"));
-    assert!(!html.contains("..."));
+fn connected_hides_disconnected_elements() {
+    let html = render_connected(fake_wallet());
+    assert!(!html.contains("CARTEIRA NÃO CONECTADA"));
+    assert!(!html.contains(">CONECTAR<"));  // anchor on tag boundary so it
+                                            // doesn't match "DESCONECTAR"
+}
+
+// ── RESTORING ─────────────────────────────────────────────────────────────
+
+#[test]
+fn restoring_shows_label() {
+    assert!(render_restoring().contains("RESTAURANDO"));
 }
 
 #[test]
-fn address_at_exact_boundary_is_not_truncated() {
-    // len == 12 → the condition is > 12, so this should NOT truncate
-    let boundary = "123456789012"; // exactly 12 chars
-    let html = render_auth_bar(Some(boundary.to_string()));
-    assert!(html.contains(boundary));
-    assert!(!html.contains("..."));
+fn restoring_shows_pending_dot() {
+    assert!(render_restoring()
+        .contains(r#"class="auth-bar-btn-dot auth-bar-btn-dot-pending""#));
+}
+
+#[test]
+fn restoring_shows_no_buttons() {
+    // No CONECTAR / DESCONECTAR during restore — the UI is read-only.
+    let html = render_restoring();
+    assert!(!html.contains("CONECTAR"));
+    assert!(!html.contains("DESCONECTAR"));
 }

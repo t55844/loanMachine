@@ -13,17 +13,41 @@ CARGO     := cargo
 
 # ── Tests ─────────────────────────────────────────────────────
 
+# ── Tests ─────────────────────────────────────────────────────
+
 test-web:
-	cd loan_machine_server && cargo leptos test
+	cd loan_machine_server && $(CARGO) test -p loan_machine_web --no-fail-fast
 
 test-core:
 	cd loan_machine_server && $(CARGO) test -p loan_machine_core --features deployable --no-fail-fast
+
+test-models:
+	cd loan_machine_server && $(CARGO) test -p loan_machine_models --no-fail-fast
+
+# Run every package's tests. Don't stop on failure — report at the end.
+test-all:
+	@cd loan_machine_server; \
+	set +e; \
+	echo "═══ loan_machine_models ═══"; \
+	$(CARGO) test -p loan_machine_models --no-fail-fast; models=$$?; \
+	echo "═══ loan_machine_core ═══"; \
+	$(CARGO) test -p loan_machine_core --features deployable --no-fail-fast; core=$$?; \
+	echo "═══ loan_machine_web ═══"; \
+	$(CARGO) test -p loan_machine_web --no-fail-fast; web=$$?; \
+	echo; \
+	echo "═══ Summary ═══"; \
+	[ $$models -eq 0 ] && echo "  models  PASS" || echo "  models  FAIL"; \
+	[ $$core   -eq 0 ] && echo "  core    PASS" || echo "  core    FAIL"; \
+	[ $$web    -eq 0 ] && echo "  web     PASS" || echo "  web     FAIL"; \
+	exit $$((models + core + web))
 
 # Usage: make test-one NAME=my_test
 test-one:
 	cd loan_machine_server && $(CARGO) test -p loan_machine_core --features deployable $(NAME) -- --exact --nocapture
 
-test-all: test-web test-core
+# Usage: make test-web-one NAME=auth_header_value
+test-web-one:
+	cd loan_machine_server && $(CARGO) test -p loan_machine_web $(NAME) -- --nocapture
 
 # ── Chain helpers ─────────────────────────────────────────────
 
@@ -103,3 +127,9 @@ stack-up:
 
 tree-print:
 	tree -I 'node_modules|target|dist|build|venv|.venv|__pycache__|.git|.ds_store|data'
+
+# 1- rever como o AppState se relaciona com os itens e se há a necessidade de 
+#colocar todo o service em um Arc
+
+# 2- rever todos os retornos de função e seguir o principio de que tudo retornado
+#tem que ser ownable

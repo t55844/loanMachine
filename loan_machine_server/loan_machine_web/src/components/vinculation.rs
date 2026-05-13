@@ -6,11 +6,11 @@ use leptos::web_sys;
 use wasm_bindgen::JsCast;
 
 use crate::components::ui::*;
-use loan_machine_models::responses::{CoopInfo, VinculationBundle};
+use loan_machine_models::responses::{CoopInfo, VinculationBundle,};
 use loan_machine_models::requests::{DocKind};
+use loan_machine_models::wallet_address::WalletAddress;
 
 use crate::server_fns::vinculation::{get_wallet_coop, prepare_first_vinculation};
-
 // ── GATE ─────────────────────────────────────────────────────
 #[derive(Clone, PartialEq)]
 pub enum TxStatus {
@@ -21,7 +21,7 @@ pub enum TxStatus {
 }
 #[component]
 pub fn VinculationGate(
-    smart_wallet: String,
+    smart_wallet: WalletAddress,
     children: ChildrenFn,
 ) -> impl IntoView {
     let (status, set_status) = signal(GateStatus::Checking);
@@ -82,7 +82,7 @@ enum GateStatus {
 
 #[component]
 pub fn FirstVinculationForm(
-    smart_wallet: String,
+    smart_wallet: WalletAddress,
     on_success:   impl Fn(CoopInfo) + 'static,
 ) -> impl IntoView {
     let (loading,     set_loading)     = signal(false);

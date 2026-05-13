@@ -8,6 +8,9 @@ use loan_machine_core::server_logic::create_coop::{
 
 use loan_machine_core::services::coop_deployment::{CoopDeploymentService};
 use crate::common::deploy::DeployedEnv;
+use loan_machine_core::services::coop_deployment::CoopDeploymentError;
+
+use crate::common::wa;
 
 fn parse_hex_u64(s: &str) -> u64 {
     u64::from_str_radix(s.trim_start_matches("0x"), 16)
@@ -38,16 +41,16 @@ async fn prepare_rejects_empty_name() {
     let result = prepare_create_coop_logic(
         &svc,
         "".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         vec![
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
-            format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
         ],
         2,
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicInvalidName)));
+    assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
 }
 
 #[tokio::test]
@@ -57,16 +60,16 @@ async fn prepare_rejects_whitespace_only_name() {
 
     let result = prepare_create_coop_logic(
         &svc, "   ".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         vec![
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
-            format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
         ],
         2,
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicInvalidName)));
+    assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
 }
 
 #[tokio::test]
@@ -77,16 +80,16 @@ async fn prepare_rejects_too_long_name() {
     let long_name = "a".repeat(101);
     let result = prepare_create_coop_logic(
         &svc, long_name,
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         vec![
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
-            format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
         ],
         2,
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicInvalidName)));
+    assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
 }
 
 #[tokio::test]
@@ -97,15 +100,20 @@ async fn prepare_rejects_wrong_admin_count() {
     // 2 admins instead of 3
     let result = prepare_create_coop_logic(
         &svc, "Test Coop".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         vec![
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
         ],
         2,
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicDeployment(_))));
+    assert!(matches!(
+        result,
+        Err(CreateCoopLogicError::Deployment(
+            CoopDeploymentError::AdminCountWrong { got: 2, expected: 3 }
+        ))
+    ));
 }
 
 #[tokio::test]
@@ -113,39 +121,25 @@ async fn prepare_rejects_founder_not_in_admins() {
     let env = common::get_deployed().await;
     let svc = make_service(&env).await;
 
-    // Founder address not in the admins list
     let result = prepare_create_coop_logic(
         &svc, "Test Coop".into(),
-        format!("{:?}", env.unapproved_wallet),       // founder
-        vec![                                           // 3 admins, none are founder
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
-            format!("{:?}", env.third_admin),
-        ],
-        2,
-    ).await;
-
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicDeployment(_))));
-}
-
-#[tokio::test]
-async fn prepare_rejects_invalid_admin_address() {
-    let env = common::get_deployed().await;
-    let svc = make_service(&env).await;
-
-    let result = prepare_create_coop_logic(
-        &svc, "Test Coop".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.unapproved_wallet),               // ← founder NOT in admin list
         vec![
-            format!("{:?}", env.approved_wallet),
-            "not-a-hex-address".into(),
-            format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
         ],
         2,
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicDeployment(_))));
+    assert!(matches!(
+        result,
+        Err(CreateCoopLogicError::Deployment(
+            CoopDeploymentError::FounderNotInAdmins
+        ))
+    ));
 }
+
 
 // ── Happy path: bundle is well-formed ────────────────────────
 
@@ -156,11 +150,11 @@ async fn prepare_happy_path_returns_bundle() {
 
     let bundle = prepare_create_coop_logic(
         &svc, "Cooperativa Test".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         vec![
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
-            format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
         ],
         2,
     ).await.expect("happy path");
@@ -179,21 +173,21 @@ async fn access_codes_are_unique_across_calls() {
     let svc = make_service(&env).await;
 
     let admins = vec![
-        format!("{:?}", env.approved_wallet),
-        format!("{:?}", env.second_admin),
-        format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
     ];
 
     let b1 = prepare_create_coop_logic(
         &svc, "Coop A".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         admins.clone(),
         2,
     ).await.unwrap();
 
     let b2 = prepare_create_coop_logic(
         &svc, "Coop B".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         admins,
         2,
     ).await.unwrap();
@@ -209,11 +203,11 @@ async fn initialize_data_starts_with_initialize_multisig_selector() {
 
     let bundle = prepare_create_coop_logic(
         &svc, "Test".into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
         vec![
-            format!("{:?}", env.approved_wallet),
-            format!("{:?}", env.second_admin),
-            format!("{:?}", env.third_admin),
+            wa(env.approved_wallet),
+            wa(env.second_admin),
+            wa(env.third_admin),
         ],
         2,
     ).await.unwrap();
@@ -242,10 +236,15 @@ async fn register_rejects_address_with_no_code() {
         &svc,
         "Test Coop".into(),
         zero_addr.into(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.approved_wallet),
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicDeployment(_))));
+    assert!(matches!(
+        result,
+        Err(CreateCoopLogicError::Deployment(
+            CoopDeploymentError::LoanMachineHasNoCode
+        ))
+    ));
 }
 
 #[tokio::test]
@@ -258,10 +257,15 @@ async fn register_rejects_founder_not_admin() {
         &svc,
         "Test Coop".into(),
         env.loan_machine_address.clone(),
-        format!("{:?}", env.unapproved_wallet),
+        wa(env.unapproved_wallet),
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicDeployment(_))));
+    assert!(matches!(
+        result,
+        Err(CreateCoopLogicError::Deployment(
+            CoopDeploymentError::FounderNotAdminOfDeployedContract
+        ))
+    ));
 }
 
 #[tokio::test]
@@ -277,7 +281,7 @@ async fn register_happy_path() {
     let admin_signer = PrivateKeySigner::from_str(
         env.platform_admin_key_hex.trim_start_matches("0x")
     ).unwrap();
-    let admin_addr = format!("{:?}", admin_signer.address());
+    let admin_addr = wa(admin_signer.address());
 
     let result = register_deployed_coop_logic(
         &svc,
@@ -304,9 +308,9 @@ async fn register_rejects_empty_name() {
     let result = register_deployed_coop_logic(
         &svc, "".into(),
         env.loan_machine_address.clone(),
-        format!("{:?}", env.approved_wallet),
+        wa(env.unapproved_wallet),
     ).await;
 
-    assert!(matches!(result, Err(CreateCoopLogicError::ServerLogicInvalidName)));
+    assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
 }
 

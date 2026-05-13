@@ -6,85 +6,103 @@
 // BlockchainService). Server logic asks this service for typed data;
 // it never sees the raw URL or constructs queries directly.
 
+
+use std::fmt;
+use std::time::Duration;
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum SubgraphError {
-    Network(reqwest::Error),
+#[derive(Debug, Error)]
+pub enum SubgraphError{
+    #[error("network error: {0}")]
+    Network(#[from] reqwest::Error),
+    #[error("graphql error: {0}")]
     Graphql(String),
-    Decode(serde_json::Error)
+    #[error("decode error: {0}")]
+    Decode(#[from] serde_json::Error),
+    #[error("subgraph response missing `data` field")]
+    MissingData,
 }
 
-impl fmt::Display for SubgraphError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SubgraphError::Network(e) => write!(f, "Subgraph Network error: {}", e),
-            SubgraphError::Graphql(e) => write!(f, "Subgraph GraphQL error: {}", e),
-            SubgraphError::Decode(e) => write!(f, "Subgraph Decode error: {}", e),
-        }
-    }
-}
 
-impl std::error::Error for SubgraphError {}
-
+#[derive(Clone)]
 pub struct SubgraphService {
     client: Client,
-    url:    String,
+    url: String,
 }
 
 impl SubgraphService{
-    pub fn new(url: String) -> Self{
-        Self {
-            client: Client::new(),
-            url,
-        }
+    /// Build a service with sane HTTP defaults (10s timeout).
+    pub fn new(url: String) -> Self {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .expect("reqwest client with default settings should not fail to build");
+
+        Self { client, url }
     }
+
 
     pub async fn query<T, V>(&self, query: &str, variables: V) -> Result<T, SubgraphError>
-    where 
-        T: for<'de> Deserialize<'de>,
-        V: Serialize,
-    {
-        #[derive(Serialize)]
-        struct Request<'a, V> {
-            query:     &'a str,
-            variables: V,
-        }
-
-        let body = Request{query, variables};
-        let resp = self.client
-            .post(&self.url)
-            .json(&body)
-            .send()
-            .await
-            .map_err(SubgraphError::Network)?
-            .error_for_status()
-            .map_err(SubgraphError::Network)?;
-
-        let envelope: Value = resp.json().await.map_err(SubgraphError::Network)?;
-
-        if let Some(errors) = envelope.get("errors"){
-            if !errors.is_null(){
-                return Err(SubgraphError::Graphql(errors.to_string()))
+        where
+            T: for<'de> Deserialize<'de>,
+            V: Serialize,
+        {
+            #[derive(Serialize)]
+            struct Request<'a, V> {
+                query: &'a str,
+                variables: V,
             }
-        }
-
-        let data = envelope
-            .get("data")
-            .cloned()
-            .unwrap_or(Value::Null);
-
-        serde_json::from_value(data).map_err(SubgraphError::Decode)
+    
+            #[derive(Deserialize)]
+            struct GraphqlError {
+                message: String,
+            }
+    
+            #[derive(Deserialize)]
+            struct Envelope<T> {
+                data: Option<T>,
+                #[serde(default)]
+                errors: Option<Vec<GraphqlError>>,
+            }
+    
+            let body = Request { query, variables };
+    
+            // Pull the body as text first so JSON parse failures surface as
+            // SubgraphError::Decode (not Network), which is what they actually are.
+            let response_text = self
+                .client
+                .post(&self.url)
+                .json(&body)
+                .send()
+                .await?
+                .error_for_status()?
+                .text()
+                .await?;
+    
+            let envelope: Envelope<T> = serde_json::from_str(&response_text)?;
+    
+            if let Some(errors) = envelope.errors {
+                if !errors.is_empty() {
+                    let joined = errors
+                        .into_iter()
+                        .map(|e| e.message)
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    return Err(SubgraphError::Graphql(joined));
+                }
+            }
+    
+        envelope.data.ok_or(SubgraphError::MissingData)
     }
 }
-
-impl fmt::Debug for SubgraphService {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SubgraphService")
-            .field("url", &"[REDACTED]")
-            .finish()
-    }
+    
+    impl fmt::Debug for SubgraphService {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("SubgraphService")
+                .field("url", &"[REDACTED]")
+                .finish()
+        }
 }

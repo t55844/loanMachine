@@ -6,23 +6,13 @@ use crate::server_fns::cooperatives::list_cooperatives;
 use loan_machine_models::responses::CooperativeView;
 
 #[component]
-pub fn CooperativesPage(
-    wallet: ReadSignal<Option<String>>,
-) -> impl IntoView {
-    let coops = LocalResource::new(move || {
-        let connected = wallet.get().is_some();
-        async move {
-            if !connected {
-                return Ok(Vec::<CooperativeView>::new());
-            }
-
-            let token = get_access_token_js().await.unwrap_or_default();
-            if token.is_empty() {
-                return Err(ServerFnError::new("no_token_available"));
-            }
-
-            list_cooperatives(token).await
+pub fn CooperativesPage() -> impl IntoView {
+    let coops = LocalResource::new(move || async move {
+    let token = get_access_token_js().await.unwrap_or_default();
+        if token.is_empty() {
+            return Err(ServerFnError::new("no_token_available"));
         }
+        list_cooperatives().await
     });
 
     view! {

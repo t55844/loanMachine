@@ -55,3 +55,5 @@ Step 2 — What kind?
   E0761 module found at both paths          → old flat file still exists alongside new folder → delete the flat file
 
 Step 3 — Fix with understanding, not just copy-paste
+
+

@@ -4,7 +4,7 @@
 // BlockchainService is built per-test so its reqwest client is scoped to the
 // current #[tokio::test] runtime and doesn't leak HTTP state across runtimes.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use alloy::network::EthereumWallet;
 use alloy::node_bindings::{Anvil, AnvilInstance};
@@ -54,6 +54,7 @@ pub struct DeployedEnv {
     pub third_admin:             Address,
     pub loan_machine_bytecode:   Vec<u8>,
     pub blockchain:           Arc<BlockchainService>,
+    pub platform_admin_lock: tokio::sync::Mutex<()>,
 }
 
 static DEPLOYED: OnceCell<Deployed> = OnceCell::const_new();
@@ -79,6 +80,7 @@ pub async fn get_deployed() -> DeployedEnv {
         third_admin:             d.third_admin,
         loan_machine_bytecode:   d.loan_machine_bytecode.clone(),
         blockchain:           Arc::new(blockchain),
+        platform_admin_lock: tokio::sync::Mutex::new(()),
     }
 }
 

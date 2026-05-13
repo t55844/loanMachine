@@ -50,6 +50,8 @@ tower = { version = "0.4", default-features = false }
 rand    = "0.8"
 jsonwebtoken = "9"
 secrecy = "0.8"
+base64 = "0.22"
+urlencoding = "2"
 
 [dev-dependencies]
 alloy = { workspace = true, features = [
@@ -60,6 +62,10 @@ alloy = { workspace = true, features = [
 loan_machine_core = { path = ".", features = ["deployable"] }
 wiremock = "0.6"
 serde_json = { workspace = true }
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
+rand = "0.8"
+base64 = "0.22"
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 axum-test = "15"

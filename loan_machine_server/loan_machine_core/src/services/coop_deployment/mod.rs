@@ -11,81 +11,144 @@
 //
 // The private key NEVER leaves this struct. Custom Debug redacts it.
 // AppState clones via Arc — no key duplication in memory.
-
+ 
 use std::fmt;
 use std::str::FromStr;
-
+ 
 use alloy::network::EthereumWallet;
 use alloy::primitives::{Address, FixedBytes, U256};
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::sol_types::SolCall;
-
 use rand::Rng;
+use secrecy::{ExposeSecret, SecretString};
+use thiserror::Error;
 
 use crate::services::blockchain::abis::{CoopRegistry, LoanMachine};
+use crate::services::blockchain::contract_errors::{ extract_revert_data, translate_revert};
 use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult};
-use crate::services::blockchain::contract_errors::{friendly_from_error};
 
-#[derive(Debug)]
+
+// ── Constants ────────────────────────────────────────────────────────────
+//
+// Pulled out of magic-number-land so tests can reference them by name and
+// changes are obvious in code review.
+ 
+/// Multisig admin count. The contract expects exactly this many addresses.
+const REQUIRED_ADMIN_COUNT: usize = 3;
+ 
+/// Length of the human-shareable access code printed for cooperative founders.
+/// 12 chars from a 32-char alphabet → ~60 bits of entropy. Shrinking this
+/// reduces entropy; growing it hurts UX. Locked by
+/// `deploy_bundle_access_code_is_human_friendly_length`.
+const ACCESS_CODE_LEN: usize = 12;
+ 
+/// Confusable-stripped alphabet (no I/O/0/1).
+const ACCESS_CODE_CHARSET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+ 
+/// Gas fallback when `eth_estimateGas` fails (e.g. unfunded deployer).
+/// Production-safe but noisy in tests — see
+/// `deploy_gas_estimate_is_realistic_not_fallback`.
+const GAS_DEPLOY_FALLBACK: u64 = 3_500_000;
+ 
+/// Hardcoded gas for `initializeMultisig`. We can't simulate it (the contract
+/// doesn't exist yet at bundle-prep time), so we set a generous ceiling.
+const GAS_INITIALIZE_LIMIT: u64 = 600_000;
+
+#[derive(Debug, Error)]
 pub enum CoopDeploymentError{
-    InvalidAdminAddress(String),
-    AdminCountWrong{got: usize, expected: usize},
+     #[error("admin addess invalid: {0}")]
+    InvalidAdminAddress(Address),
+ 
+    #[error("expected {expected} admins, got {got}")]
+    AdminCountWrong { got: usize, expected: usize },
+ 
+    #[error("founder must be between admins")]
     FounderNotInAdmins,
+ 
+    #[error("LoanMachine address invalid")]
     InvalidLoanMachineAddress,
+ 
+    #[error("addres don't has an deployed contract")]
     LoanMachineHasNoCode,
+ 
+    #[error("founder ins't an contract deployed")]
     FounderNotAdminOfDeployedContract,
+ 
+    /// Bad address in service configuration (registry, USDC). Distinct from
+    /// `InvalidAdminAddress` which is bad user input.
+    #[error("econfigured address invalid: {field}")]
+    InvalidConfiguredAddress { field: &'static str },
+ 
+    #[error("net error: {0}")]
     Network(String),
-    SigninKey(String),
-    Encoding(String),
+ 
+    #[error("signature key error: {0}")]
+    SigningKey(String),
+
+    #[error("contract call failed")]
+    Call(#[source] alloy::contract::Error),
+    
+    #[error("transport error")]
+    Transport(#[from] alloy::transports::TransportError),
+
+    #[error("transaction confirmation failed")]
+    PendingTx(#[from] alloy::providers::PendingTransactionError),
+
+    #[error("{message}")]
+    ContractRevert {
+        message: String,
+        #[source]
+        source: alloy::contract::Error,
+    },
+ 
 }
 
-impl fmt::Display for CoopDeploymentError{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
-        match self{
-            Self::InvalidAdminAddress(s)             => write!(f, "endereço de admin inválido: {s}"),
-            Self::AdminCountWrong { got, expected }  => write!(f, "esperado {expected} admins, recebido {got}"),
-            Self::FounderNotInAdmins                 => write!(f, "fundador deve estar entre os admins"),
-            Self::InvalidLoanMachineAddress          => write!(f, "endereço do LoanMachine inválido"),
-            Self::LoanMachineHasNoCode               => write!(f, "endereço não contém um contrato deployado"),
-            Self::FounderNotAdminOfDeployedContract  => write!(f, "fundador não é admin do contrato deployado"),
-            Self::Network(s)                         => write!(f, "erro de rede: {s}"),
-            Self::SigninKey(s)                      => write!(f, "erro na chave de assinatura: {s}"),
-            Self::Encoding(s)                        => write!(f, "erro de encoding: {s}"),
-
+impl CoopDeploymentError{
+    pub fn from_call(err: alloy::contract::Error) -> Self{
+        if let Some(bytes) = extract_revert_data(&err) {
+            Self::ContractRevert { 
+                message: translate_revert(&bytes), source: err, 
+                }
+        } else {
+            Self::Call(err)
         }
+        
     }
 }
 
-impl std::error::Error for CoopDeploymentError{}
 
-pub struct CoopDeploymentService{
+// ── Service ──────────────────────────────────────────────────────────────
+ 
+pub struct CoopDeploymentService {
     signer: PrivateKeySigner,
     registry_address: Address,
     rpc_url: String,
     loan_machine_bytecode: Vec<u8>,
     usdc_address: Address,
 }
-use secrecy::{ExposeSecret, SecretString};
 
-impl CoopDeploymentService{
+
+impl CoopDeploymentService {
     pub fn new(
         platform_admin_key: SecretString,
         registry_address: &str,
         rpc_url: &str,
         loan_machine_bytecode: Vec<u8>,
         usdc_address: &str,
-    ) -> Result<Self, CoopDeploymentError>{
-        let signer = PrivateKeySigner::from_str(platform_admin_key.expose_secret().trim_start_matches("0x"))
-            .map_err(|e| CoopDeploymentError::SigninKey(e.to_string()))?;
-
+    ) -> Result<Self, CoopDeploymentError> {
+        let signer = PrivateKeySigner::from_str(
+            platform_admin_key.expose_secret().trim_start_matches("0x"),
+        )
+        .map_err(|e| CoopDeploymentError::SigningKey(e.to_string()))?;
+ 
         let registry_address = Address::from_str(registry_address)
-            .map_err(|e| CoopDeploymentError::SigninKey(e.to_string()))?;
-
+            .map_err(|_| CoopDeploymentError::InvalidConfiguredAddress { field: "registry" })?;
+ 
         let usdc_address = Address::from_str(usdc_address)
-            .map_err(|e| CoopDeploymentError::SigninKey(e.to_string()))?;
-
-        Ok(Self{
+            .map_err(|_| CoopDeploymentError::InvalidConfiguredAddress { field: "usdc" })?;
+ 
+        Ok(Self {
             signer,
             registry_address,
             rpc_url: rpc_url.to_string(),
@@ -94,36 +157,28 @@ impl CoopDeploymentService{
         })
     }
 
-    fn generate_access_code() -> String{
-        const CHARSET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    fn generate_access_code() -> String {
         let mut rng = rand::thread_rng();
-        (0..12).map(|_| CHARSET[rng.gen_range(0..CHARSET.len())] as char).collect()
+        (0..ACCESS_CODE_LEN)
+            .map(|_| ACCESS_CODE_CHARSET[rng.gen_range(0..ACCESS_CODE_CHARSET.len())] as char)
+            .collect()
     }
+
+       // Inside CoopDeploymentService impl
 
     pub async fn prepare_deploy_bundle(
         &self,
-        founder_wallet: &str,
-        admin_wallets:  &[String],
-        threshold:      u32,
-    ) -> Result<CoopDeployBundle , CoopDeploymentError>{
-
-        if admin_wallets.len() != 3{
-            return Err(CoopDeploymentError::AdminCountWrong{
-                got: admin_wallets.len(),
-                expected: 3,
+        founder_addr: Address,
+        admin_addrs: &[Address],         // already alloy
+        threshold: u32,
+    ) -> Result<CoopDeployBundle, CoopDeploymentError> {
+        if admin_addrs.len() != REQUIRED_ADMIN_COUNT {
+            return Err(CoopDeploymentError::AdminCountWrong {
+                got: admin_addrs.len(),
+                expected: REQUIRED_ADMIN_COUNT,
             });
         }
-
-        let founder_addr = Address::from_str(founder_wallet)
-            .map_err(|_| CoopDeploymentError::InvalidAdminAddress(founder_wallet.to_string()))?;
-    
-        let admin_addrs: Result<Vec<Address>, _> = admin_wallets.iter()
-            .map(|w| Address::from_str(w)
-                .map_err(|_| CoopDeploymentError::InvalidAdminAddress(w.to_string()))
-            ).collect();
-        let admin_addrs = admin_addrs?;
-
-        if !admin_addrs.contains(&founder_addr){
+        if !admin_addrs.contains(&founder_addr) {
             return Err(CoopDeploymentError::FounderNotInAdmins);
         }
 
@@ -134,36 +189,34 @@ impl CoopDeploymentService{
         let mut deploy_data = self.loan_machine_bytecode.clone();
         deploy_data.extend(&constructor_args);
 
-        let init_call = LoanMachine::initializeMultisigCall{
-            admins: admin_addrs,
-            threshold: U256::from(threshold),
+        let init_call = LoanMachine::initializeMultisigCall {
+            admins:     admin_addrs.to_vec(),
+            threshold:  U256::from(threshold),
             accessCode: access_code.clone(),
         };
-
         let initialize_data = init_call.abi_encode();
 
-        let rpc_url = self.rpc_url
-            .parse()
+        let rpc_url = self.rpc_url.parse()
             .map_err(|e| CoopDeploymentError::Network(format!("invalid rpc url: {e}")))?;
-
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .on_http(rpc_url);
 
-        let gas_deploy = provider.estimate_gas(&{
-            use alloy::rpc::types::TransactionRequest;
-            TransactionRequest::default()
-                .from(founder_addr)
-                .input(deploy_data.clone().into())
-        }).await.unwrap_or(3_500_000);
-
-        let gas_initialize = 600_000u64;
+        let gas_deploy = provider
+            .estimate_gas(&{
+                use alloy::rpc::types::TransactionRequest;
+                TransactionRequest::default()
+                    .from(founder_addr)
+                    .input(deploy_data.clone().into())
+            })
+            .await
+            .unwrap_or(GAS_DEPLOY_FALLBACK);
 
         Ok(CoopDeployBundle {
-            deploy_data: format!("0x{}", hex::encode(deploy_data)),
-            gas_deploy: format!("0x{:x}", gas_deploy), 
+            deploy_data:    format!("0x{}", hex::encode(deploy_data)),
+            gas_deploy:     format!("0x{:x}", gas_deploy),
             initialize_data: format!("0x{}", hex::encode(initialize_data)),
-            gas_initialize: format!("0x{:x}", gas_initialize),
+            gas_initialize: format!("0x{:x}", GAS_INITIALIZE_LIMIT),
             access_code,
         })
     }
@@ -171,99 +224,68 @@ impl CoopDeploymentService{
     pub async fn register_deployed_coop(
         &self,
         name: &str,
-        loan_machine_address: &str,
-        founder_wallet: &str,
-    ) -> Result<CoopRegistrationResult, CoopDeploymentError>{
-
-eprintln!("enter register_deployed_coop on services with success");
-        let lm_addr = Address::from_str(loan_machine_address)
-            .map_err(|_| CoopDeploymentError::InvalidLoanMachineAddress)?;
-eprintln!("lm_addr on services with success");
-
-        let founder_addr = Address::from_str(founder_wallet)
-            .map_err(|_| CoopDeploymentError::InvalidAdminAddress(founder_wallet.to_string()))?;
-eprintln!("founder_addr on services with success");
-
-        let rpc_url = self.rpc_url
-            .parse()
+        loan_machine_addr: Address,     // ← was &str + Address::from_str
+        founder_addr: Address,
+    ) -> Result<CoopRegistrationResult, CoopDeploymentError> {
+        let rpc_url = self.rpc_url.parse()
             .map_err(|e| CoopDeploymentError::Network(format!("invalid rpc url: {e}")))?;
-eprintln!("rpc_url on services with success");
-
-
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .wallet(EthereumWallet::from(self.signer.clone()))
             .on_http(rpc_url);
-eprintln!("provider on services with success");
 
-        let registry_code = provider.get_code_at(self.registry_address).await
-            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
-eprintln!("registry_code on services with success");
-
+        let registry_code = provider.get_code_at(self.registry_address).await?;
         if registry_code.is_empty() {
-            return Err(CoopDeploymentError::Network(
-                format!("CoopRegistry not deployed at {}", self.registry_address)
-            ));
+            return Err(CoopDeploymentError::Network(format!(
+                "CoopRegistry not deployed at {}", self.registry_address
+            )));
         }
-eprintln!("registry_code.is_empty() on services with success");
-        
-        let code = provider.get_code_at(lm_addr).await
-            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
-        if code.is_empty(){
+        let lm_code = provider.get_code_at(loan_machine_addr).await?;
+        if lm_code.is_empty() {
             return Err(CoopDeploymentError::LoanMachineHasNoCode);
         }
- eprintln!("code on services with success");
 
-        let lm = LoanMachine::new(lm_addr, provider.clone());
+        let lm = LoanMachine::new(loan_machine_addr, provider.clone());
         let admins = lm.getAdmins().call().await
-            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?
-            ._0;
-        if !admins.contains(&founder_addr){
+            .map_err(CoopDeploymentError::from_call)?._0;
+        if !admins.contains(&founder_addr) {
             return Err(CoopDeploymentError::FounderNotAdminOfDeployedContract);
         }
- eprintln!("lm and admins on services with success");
 
         let registry = CoopRegistry::new(self.registry_address, provider);
- eprintln!("registry on services with success");
-
         let coop_id: FixedBytes<32> = registry
-            .registerCoop(name.to_string(), lm_addr)
+            .registerCoop(name.to_string(), loan_machine_addr)
             .from(self.signer.address())
             .call().await
-            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?
+            .map_err(CoopDeploymentError::from_call)?
             .coopId;
- eprintln!("coop_id on services with success");
 
         let pending = registry
-            .registerCoop(name.to_string(), lm_addr)
+            .registerCoop(name.to_string(), loan_machine_addr)
             .from(self.signer.address())
             .send().await
-            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
- eprintln!("pending on services with success");
+            .map_err(CoopDeploymentError::from_call)?;
 
         let tx_hash = format!("0x{}", hex::encode(pending.tx_hash()));
- eprintln!("tx_hash on services with success");
+        pending.watch().await?;
 
-        pending.watch().await
-            .map_err(|e| CoopDeploymentError::Network(friendly_from_error(&e)))?;
- eprintln!("pending 2 on services with success");
-
-        Ok(CoopRegistrationResult{
+        Ok(CoopRegistrationResult {
             coop_id_hex: format!("0x{}", hex::encode(coop_id)),
-            loan_machine_address: format!("{:?}", lm_addr),
+            loan_machine_address: format!("{:?}", loan_machine_addr),
             registration_tx_hash: tx_hash,
         })
     }
 }
-
+ 
 // Don't leak the key in logs.
 impl fmt::Debug for CoopDeploymentService {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("CoopDeploymentService")
-            .field("signer",           &"[REDACTED]")
+            .field("signer", &"[REDACTED]")
             .field("registry_address", &self.registry_address)
-            .field("rpc_url",          &"[REDACTED]")
-            .field("usdc_address",     &self.usdc_address)
+            .field("rpc_url", &"[REDACTED]")
+            .field("usdc_address", &self.usdc_address)
             .finish()
     }
 }
+ 

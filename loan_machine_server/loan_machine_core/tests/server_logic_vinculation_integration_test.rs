@@ -7,6 +7,7 @@ use loan_machine_core::server_logic::vinculation::{
 };
 use loan_machine_core::services::identity::IdentityService;
 use loan_machine_models::requests::DocKind;
+use loan_machine_models::wallet_address::{ from_alloy};
 
 // Known-valid CPF for tests
 const TEST_CPF: &str = "529.982.247-25";
@@ -19,10 +20,11 @@ fn parse_hex_u64(s: &str) -> u64 {
 #[tokio::test]
 async fn get_wallet_coop_returns_none_for_unapproved_wallet() {
     let env = common::get_deployed().await;
+    let wallet = from_alloy(env.unapproved_wallet);
 
     let result = get_wallet_coop_logic(
         &env.blockchain,
-        &env.unapproved_wallet.to_string(),
+        wallet,
     )
     .await
     .expect("logic should not error for an unknown wallet");
@@ -34,6 +36,7 @@ async fn get_wallet_coop_returns_none_for_unapproved_wallet() {
 async fn prepare_vinculation_rejects_unapproved_wallet() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.unapproved_wallet);
 
     let result = prepare_first_vinculation_logic(
         &identity,
@@ -41,7 +44,7 @@ async fn prepare_vinculation_rejects_unapproved_wallet() {
         &env.coop_registry_address,
         DocKind::Cpf,
         TEST_CPF.into(),
-        env.unapproved_wallet.to_string(),
+        wallet,
         env.coop_id_hex.clone(),
         env.access_code.clone(),
     )
@@ -57,6 +60,7 @@ async fn prepare_vinculation_rejects_unapproved_wallet() {
 async fn prepare_vinculation_happy_path_returns_bundle() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let bundle = prepare_first_vinculation_logic(
         &identity,
@@ -64,7 +68,7 @@ async fn prepare_vinculation_happy_path_returns_bundle() {
         &env.coop_registry_address,
         DocKind::Cpf,
         TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet,
         env.coop_id_hex.clone(),
         env.access_code.clone(),
     )
@@ -83,6 +87,7 @@ async fn prepare_vinculation_happy_path_returns_bundle() {
 async fn prepare_vinculation_rejects_invalid_cpf() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let result = prepare_first_vinculation_logic(
         &identity,
@@ -90,7 +95,7 @@ async fn prepare_vinculation_rejects_invalid_cpf() {
         &env.coop_registry_address,
         DocKind::Cpf,
         "111.111.111-11".into(),   // all-same, rejected by mod-11 check
-        env.approved_wallet.to_string(),
+        wallet,
         env.coop_id_hex.clone(),
         env.access_code.clone(),
     )
@@ -106,19 +111,20 @@ async fn prepare_vinculation_rejects_invalid_cpf() {
 async fn cpf_and_cnpj_produce_different_calldata() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     // Valid for both — using test-known-valid values
     let cpf_result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         DocKind::Cpf, TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet.clone(),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 
     let cnpj_result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         DocKind::Cnpj, "11.222.333/0001-81".into(),
-        env.approved_wallet.to_string(),
+        wallet.clone(),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 
@@ -126,33 +132,19 @@ async fn cpf_and_cnpj_produce_different_calldata() {
     assert_ne!(cpf_result.join_calldata, cnpj_result.join_calldata);
 }
 
-// ──  Invalid wallet address is rejected before touching the chain ──
-// Proves input validation comes first — no wasted RPC calls.
-#[tokio::test]
-async fn invalid_wallet_address_is_rejected() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
 
-    let result = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
-        "not-a-hex-address".into(),          // ← invalid
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await;
-
-    assert!(matches!(result, Err(VinculationLogicError::ServerLogicInvalidWalletAddress)));
-}
 
 // ── Invalid coop ID format is rejected ──
 #[tokio::test]
 async fn invalid_coop_id_is_rejected() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         DocKind::Cpf, TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet,
         "not-bytes32".into(),                 // ← invalid
         env.access_code.clone(),
     ).await;
@@ -166,12 +158,13 @@ async fn invalid_coop_id_is_rejected() {
 async fn prepare_vinculation_rejects_invalid_cnpj() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         DocKind::Cnpj,
         "00.000.000/0000-00".into(),          // all-zero, rejected
-        env.approved_wallet.to_string(),
+        wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await;
 
@@ -183,11 +176,12 @@ async fn prepare_vinculation_rejects_invalid_cnpj() {
 async fn bundle_contains_coop_registry_address() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         DocKind::Cpf, TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 
@@ -203,11 +197,12 @@ async fn bundle_contains_coop_registry_address() {
 async fn bundle_calldata_starts_with_join_coop_selector() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         DocKind::Cpf, TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 
@@ -226,18 +221,19 @@ async fn different_salts_produce_different_calldata() {
 
     let id_a = IdentityService::with_salt([0x01u8; 32]);
     let id_b = IdentityService::with_salt([0x02u8; 32]);
+    let wallet = from_alloy(env.approved_wallet);
 
     let bundle_a = prepare_first_vinculation_logic(
         &id_a, &env.blockchain, &env.coop_registry_address,
         DocKind::Cpf, TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet.clone(),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 
     let bundle_b = prepare_first_vinculation_logic(
         &id_b, &env.blockchain, &env.coop_registry_address,
         DocKind::Cpf, TEST_CPF.into(),
-        env.approved_wallet.to_string(),
+        wallet.clone(),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 

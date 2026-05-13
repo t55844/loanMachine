@@ -1,12 +1,5 @@
-// SSR snapshot tests for cooperatives components.
-//
-// Tier 1 only: initial render, no reactivity, no spawn_local resolution.
-// The LocalResource inside CooperativesPage never resolves in SSR,
-// so the page always renders the Suspense fallback — that's the
-// behaviour these tests verify.
-
 use leptos::prelude::*;
-use crate::components::cooperatives::{CooperativesPage, CoopCard};
+use crate::components::cooperatives::{CoopCard, CooperativesPage};
 use loan_machine_models::responses::CooperativeView;
 
 // ── helpers ──────────────────────────────────────────────────
@@ -45,48 +38,45 @@ fn fixture_inactive() -> CooperativeView {
 }
 
 // ── CooperativesPage ─────────────────────────────────────────
+//
+// The page is only ever mounted by RequireWallet's Connected arm, so
+// we don't simulate "disconnected" here — that's impossible by type.
+// What we verify is: in SSR, the LocalResource never resolves, so the
+// page renders its <Suspense> fallback, and that fallback contains
+// the section title + spinner. Resource-resolution behaviour belongs
+// in wasm-bindgen-test integration tests, not here.
 
-fn page_html_with(wallet_value: Option<String>) -> String {
-    render_to_string(move || {
-        let (wallet, _set_wallet) = signal::<Option<String>>(wallet_value);
-        view! { <CooperativesPage wallet=wallet /> }
-    })
+fn page_html() -> String {
+    render_to_string(|| view! { <CooperativesPage /> })
 }
 
 #[test]
 fn page_shows_section_title() {
-    let html = page_html_with(None);
+    let html = page_html();
     assert!(html.contains("REGISTERED COOPERATIVES"),
         "expected section title, got: {html}");
 }
 
 #[test]
-fn page_renders_suspense_fallback_when_disconnected() {
-    let html = page_html_with(None);
-    // LocalResource never resolves in SSR -> fallback (LoadingState) renders.
+fn page_renders_suspense_fallback_during_initial_render() {
+    let html = page_html();
     assert!(html.contains("spinner"), "expected spinner, got: {html}");
 }
 
 #[test]
-fn page_renders_suspense_fallback_when_connected_too() {
-    // Wallet present -> still SSR -> still fallback.
-    let html = page_html_with(Some("0xabc".to_string()));
-    assert!(html.contains("spinner"));
-}
-
-#[test]
 fn page_does_not_show_error_on_initial_render() {
-    let html = page_html_with(None);
+    let html = page_html();
     assert!(!html.contains("Failed to load"));
 }
 
 #[test]
 fn page_does_not_show_empty_state_on_initial_render() {
-    let html = page_html_with(None);
+    let html = page_html();
     assert!(!html.contains("No cooperatives registered yet"));
 }
 
 // ── CoopCard ─────────────────────────────────────────────────
+// (unchanged — CoopCard never depended on wallet state)
 
 fn card_html(coop: CooperativeView) -> String {
     render_to_string(move || view! { <CoopCard coop=coop /> })
@@ -132,6 +122,5 @@ fn card_shows_coop_id() {
 #[test]
 fn card_shows_registered_timestamp() {
     let html = card_html(fixture_active());
-    assert!(html.contains("1700000000"),
-        "expected timestamp, got: {html}");
+    assert!(html.contains("1700000000"), "expected timestamp, got: {html}");
 }

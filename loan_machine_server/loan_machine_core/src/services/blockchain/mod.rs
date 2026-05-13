@@ -26,7 +26,7 @@ pub use coop_registry::CoopRegistryService;
 pub use provider::Provider;
 
 pub mod contract_errors;
-pub use contract_errors::{translate_revert, friendly_from_error};
+pub use contract_errors::{translate_revert, friendly_from_error, extract_revert_data};
 
 // ── ERRORS ───────────────────────────────────────────────────
 // One central error type for all blockchain operations.
@@ -39,14 +39,41 @@ pub enum BlockchainError {
     #[error("Invalid contract address")]
     InvalidAddress,
 
-    #[error("Contract call failed: {0}")]
-    Call(String),
+    /// A known on-chain revert with a translated user-facing message.
+    /// The original alloy error is preserved as the source.
+    #[error("{message}")]
+    ContractRevert {
+        message: String,
+        #[source]
+        source: alloy::contract::Error,
+    },
 
-    #[error("Gas estimation failed: {0}")]
-    GasEstimate(String),
+    /// Any other contract-layer failure: RPC error, decode error,
+    /// untranslated revert, etc. Source preserved for debugging.
+    #[error("contract call failed")]
+    Call(#[source] alloy::contract::Error),
+
+    #[error("gas estimation failed")]
+    GasEstimate(#[source] alloy::contract::Error),
 
     #[error("Cooperative not found")]
     CoopNotFound,
+}
+
+impl BlockchainError {
+    /// Classify an alloy contract error: known reverts get a translated
+    /// message; everything else falls through to Call. Either way, the
+    /// original alloy error is preserved in source().
+    pub fn from_call(err: alloy::contract::Error) -> Self {
+        if let Some(bytes) = extract_revert_data(&err) {
+            Self::ContractRevert {
+                message: translate_revert(&bytes),
+                source: err,
+            }
+        } else {
+            Self::Call(err)
+        }
+    }
 }
 
 // ── MAIN SERVICE STRUCT ───────────────────────────────────────

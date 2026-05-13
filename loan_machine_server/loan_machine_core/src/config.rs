@@ -29,7 +29,7 @@ pub struct AppState {
     pub blockchain_service: Arc<BlockchainService>,
     pub identity:           Arc<IdentityService>,
     pub chain_config:       Arc<ChainConfig>,
-    pub subgraph:           Arc<SubgraphService>,     
+    pub subgraph:           SubgraphService,     
     pub privy:              Arc<PrivyService>,
     pub privy_auth:         Arc<PrivyAuthService>, 
     pub coop_deployment:    Arc<CoopDeploymentService>,  
@@ -63,7 +63,10 @@ impl AppState {
             .expect("Failed to initialize PrivyService. Check environment variables.");
 
         let privy_app_id = privy.app_id();
-        let privy_auth = PrivyAuthService::new(privy_app_id);
+        let privy_app_secret: SecretString = std::env::var("PRIVY_APP_SECRET")
+            .expect("PRIVY_APP_SECRET must be set in .env")
+            .into();
+        let privy_auth = PrivyAuthService::new(privy_app_id, privy_app_secret);
 
         let platform_admin_key: SecretString  = std::env::var("PLATFORM_ADMIN_PRIVATE_KEY")
             .expect("PLATFORM_ADMIN_PRIVATE_KEY must be set in .env")
@@ -90,7 +93,7 @@ impl AppState {
             privy:              Arc::new(privy),
             chain_config:       Arc::new(chain_config),
             privy_auth:         Arc::new(privy_auth),
-            subgraph:           Arc::new(subgraph),
+            subgraph:           subgraph,
             coop_deployment:    Arc::new(coop_deployment),
         }
     }

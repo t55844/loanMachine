@@ -40,6 +40,7 @@ loan_machine_core = { path = "../loan_machine_core", optional = true }
 loan_machine_models = { path = "../loan_machine_models" }
 serde      = { workspace = true }
 serde_json = { workspace = true }
+thiserror   = { workspace = true }
 leptos        = { version = "0.8" }
 leptos_meta   = { version = "0.8" }
 leptos_router = { version = "0.8" }
@@ -62,6 +63,8 @@ tower-http = { version = "0.5", optional = true, default-features = false, featu
 reqwest    = { version = "0.12", optional = true, features = ["json"] }
 hex        = { version = "0.4", optional = true }
 send_wrapper = "0.6"
+bytes = "1"
+futures = "0.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"

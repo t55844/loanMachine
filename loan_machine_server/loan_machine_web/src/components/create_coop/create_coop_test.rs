@@ -24,7 +24,7 @@ use leptos::prelude::*;
 use crate::components::create_coop::create_coop::{CoopStep, CreateCoopPage};
 use crate::components::create_coop::create_coop_steps::StepProgress;
 use crate::components::create_coop::coop_choice::CoopChoicePage;
-
+use crate::components::tests_helper::fake_wallet;
 // ── Helper ────────────────────────────────────────────────────
 
 /// Render any synchronous view inside a fresh Owner scope.
@@ -87,7 +87,7 @@ fn choice_shows_create_coop_cta_button() {
 
 fn page_html() -> String {
     render_to_string(|| view! {
-        <CreateCoopPage founder_wallet="0xABCDEF1234567890ABCDEF1234567890ABCDEF12" />
+        <CreateCoopPage founder_wallet=fake_wallet() />
     })
 }
 
@@ -127,10 +127,9 @@ fn page_shows_founder_wallet_label() {
 }
 
 #[test]
-fn page_shows_founder_wallet_value_in_output() {
-    assert!(page_html().contains("0xABCDEF1234567890ABCDEF1234567890ABCDEF12"));
+fn page_shows_founder_wallet_short_form_in_output() {
+    assert!(page_html().contains("0x1111…1111"));
 }
-
 #[test]
 fn page_shows_admin2_label() {
     assert!(page_html().contains("Admin 2 — Carteira"));

@@ -7,9 +7,10 @@
 // tick in SSR rendering — those cases need wasm-bindgen-test in a
 // real browser. See `vinculation_wasm_test.rs` for that layer.
 
+
 use leptos::prelude::*;
 use crate::components::vinculation::{VinculationGate, FirstVinculationForm};
-
+use crate::components::tests_helper::fake_wallet;
 // ── Helpers ──────────────────────────────────────────────────
 
 /// Render any view to an HTML string inside an Owner scope.
@@ -32,19 +33,16 @@ where
 // completion — so the first paint always shows the Checking state.
 
 async fn gate_html() -> String {
-
     any_spawner::Executor::init_tokio().ok();
-
-  let local = tokio::task::LocalSet::new();
+    let local = tokio::task::LocalSet::new();
     local.run_until(async {
         render_to_string(|| view! {
-            <VinculationGate smart_wallet="0x1234".to_string()>
+            <VinculationGate smart_wallet=fake_wallet()>
                 <div>"test-children-marker"</div>
             </VinculationGate>
         })
     }).await
 }
-
 #[tokio::test]
 async fn async_gate_shows_spinner_on_initial_render() {
     assert!(gate_html().await.contains("spinner"));
@@ -75,7 +73,7 @@ async fn async_gate_hides_form_on_initial_render() {
 fn form_html() -> String {
     render_to_string(|| view! {
         <FirstVinculationForm
-            smart_wallet="0x1234".to_string()
+            smart_wallet=fake_wallet()
             on_success=|_| {}
         />
     })

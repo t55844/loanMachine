@@ -11,6 +11,7 @@ use loan_machine_models::{
     requests::{CreateCoopRequest, RegisterDeployedCoopRequest},
     responses::{CoopDeployBundle, CoopRegistrationResult},
 };
+use loan_machine_models::wallet_address::WalletAddress;
 
 use crate::components::ui::*;
 use crate::components::create_coop::create_coop_steps::{
@@ -84,7 +85,7 @@ fn js_send_tx(to: String, data: String, gas: String) {
 // ── CreateCoopPage ────────────────────────────────────────────
 
 #[component]
-pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
+pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoView {
 
     // ── Signals ──────────────────────────────────────────────
 
@@ -134,8 +135,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
         set_step.set(next);
     };
 
-    // StoredValue: plain String prop, not reactive — no clone on every render.
-    let founder = StoredValue::new(founder_wallet);
 
     // ── JS event listeners ────────────────────────────────────
     // Registered in component body (not in Effect) so they fire exactly once.
@@ -204,7 +203,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
             let req = RegisterDeployedCoopRequest {
                 name:                 name.get_untracked(),
                 loan_machine_address: contract_address.get_untracked(),
-                founder_wallet:       founder.get_value(),
+                founder_wallet:       founder_wallet,
             };
             spawn_local(async move {
                 match register_deployed_coop(req).await {
@@ -248,33 +247,30 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: String) -> impl IntoView {
                             admin3 set_admin3
                             name_err admin2_err admin3_err
                             loading
-                            founder_wallet=founder.get_value()
-                            on_submit=Box::new(move || {
+                            founder_wallet=founder_wallet
+                           on_submit=Box::new(move || {
                                 let n  = name.get_untracked();
                                 let a2 = admin2.get_untracked();
                                 let a3 = admin3.get_untracked();
-                                let valid_addr = |a: &str| a.starts_with("0x") && a.len() == 42;
-                                let mut ok = true;
 
-                                if n.trim().is_empty() {
-                                    set_name_err.set("Nome obrigatório".into()); ok = false;
-                                } else { set_name_err.set(String::new()); }
+                                let a2_parsed: Result<WalletAddress, _> = a2.parse();
+                                let a3_parsed: Result<WalletAddress, _> = a3.parse();
 
-                                if !valid_addr(&a2) {
-                                    set_admin2_err.set("Endereço inválido (0x + 40 hex)".into()); ok = false;
-                                } else { set_admin2_err.set(String::new()); }
+                                let name_ok   = !n.trim().is_empty();
+                                let admin2_ok = a2_parsed.is_ok();
+                                let admin3_ok = a3_parsed.is_ok();
 
-                                if !valid_addr(&a3) {
-                                    set_admin3_err.set("Endereço inválido (0x + 40 hex)".into()); ok = false;
-                                } else { set_admin3_err.set(String::new()); }
+                                set_name_err.set(if name_ok      { String::new() } else { "Nome obrigatório".into() });
+                                set_admin2_err.set(if admin2_ok  { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
+                                set_admin3_err.set(if admin3_ok  { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
 
-                                if ok {
+                                if let (true, Ok(a2_addr), Ok(a3_addr)) = (name_ok, a2_parsed, a3_parsed) {
                                     set_loading.set(true);
                                     set_error.set(String::new());
                                     let req = CreateCoopRequest {
                                         name:          n,
-                                        founder_wallet: founder.get_value(),
-                                        admin_wallets: vec![founder.get_value(), a2, a3],
+                                        founder_wallet,                                       // Copy, no clone
+                                        admin_wallets: vec![founder_wallet, a2_addr, a3_addr],
                                         threshold:     2,
                                     };
                                     spawn_local(async move {

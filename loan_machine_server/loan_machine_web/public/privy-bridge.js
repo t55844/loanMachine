@@ -228,10 +228,18 @@ function showOtpOverlay(email) {
 }
 
 // ── Public window API ──────────────────────────────────────────
-
 window.loan_machine_try_restore = async function () {
-  const address = await tryRestoreSession();
-  if (address) fire('privy_wallet_ready', { address });
+  try {
+    const address = await tryRestoreSession();
+    if (address) {
+      fire('privy_wallet_ready', { address });
+    } else {
+      fire('privy_restore_done', {});   // ← "we checked, no user"
+    }
+  } catch (err) {
+    console.error('[privy-bridge] restore error:', err);
+    fire('privy_restore_done', {});     // ← still leave Restoring on failure
+  }
 };
 
 window.loan_machine_init_privy = async function () {
@@ -248,7 +256,6 @@ window.loan_machine_init_privy = async function () {
     const { user } = await p.auth.email.loginWithCode(email, code);
 
     const address = await buildWalletForUser(p, user);
-    await new Promise(r => setTimeout(r, 5000));   // ← test if delay fixes it
     fire('privy_wallet_ready', { address });
   } catch (err) {
     if (err.message === 'cancelled' || err.message === 'back') return;

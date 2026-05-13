@@ -3,6 +3,7 @@
 pub mod app;
 pub mod components;
 pub mod server_fns;
+pub mod wallet_auth;
 
 pub use app::App;
 
@@ -13,5 +14,9 @@ pub use app::App;
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {
+    // Install our auth-injecting client BEFORE mounting, so the very
+    // first server-fn call from any component picks it up.
+
     leptos::mount::hydrate_body(App);
 }
+

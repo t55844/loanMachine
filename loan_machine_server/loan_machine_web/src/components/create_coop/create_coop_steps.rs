@@ -13,6 +13,7 @@
 
 use leptos::prelude::*;
 use loan_machine_models::responses::CoopRegistrationResult;
+use loan_machine_models::wallet_address::WalletAddress;
 
 use crate::components::ui::*;
 use crate::components::create_coop::create_coop::CoopStep;
@@ -31,7 +32,7 @@ pub fn FormStep(
     admin2_err: ReadSignal<String>,
     admin3_err: ReadSignal<String>,
     loading: ReadSignal<bool>,
-    founder_wallet: String,
+    founder_wallet: WalletAddress,
     on_submit: Box<dyn Fn() + Send + Sync>,
 ) -> impl IntoView {
     view! {
@@ -48,7 +49,7 @@ pub fn FormStep(
 
                 <div class="form-group">
                     <label class="form-label">"Carteira Fundadora (você)"</label>
-                    <div class="hash-display">{founder_wallet}</div>
+                    <div class="hash-display">{founder_wallet.short()}</div>
                     <span class="form-hint">
                         "Preenchido automaticamente pela carteira conectada"
                     </span>
