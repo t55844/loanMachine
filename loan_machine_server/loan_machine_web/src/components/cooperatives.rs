@@ -1,14 +1,16 @@
 // loan_machine_web/src/components/cooperatives.rs
 
 use leptos::prelude::*;
+use leptos::server_fn::ServerFnError;
 use crate::components::ui::*;
 use crate::server_fns::cooperatives::list_cooperatives;
+use crate::wallet_auth::privy_bridge;
 use loan_machine_models::responses::CooperativeView;
 
 #[component]
 pub fn CooperativesPage() -> impl IntoView {
     let coops = LocalResource::new(move || async move {
-    let token = get_access_token_js().await.unwrap_or_default();
+        let token = privy_bridge::get_access_token().await.unwrap_or_default();
         if token.is_empty() {
             return Err(ServerFnError::new("no_token_available"));
         }
@@ -43,27 +45,6 @@ pub fn CooperativesPage() -> impl IntoView {
             </div>
         </section>
     }
-}
-
-/// Calls window.loan_machine_get_access_token() and awaits its Promise.
-#[cfg(target_arch = "wasm32")]
-async fn get_access_token_js() -> Option<String> {
-    use wasm_bindgen::{JsCast, JsValue};
-    use wasm_bindgen_futures::JsFuture;
-    use js_sys::{Function, Promise, Reflect};
-
-    let window = web_sys::window()?;
-    let func = Reflect::get(&window, &JsValue::from_str("loan_machine_get_access_token")).ok()?;
-    let func = func.dyn_into::<Function>().ok()?;
-    let promise = func.call0(&JsValue::NULL).ok()?;
-    let promise: Promise = promise.dyn_into().ok()?;
-    let result = JsFuture::from(promise).await.ok()?;
-    result.as_string()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-async fn get_access_token_js() -> Option<String> {
-    None
 }
 
 #[component]

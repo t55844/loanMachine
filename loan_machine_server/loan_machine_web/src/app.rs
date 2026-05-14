@@ -3,7 +3,6 @@ use leptos::prelude::*;
 use leptos_router::components::{Router, Routes, Route};
 use leptos_router::path;
 
-use crate::components::ui::Navbar;
 use crate::components::auth_bar::AuthBar;
 use crate::components::gas_modal::{provide_gas_modal, GasModal};
 use crate::components::gates::{
@@ -16,25 +15,45 @@ use crate::components::cooperatives::CooperativesPage;
 use crate::components::vinculation::FirstVinculationForm;
 use crate::wallet_auth::{provide_wallet, use_wallet, WalletSession};
 
+
+
+
+// ── NAVIGATION ──────────────────────────────────────────────
+
+#[component]
+pub fn Navbar(
+    #[prop(optional, default="LOAN MACHINE")] title: &'static str,
+) -> impl IntoView {
+    view! {
+        <nav class="navbar">
+            <div class="container navbar-inner">
+                <a href="/" class="navbar-brand">{title}</a>
+                <ul class="navbar-links">
+                    <li><a href="/" class="navbar-link">"Pagina inicial"</a></li>
+                    <li><a href="/cooperatives" class="navbar-link">"Cooperativas"</a></li>
+                    <li><a href="/create-coop" class="navbar-link">"Create Coop"</a></li>
+                    <li><a href="/vinculate" class="navbar-link">"Vinculação"</a></li>
+                    <li>
+                        <span class="badge badge-live badge-yellow">"Live"</span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    }
+}
+
 // ── ROOT ──────────────────────────────────────────────────────
 
 #[component]
 pub fn App() -> impl IntoView {
-    #[cfg(target_arch = "wasm32")]
-    web_sys::console::log_1(&"[app] hydrating".into());
     // Cross-cutting setup. Each call is exactly one concern.
     provide_gas_modal();
     let wallet_ctx = provide_wallet();
 
     // Wire Privy → WalletSession. WASM-only; SSR build skips this.
     //crate::wallet_auth::privy_bridge::install(wallet_ctx.set);
+    crate::wallet_auth::privy_bridge::install(wallet_ctx.set);
 
-        #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&"[app] calling install".into());
-        #[cfg(target_arch = "wasm32")]
-        crate::wallet_auth::privy_bridge::install(wallet_ctx.set);
-        #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&"[app] install done".into());
 
     view! {
         <Navbar title="LOAN MACHINE" />
@@ -46,7 +65,6 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/cooperatives") view=CooperativesRoute />
                 <Route path=path!("/create-coop")  view=CreateCoopRoute />
                 <Route path=path!("/vinculate")    view=VinculateRoute />
-                <Route path=path!("/donate")       view=DonateRoute />
             </Routes>
         </Router>
     }
@@ -101,18 +119,14 @@ fn VinculateRoute() -> impl IntoView {
         <RequireWallet
             pending=|| view! { <HomeSkeleton /> }
             fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::Vinculation /> }
-            render=move |wallet| view! {
+            render=move |_| view! {
                 <section class="section">
                     <div class="container-sm">
                         <FirstVinculationForm
-                            smart_wallet=wallet
-                            on_success=move |_coop| {
+                            on_success=move || {
                                 #[cfg(target_arch = "wasm32")]
                                 {
-                                    let _ = web_sys::window()
-                                        .unwrap()
-                                        .location()
-                                        .set_href("/");
+                                    let _ = web_sys::window().unwrap().location().set_href("/");
                                 }
                             }
                         />
@@ -120,16 +134,5 @@ fn VinculateRoute() -> impl IntoView {
                 </section>
             }
         />
-    }
-}
-
-#[component]
-fn DonateRoute() -> impl IntoView {
-    view! {
-        <section class="section">
-            <div class="container-sm">
-                <p class="t-mono-sm t-muted">"Donate — em breve."</p>
-            </div>
-        </section>
     }
 }

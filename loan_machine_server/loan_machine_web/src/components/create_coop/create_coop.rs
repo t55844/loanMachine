@@ -1,15 +1,30 @@
 // loan_machine_web/src/components/create_coop.rs
 //
-// All logic for the create-coop flow:
-//   - CoopStep state machine
-//   - JS interop (WASM-only helpers)
-//   - CreateCoopPage: signals, event listeners, registration effect, step dispatch
+// Six-step flow that chains two server calls and two on-chain txs:
+//
+//   Form           → user fills coop config, submits
+//   AccessCode     → prepare action returned a deploy bundle; show the
+//                    access code; user must save it, then click sign
+//   WaitingDeploy  → TX 1 (deploy LoanMachine) is in flight on-chain
+//   SignInit       → TX 1 confirmed; bridge gave us a contract address;
+//                    user clicks to sign TX 2 (initializeMultisig)
+//   Registering    → TX 2 confirmed; register action is in flight
+//   Done           → cooperative is fully registered; show details
+//
+// Architecture notes (matches the patterns from the study notes):
+//   - All JS interop is behind `privy_bridge`.  This file does not
+//     import any wasm-bindgen types.
+//   - Both server fns are `Action`s.  No `spawn_local`, no hand-rolled
+//     loading / error / reg_started signals.
+//   - Bridge events arrive via `on_tx_outcome` (TX 2) and
+//     `on_deploy_outcome` (TX 1).  Cleanup is automatic on unmount.
+//   - The two action settlements are handled in `Effect`s that read
+//     `action.value()` and react to None / Some(Ok) / Some(Err).
 
 use leptos::prelude::*;
-use leptos::task::spawn_local;
 use loan_machine_models::{
     requests::{CreateCoopRequest, RegisterDeployedCoopRequest},
-    responses::{CoopDeployBundle, CoopRegistrationResult},
+    responses::CoopRegistrationResult,
 };
 use loan_machine_models::wallet_address::WalletAddress;
 
@@ -18,9 +33,10 @@ use crate::components::create_coop::create_coop_steps::{
     AccessCodeStep, DoneStep, FormStep, SignInitStep, StepProgress, WaitingStep,
 };
 use crate::server_fns::create_coop::{prepare_create_coop, register_deployed_coop};
-use crate::components::gas_modal::{use_gas_modal,GasEstimate,GasModalRequest};
-// ── Step state machine ────────────────────────────────────────
-// pub so create_coop_steps can import it for StepProgress.
+use crate::components::gas_modal::{use_gas_modal, GasEstimate, GasModalRequest};
+use crate::wallet_auth::privy_bridge::{self, DeployOutcome, TxOutcome};
+
+// ── Step state machine ──────────────────────────────────────
 
 #[derive(Clone, PartialEq)]
 pub enum CoopStep {
@@ -32,63 +48,24 @@ pub enum CoopStep {
     Done,
 }
 
-// ── JS interop ───────────────────────────────────────────────
-//
-// Both functions cross the Rust→JS boundary via wasm-bindgen's Reflect API:
-//
-//   js_sys::Reflect::get(&window, "name")  →  window["name"]         (runtime lookup)
-//   val.dyn_into::<Function>()             →  assert typeof === "function"
-//   func.call2(&JsValue::NULL, a, b)       →  func.call(null, a, b)
-//
-// JsValue::NULL is the `this` context — equivalent to calling as a standalone fn.
-// The cfg gate compiles these bodies away entirely on the SSR server (Linux x86_64).
-
-/// TX 1 — deploy LoanMachine (no `to` = EVM deployment).
-/// Calls window.loan_machine_deploy_contract(data, gas).
-/// Bridge fires privy_deploy_complete { contract_address } on receipt.
-fn js_deploy_contract(data: String, gas: String) {
-    #[cfg(target_arch = "wasm32")]
-    {
-        use js_sys::Function;
-        use wasm_bindgen::{JsCast, JsValue};
-        let window = web_sys::window().unwrap();
-        if let Ok(v) = js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_deploy_contract")) {
-            if let Ok(f) = v.dyn_into::<Function>() {
-                let _ = f.call2(&JsValue::NULL, &JsValue::from_str(&data), &JsValue::from_str(&gas));
-            }
+impl CoopStep {
+    fn index(&self) -> usize {
+        match self {
+            CoopStep::Form          => 0,
+            CoopStep::AccessCode    => 1,
+            CoopStep::WaitingDeploy => 2,
+            CoopStep::SignInit      => 3,
+            CoopStep::Registering   => 4,
+            CoopStep::Done          => 5,
         }
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    let _ = (data, gas);
 }
 
-/// TX 2 — call initializeMultisig on the deployed contract.
-/// Calls window.loan_machine_send_tx(json) where json = { to, data, gas }.
-/// Bridge fires privy_tx_complete { tx_hash } on receipt.
-fn js_send_tx(to: String, data: String, gas: String) {
-    let json = format!(r#"{{"to":"{to}","data":"{data}","gas":"{gas}"}}"#);
-    #[cfg(target_arch = "wasm32")]
-    {
-        use js_sys::Function;
-        use wasm_bindgen::{JsCast, JsValue};
-        let window = web_sys::window().unwrap();
-        if let Ok(v) = js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_send_tx")) {
-            if let Ok(f) = v.dyn_into::<Function>() {
-                let _ = f.call1(&JsValue::NULL, &JsValue::from_str(&json));
-            }
-        }
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    let _ = json;
-}
-
-// ── CreateCoopPage ────────────────────────────────────────────
+// ── CreateCoopPage ──────────────────────────────────────────
 
 #[component]
 pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoView {
-
-    // ── Signals ──────────────────────────────────────────────
-
+    // ── Step + form-field signals ───────────────────────────
     let (step, set_step) = signal(CoopStep::Form);
 
     let (name,   set_name)   = signal(String::new());
@@ -99,127 +76,119 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
     let (admin2_err, set_admin2_err) = signal(String::new());
     let (admin3_err, set_admin3_err) = signal(String::new());
 
-    let (bundle,           set_bundle)           = signal(Option::<CoopDeployBundle>::None);
+    // Single top-of-page error display.  Written from multiple sources
+    // (prepare action, bridge events, register action) — easier to
+    // funnel them all here than to derive from N separate sources.
+    let (error, set_error) = signal(String::new());
+
+    // Results from the two on-chain steps.
     let (contract_address, set_contract_address) = signal(String::new());
-    let (reg_result,       set_reg_result)       = signal(Option::<CoopRegistrationResult>::None);
+    let (reg_result, set_reg_result) = signal(Option::<CoopRegistrationResult>::None);
 
-    let (code_saved,  set_code_saved)  = signal(false);
-    let (loading,     set_loading)     = signal(false);
-    let (error,       set_error)       = signal(String::new());
-    let (reg_started, set_reg_started) = signal(false);
+    // AccessCode checkbox.
+    let (code_saved, set_code_saved) = signal(false);
 
-    // Replace the simple advance helper with a directional one
+    // ── Server-fn Actions ───────────────────────────────────
+    let prepare = Action::new(|req: &CreateCoopRequest| {
+        let req = req.clone();
+        async move { prepare_create_coop(req).await }
+    });
+
+    // The register action takes () because its request is assembled
+    // at dispatch time from current signal values.
+    let register = Action::new(move |_: &()| {
+        let req = RegisterDeployedCoopRequest {
+            name:                 name.get_untracked(),
+            loan_machine_address: contract_address.get_untracked(),
+            founder_wallet,
+        };
+        async move { register_deployed_coop(req).await }
+    });
+
+    // ── Derived signals ─────────────────────────────────────
+    let loading = prepare.pending();
+    let bundle = Signal::derive(move || match prepare.value().get() {
+        Some(Ok(b)) => Some(b),
+        _ => None,
+    });
+
+    // ── Step transitions ────────────────────────────────────
+    //
+    // Always sets the target step; only clears `error` when moving
+    // *forward* (so a rollback after a failure keeps the error visible
+    // to the user on the screen they land on).
     let advance = move |next: CoopStep| {
-        let current_idx = match step.get_untracked() {
-            CoopStep::Form          => 0usize,
-            CoopStep::AccessCode    => 1,
-            CoopStep::WaitingDeploy => 2,
-            CoopStep::SignInit      => 3,
-            CoopStep::Registering   => 4,
-            CoopStep::Done          => 5,
-        };
-        let next_idx = match next {
-            CoopStep::Form          => 0,
-            CoopStep::AccessCode    => 1,
-            CoopStep::WaitingDeploy => 2,
-            CoopStep::SignInit      => 3,
-            CoopStep::Registering   => 4,
-            CoopStep::Done          => 5,
-        };
-
-        // Only clear the error when moving forward
-        if next_idx > current_idx {
+        if next.index() > step.get_untracked().index() {
             set_error.set(String::new());
         }
-
         set_step.set(next);
     };
 
-
-    // ── JS event listeners ────────────────────────────────────
-    // Registered in component body (not in Effect) so they fire exactly once.
-    // Same pattern as WalletRouter session-restore in app.rs.
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        use wasm_bindgen::{JsCast, JsValue, closure::Closure};
-
-        // privy_deploy_complete → TX 1 mined, bridge returned contract address
-        let cl = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
-            let addr = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("contract_address"))
-                .ok()
-                .and_then(|v| v.as_string())
-                .unwrap_or_default();
-            if !addr.is_empty() {
-                set_contract_address.set(addr);
-                advance(CoopStep::SignInit);
-            }
-        });
-        web_sys::window().unwrap()
-            .add_event_listener_with_callback("privy_deploy_complete", cl.as_ref().unchecked_ref())
-            .ok();
-        cl.forget();
-
-        // privy_tx_complete → TX 2 signed; guard on step so vinculation's
-        // listener (which fires the same event) doesn't accidentally advance us.
-        let cl2 = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |_e: web_sys::CustomEvent| {
-            if step.get_untracked() == CoopStep::SignInit {
-                advance(CoopStep::Registering);
-            }
-        });
-        web_sys::window().unwrap()
-            .add_event_listener_with_callback("privy_tx_complete", cl2.as_ref().unchecked_ref())
-            .ok();
-        cl2.forget();
-
-        // privy_tx_error → bridge surfaced an error from either tx
-        let cl3 = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
-            let msg = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("error"))
-                .ok()
-                .and_then(|v| v.as_string())
-                .unwrap_or_else(|| "Erro desconhecido".into());
-
-            set_error.set(format!("Falha na transação: {msg}"));
-
-            // Roll back the step so the user can retry
-            match step.get_untracked() {
-                CoopStep::WaitingDeploy => advance(CoopStep::AccessCode),
-                CoopStep::SignInit      => {},                 // already on the retry screen
-                _                       => {},
-            }
-        });
-        web_sys::window().unwrap()
-            .add_event_listener_with_callback("privy_tx_error", cl3.as_ref().unchecked_ref())
-            .ok();
-        cl3.forget();
-    }
-
-    // ── Registration effect ───────────────────────────────────
-    // reg_started guard prevents double-dispatch if Leptos re-runs the effect.
-
+    // ── Prepare action settles ──────────────────────────────
     Effect::new(move |_| {
-        if step.get() == CoopStep::Registering && !reg_started.get_untracked() {
-            set_reg_started.set(true);
-            let req = RegisterDeployedCoopRequest {
-                name:                 name.get_untracked(),
-                loan_machine_address: contract_address.get_untracked(),
-                founder_wallet:       founder_wallet,
-            };
-            spawn_local(async move {
-                match register_deployed_coop(req).await {
-                    Ok(r)  => { set_reg_result.set(Some(r)); advance(CoopStep::Done); }
-                    Err(e) => {
-                        set_error.set(e.to_string());
-                        advance(CoopStep::Form);
-                        set_reg_started.set(false);
-                    }
+        let Some(result) = prepare.value().get() else { return };
+        match result {
+            Ok(_) => {
+                // Defensive guard: only advance if still on Form.
+                // The Effect could in principle re-fire if value()
+                // updates while we're past Form (it won't in normal
+                // flow, but cheap to be safe).
+                if step.get_untracked() == CoopStep::Form {
+                    advance(CoopStep::AccessCode);
                 }
-            });
+            }
+            Err(e) => set_error.set(e.to_string()),
         }
     });
 
-    // ── Step dispatch ─────────────────────────────────────────
+    // ── TX 1 outcome (contract deployment) ──────────────────
+    privy_bridge::on_deploy_outcome(move |outcome| match outcome {
+        DeployOutcome::Complete { contract_address: addr, .. } => {
+            set_contract_address.set(addr);
+            advance(CoopStep::SignInit);
+        }
+        DeployOutcome::Failed(err) => {
+            set_error.set(format!("Falha no deploy: {err}"));
+            advance(CoopStep::AccessCode);
+        }
+    });
 
+    // ── TX 2 outcome (multisig init) ────────────────────────
+    //
+    // No more step-guard like the old code had.  Bridge subscriptions
+    // are mount-scoped, so vinculation's `on_tx_outcome` listener
+    // can't trigger us — different routes can't be mounted at once.
+    privy_bridge::on_tx_outcome(move |outcome| match outcome {
+        TxOutcome::Complete(_hash) => {
+            advance(CoopStep::Registering);
+            register.dispatch(());
+        }
+        TxOutcome::Failed(err) => {
+            set_error.set(format!("Falha na inicialização: {err}"));
+            // Stay on SignInit — user can retry.
+        }
+    });
+
+    // ── Register action settles ─────────────────────────────
+    Effect::new(move |_| {
+        let Some(result) = register.value().get() else { return };
+        match result {
+            Ok(r) => {
+                set_reg_result.set(Some(r));
+                if step.get_untracked() == CoopStep::Registering {
+                    advance(CoopStep::Done);
+                }
+            }
+            Err(e) => {
+                set_error.set(e.to_string());
+                if step.get_untracked() == CoopStep::Registering {
+                    advance(CoopStep::Form);
+                }
+            }
+        }
+    });
+
+    // ── Step dispatch ───────────────────────────────────────
     view! {
         <Section>
             <div class="container-sm">
@@ -248,7 +217,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                             name_err admin2_err admin3_err
                             loading
                             founder_wallet=founder_wallet
-                           on_submit=Box::new(move || {
+                            on_submit=Box::new(move || {
                                 let n  = name.get_untracked();
                                 let a2 = admin2.get_untracked();
                                 let a3 = admin3.get_untracked();
@@ -260,25 +229,19 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                 let admin2_ok = a2_parsed.is_ok();
                                 let admin3_ok = a3_parsed.is_ok();
 
-                                set_name_err.set(if name_ok      { String::new() } else { "Nome obrigatório".into() });
-                                set_admin2_err.set(if admin2_ok  { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
-                                set_admin3_err.set(if admin3_ok  { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
+                                set_name_err.set(if name_ok     { String::new() } else { "Nome obrigatório".into() });
+                                set_admin2_err.set(if admin2_ok { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
+                                set_admin3_err.set(if admin3_ok { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
 
                                 if let (true, Ok(a2_addr), Ok(a3_addr)) = (name_ok, a2_parsed, a3_parsed) {
-                                    set_loading.set(true);
-                                    set_error.set(String::new());
-                                    let req = CreateCoopRequest {
+                                    // Dispatch the prepare Action — its
+                                    // pending state drives the button's
+                                    // loading prop automatically.
+                                    prepare.dispatch(CreateCoopRequest {
                                         name:          n,
-                                        founder_wallet,                                       // Copy, no clone
+                                        founder_wallet,
                                         admin_wallets: vec![founder_wallet, a2_addr, a3_addr],
                                         threshold:     2,
-                                    };
-                                    spawn_local(async move {
-                                        match prepare_create_coop(req).await {
-                                            Ok(b)  => { set_bundle.set(Some(b)); advance(CoopStep::AccessCode); }
-                                            Err(e) => { set_error.set(e.to_string()); }
-                                        }
-                                        set_loading.set(false);
                                     });
                                 }
                             })
@@ -291,15 +254,14 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                         let gas_deploy  = bundle.get().map(|b| b.gas_deploy.clone()).unwrap_or_default();
 
                         let gas_modal = use_gas_modal();
-                        
+
                         view! {
                             <AccessCodeStep
                                 access_code
                                 code_saved set_code_saved
                                 on_sign=Box::new(move || {
-                                    let dd  = deploy_data.clone();
-                                    let gd  = gas_deploy.clone();
-
+                                    let dd = deploy_data.clone();
+                                    let gd = gas_deploy.clone();
                                     gas_modal.set(Some(GasModalRequest {
                                         title: "CONFIRMAR DEPLOY".into(),
                                         estimates: vec![GasEstimate {
@@ -308,7 +270,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                         }],
                                         on_confirm: Callback::new(move |_| {
                                             advance(CoopStep::WaitingDeploy);
-                                            js_deploy_contract(dd.clone(), gd.clone());
+                                            privy_bridge::deploy_contract(&dd, &gd);
                                         }),
                                     }));
                                 })
@@ -338,7 +300,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                     let a = addr_tx.clone();
                                     let d = init_data.clone();
                                     let g = gas_init.clone();
-
                                     gas_modal.set(Some(GasModalRequest {
                                         title: "CONFIRMAR INICIALIZAÇÃO".into(),
                                         estimates: vec![GasEstimate {
@@ -346,7 +307,10 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                             gas_hex: g.clone(),
                                         }],
                                         on_confirm: Callback::new(move |_| {
-                                            js_send_tx(a.clone(), d.clone(), g.clone());
+                                            // Pin the server's gas estimate
+                                            // to skip an eth_estimateGas RPC
+                                            // on the JS side.
+                                            privy_bridge::send_tx(&a, &d, Some(&g));
                                         }),
                                     }));
                                 })

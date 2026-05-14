@@ -1,7 +1,7 @@
 // src/components/ui.rs
 // CordelWave Crypto — Reusable Leptos Component Library
 // Usage: use crate::components::ui::*;
-
+use crate::app::{Navbar};
 use leptos::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
@@ -57,29 +57,6 @@ pub fn Section(
     }
 }
 
-// ── NAVIGATION ──────────────────────────────────────────────
-
-#[component]
-pub fn Navbar(
-    #[prop(optional, default="LOAN MACHINE")] title: &'static str,
-) -> impl IntoView {
-    view! {
-        <nav class="navbar">
-            <div class="container navbar-inner">
-                <a href="/" class="navbar-brand">{title}</a>
-                <ul class="navbar-links">
-                    <li><a href="/" class="navbar-link">"Pagina inicial"</a></li>
-                    <li><a href="/cooperatives" class="navbar-link">"Cooperativas"</a></li>
-                    <li><a href="/vinculate" class="navbar-link">"Vinculação"</a></li>
-                    <li><a href="/donate" class="navbar-link">"Doação"</a></li>
-                    <li>
-                        <span class="badge badge-live badge-yellow">"Live"</span>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-    }
-}
 
 // ── TYPOGRAPHY ──────────────────────────────────────────────
 

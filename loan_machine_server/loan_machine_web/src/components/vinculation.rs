@@ -1,225 +1,216 @@
 // src/components/vinculation.rs
+//
+// Two-step form (the third step lives in `GasModal`):
+//   1. IdentifyCard  — user fills in document + coop id + access code.
+//   2. TxStatusCard  — pending → complete | failed, driven by bridge events.
+//
+// The confirm-and-sign step is delegated to the app-wide `<GasModal />`
+// (mounted in `app.rs`): when the server returns a bundle, this form
+// opens the modal via `use_gas_modal()`.  The modal fires `on_confirm`
+// when the user accepts; that's where we set tx_status → Pending and
+// hand the bundle to `privy_bridge::send_tx`.
+//
+// This file deliberately does not import `wasm_bindgen::JsCast` or
+// `web_sys::CustomEvent` — all JS interop lives behind
+// `crate::wallet_auth::privy_bridge`.
+// (The one wasm-bindgen import that *does* remain is for the
+// `<input>` form-field type check inside `IdentifyCard`, which is a
+// DOM concern, not a Privy concern.)
+
 use leptos::prelude::*;
-use leptos::task::spawn_local;
 use leptos::ev::SubmitEvent;
-use leptos::web_sys; 
+use leptos::web_sys;
 use wasm_bindgen::JsCast;
 
 use crate::components::ui::*;
-use loan_machine_models::responses::{CoopInfo, VinculationBundle,};
-use loan_machine_models::requests::{DocKind};
-use loan_machine_models::wallet_address::WalletAddress;
+use crate::components::gas_modal::{use_gas_modal, GasEstimate, GasModalRequest};
+use crate::wallet_auth::privy_bridge::{self, TxOutcome};
+use loan_machine_models::requests::DocKind;
 
-use crate::server_fns::vinculation::{get_wallet_coop, prepare_first_vinculation};
-// ── GATE ─────────────────────────────────────────────────────
+use crate::server_fns::vinculation::prepare_first_vinculation;
+
+// ── STATE TYPES ───────────────────────────────────────────────
+
+/// UI status of the on-chain vinculation tx.
+///
+/// Note the relationship with `privy_bridge::TxOutcome`: the bridge
+/// can only produce Complete/Failed (those are the events JS emits).
+/// We add Idle and Pending here as UI-only states that the bridge
+/// has no business knowing about.  Mapping happens inside the form.
 #[derive(Clone, PartialEq)]
 pub enum TxStatus {
-    Idle,                    // nothing happening
-    Pending,                 // waiting for Privy to sign + submit
-    Complete(String),        // String = the tx hash "0x123..."
-    Failed(String),          // String = error message
-}
-#[component]
-pub fn VinculationGate(
-    smart_wallet: WalletAddress,
-    children: ChildrenFn,
-) -> impl IntoView {
-    let (status, set_status) = signal(GateStatus::Checking);
-    let wallet = smart_wallet.clone();
-
-    spawn_local(async move {
-        match get_wallet_coop(wallet).await {
-            Ok(Some(coop)) => set_status.set(GateStatus::Vinculated(coop)),
-            Ok(None)       => set_status.set(GateStatus::NeedsVinculation),
-            Err(e)         => set_status.set(GateStatus::Error(e.to_string())),
-        }
-    });
-
-    view! {
-        {move || match status.get() {
-
-            GateStatus::Checking => view! {
-                <div class="flex-center" style="height: 60vh">
-                    <div class="flex-col flex-center gap-6">
-                        <div class="spinner"></div>
-                        <p class="t-mono-sm t-muted">"Verificando vínculo..."</p>
-                    </div>
-                </div>
-            }.into_any(),
-
-            GateStatus::NeedsVinculation => view! {
-                <section class="section">
-                    <div class="container-sm">
-                        <FirstVinculationForm
-                            smart_wallet=smart_wallet.clone()
-                            on_success=move |coop| set_status.set(GateStatus::Vinculated(coop))
-                        />
-                    </div>
-                </section>
-            }.into_any(),
-
-            GateStatus::Vinculated(_) => children().into_any(),
-
-            GateStatus::Error(e) => view! {
-                <section class="section">
-                    <div class="container-sm">
-                        <Alert kind=AlertKind::Error>{e}</Alert>
-                    </div>
-                </section>
-            }.into_any(),
-        }}
-    }
+    Idle,
+    Pending,
+    Complete(String), // tx hash
+    Failed(String),   // error message
 }
 
+/// The four fields the form collects.  These are also the four
+/// arguments the server fn takes, so we use this struct directly as
+/// the `Action` input.
 #[derive(Clone)]
-enum GateStatus {
-    Checking,
-    NeedsVinculation,
-    Vinculated(CoopInfo),
-    Error(String),
+struct FormFields {
+    kind: DocKind,
+    document: String,
+    coop_id: String,
+    access_code: String,
 }
-// ── FIRST VINCULATION FORM ────────────────────────────────────
+
+// ── PUBLIC ENTRY POINT ───────────────────────────────────────
 
 #[component]
 pub fn FirstVinculationForm(
-    smart_wallet: WalletAddress,
-    on_success:   impl Fn(CoopInfo) + 'static,
+    /// Fires once the tx is confirmed on-chain.  Typically used by
+    /// the caller to navigate away from the form (e.g. redirect home).
+    on_success: impl Fn() + 'static,
 ) -> impl IntoView {
-    let (loading,     set_loading)     = signal(false);
-    let (error,       set_error)       = signal::<Option<String>>(None);
-    let (bundle,      set_bundle)      = signal::<Option<VinculationBundle>>(None);
+    // ── Server mutation → `Action` ─────────────────────────────
+    let prepare = Action::new(move |args: &FormFields| {
+        let a = args.clone();
+        async move {
+            prepare_first_vinculation(a.kind, a.document, a.coop_id, a.access_code).await
+        }
+    });
+
+    // ── Derived signals from the action ────────────────────────
+    let loading = prepare.pending();
+    let error_text = Signal::derive(move || match prepare.value().get() {
+        Some(Err(e)) => e.to_string(),
+        _ => String::new(),
+    });
+    let bundle = Signal::derive(move || match prepare.value().get() {
+        Some(Ok(b)) => Some(b),
+        _ => None,
+    });
+
+    // ── Tx status state machine ────────────────────────────────
     let (tx_status, set_tx_status) = signal(TxStatus::Idle);
 
-    let wallet = smart_wallet.clone();
+    // Subscribe to bridge events. The closure maps the bridge's
+    // TxOutcome (Complete/Failed) into our richer TxStatus.
+    // Cleanup is automatic on unmount — the bridge handles it.
+    privy_bridge::on_tx_outcome(move |outcome| match outcome {
+        TxOutcome::Complete(hash) => set_tx_status.set(TxStatus::Complete(hash)),
+        TxOutcome::Failed(err) => set_tx_status.set(TxStatus::Failed(err)),
+    });
 
+    // Bridge tx confirmation → caller's `on_success`.
+    Effect::new(move |_| {
+        if matches!(tx_status.get(), TxStatus::Complete(_)) {
+            on_success();
+        }
+    });
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        use wasm_bindgen::{JsCast, JsValue, closure::Closure};
+    // ── Open the gas modal when a fresh bundle is ready ────────
+    //
+    // Triggers on the transition where:
+    //   - the action just settled with Ok(bundle)        (bundle.get() = Some)
+    //   - no tx is in flight or completed                (tx_status = Idle)
+    //
+    // Re-runs naturally when:
+    //   - a new prepare settles (new bundle replaces old)
+    //   - user clicks "TENTAR NOVAMENTE" after a failure (tx_status: Failed → Idle)
+    //   In both cases the modal pops back up — desired retry behaviour.
+    //
+    // Does NOT re-open after a successful confirm because tx_status
+    // moves to Pending, then Complete; only an explicit reset to Idle
+    // can reopen.
+    let set_gas_modal = use_gas_modal();
+    Effect::new(move |_| {
+        if tx_status.get() != TxStatus::Idle {
+            return;
+        }
+        let Some(b) = bundle.get() else { return; };
 
-        let on_complete = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
-            let hash = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("tx_hash"))
-                .ok()
-                .and_then(|v| v.as_string())
-                .unwrap_or_default();
-            set_tx_status.set(TxStatus::Complete(hash));
-        });
-        web_sys::window().unwrap()
-            .add_event_listener_with_callback(
-                "privy_tx_complete",
-                on_complete.as_ref().unchecked_ref(),
-            ).ok();
-        on_complete.forget();
+        let bundle_for_confirm = b.clone();
+        set_gas_modal.set(Some(GasModalRequest {
+            title: "ASSINAR VINCULAÇÃO".into(),
+            estimates: vec![GasEstimate {
+                label: "Vincular carteira ao contrato".into(),
+                gas_hex: b.gas_join.clone(),
+            }],
+            on_confirm: Callback::new(move |()| {
+                set_tx_status.set(TxStatus::Pending);
+                privy_bridge::send_tx(
+                    &bundle_for_confirm.loan_machine_address,
+                    &bundle_for_confirm.join_calldata,
+                    None,
+                );
+            }),
+        }));
+    });
 
-        let on_error = Closure::<dyn Fn(web_sys::CustomEvent)>::new(move |e: web_sys::CustomEvent| {
-            let err = js_sys::Reflect::get(&e.detail(), &JsValue::from_str("error"))
-                .ok()
-                .and_then(|v| v.as_string())
-                .unwrap_or_else(|| "unknown".into());
-            set_tx_status.set(TxStatus::Failed(err));
-        });
-        web_sys::window().unwrap()
-            .add_event_listener_with_callback(
-                "privy_tx_error",
-                on_error.as_ref().unchecked_ref(),
-            ).ok();
-        on_error.forget();
-    }
-   
-        view! {
-            <div class="flex-col gap-8">
-
+    view! {
+        <div class="flex-col gap-8">
+            // STEP 1 — fill in form, dispatch prepare.
             <IdentifyCard
-                error=error
+                error=error_text
                 loading=loading
-                on_submit=Callback::new(move |(kind, document, cid, code):
-                    (DocKind, String, String, String)| {
-                    set_loading.set(true);
-                    set_error.set(None);
-                    let w = wallet.clone();
-                    spawn_local(async move {
-                        match prepare_first_vinculation(kind, document, w, cid, code).await {
-                            Ok(b)  => set_bundle.set(Some(b)),
-                            Err(e) => set_error.set(Some(e.to_string())),
-                        }
-                        set_loading.set(false);
-                    });
+                on_submit=Callback::new(move |fields: FormFields| {
+                    prepare.dispatch(fields);
                 })
             />
 
-        // ── CARD 2: sign button — only shown when bundle exists ──
-        // This card disappears once tx is sent (tx_status != Idle)
-            {move || bundle.get().map(|b| {
-                if tx_status.get() != TxStatus::Idle {
-                    return view! { <div></div> }.into_any();
-                }
-                view! {
-                    <SignCard bundle=b set_tx_status=set_tx_status />
-                }.into_any()
-            })}
-
-        // ── CARD 3: tx status — only shown after sign clicked ──
-        // This reads tx_status signal and re-renders on every change
-        <TxStatusCard tx_status=tx_status set_tx_status=set_tx_status />
-
-
-    
-    </div>
+            // STEP 2 (here in the form) — show tx progress once
+            // signing has started.  The "confirm" step itself lives
+            // in <GasModal />, opened by the effect above.
+            <TxStatusCard
+                tx_status=tx_status
+                on_retry=Callback::new(move |()| set_tx_status.set(TxStatus::Idle))
+            />
+        </div>
     }
-
 }
+
+// ── STEP COMPONENTS ──────────────────────────────────────────
 
 #[component]
 fn IdentifyCard(
-    on_submit: Callback<(DocKind, String, String, String)>,
-    error: ReadSignal<Option<String>>,
-    loading: ReadSignal<bool>,
-
+    on_submit: Callback<FormFields>,
+    #[prop(into)] error: Signal<String>,
+    #[prop(into)] loading: Signal<bool>,
 ) -> impl IntoView {
-
     let (doc_kind, set_doc_kind) = signal(DocKind::Cpf);
     let (document, set_document) = signal(String::new());
-    let (coop_id,     set_coop_id)     = signal(String::new());
+    let (coop_id, set_coop_id) = signal(String::new());
     let (access_code, set_access_code) = signal(String::new());
 
-    let switch_to = move |kind: DocKind|{
+    let switch_to = move |kind: DocKind| {
         set_doc_kind.set(kind);
         set_document.set(String::new());
     };
 
-    let on_document_input = move |ev: leptos::ev::Event|{
-        let target = ev.target()
-        .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
-
-        let Some(input) = target else { return };
-
+    let on_document_input = move |ev: leptos::ev::Event| {
+        let Some(input) = ev
+            .target()
+            .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+        else {
+            return;
+        };
         let raw = input.value();
         let max_len = doc_kind.get().max_input_len();
-
         let cleaned: String = raw
-        .chars()
-        .filter(|c| c.is_ascii_digit() || matches!(c,'.'|'-'|'/' ))
-        .take(max_len)
-        .collect();
-
-        if cleaned != raw{
+            .chars()
+            .filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '/'))
+            .take(max_len)
+            .collect();
+        if cleaned != raw {
             input.set_value(&cleaned);
         }
         set_document.set(cleaned);
     };
 
-    let on_prepare = move |ev: SubmitEvent|{
+    let on_prepare = move |ev: SubmitEvent| {
         ev.prevent_default();
-        on_submit.run((
-            doc_kind.get(),
-            document.get(),
-            coop_id.get(),
-            access_code.get()
-        ));
+        on_submit.run(FormFields {
+            kind: doc_kind.get(),
+            document: document.get(),
+            coop_id: coop_id.get(),
+            access_code: access_code.get(),
+        });
     };
 
-      view! {
-        // ── TITLE ──────────────────────────────────────────
+    view! {
         <div class="t-center">
             <h1 class="t-display-lg t-yellow">"VINCULE SUA CARTEIRA"</h1>
             <p class="t-mono-sm t-muted mt-4">
@@ -232,17 +223,14 @@ fn IdentifyCard(
                 on:submit=on_prepare
                 style="display:flex; flex-direction:column; gap:var(--sp-6); margin-top:var(--sp-4)"
             >
-                // ── CPF / CNPJ toggle ──────────────────────
                 <div class="doc-kind-toggle" role="tablist">
                     <button
                         type="button"
                         role="tab"
-                        class=move || {
-                            if doc_kind.get() == DocKind::Cpf {
-                                "toggle-btn toggle-btn-active"
-                            } else {
-                                "toggle-btn"
-                            }
+                        class=move || if doc_kind.get() == DocKind::Cpf {
+                            "toggle-btn toggle-btn-active"
+                        } else {
+                            "toggle-btn"
                         }
                         on:click=move |_| switch_to(DocKind::Cpf)
                     >
@@ -251,12 +239,10 @@ fn IdentifyCard(
                     <button
                         type="button"
                         role="tab"
-                        class=move || {
-                            if doc_kind.get() == DocKind::Cnpj {
-                                "toggle-btn toggle-btn-active"
-                            } else {
-                                "toggle-btn"
-                            }
+                        class=move || if doc_kind.get() == DocKind::Cnpj {
+                            "toggle-btn toggle-btn-active"
+                        } else {
+                            "toggle-btn"
                         }
                         on:click=move |_| switch_to(DocKind::Cnpj)
                     >
@@ -264,13 +250,12 @@ fn IdentifyCard(
                     </button>
                 </div>
 
-                // ── Document input ─────────────────────────
                 <div class="form-group">
                     <label class="form-label">
                         {move || doc_kind.get().label()}
                     </label>
                     <input
-                        class="form-input"                       
+                        class="form-input"
                         type="text"
                         inputmode="numeric"
                         autocomplete="off"
@@ -279,7 +264,7 @@ fn IdentifyCard(
                         maxlength=move || doc_kind.get().max_input_len() as i32
                         on:input=on_document_input
                     />
-                    <span class="form-hint">                       
+                    <span class="form-hint">
                         {move || match doc_kind.get() {
                             DocKind::Cpf  => "11 dígitos — formatação opcional",
                             DocKind::Cnpj => "14 dígitos — formatação opcional",
@@ -293,7 +278,6 @@ fn IdentifyCard(
                     hint="O identificador bytes32 da sua cooperativa"
                     value=coop_id
                     set_value=set_coop_id
-                    // error prop omitted → defaults to empty Signal
                 />
 
                 <TextInput
@@ -301,15 +285,14 @@ fn IdentifyCard(
                     placeholder="Fornecido pelo administrador"
                     value=access_code
                     set_value=set_access_code
-                    error=Signal::derive(move || error.get().unwrap_or_default())
+                    error=error
                 />
-
 
                 <Button
                     variant=BtnVariant::Primary
                     size=BtnSize::Lg
                     full_width=true
-                    loading=loading        // ← ReadSignal<bool> passes directly via `into`
+                    loading=loading
                 >
                     "PREPARAR VINCULAÇÃO"
                 </Button>
@@ -318,56 +301,16 @@ fn IdentifyCard(
     }
 }
 
-
-#[component]
-fn SignCard(
-    bundle:        VinculationBundle,
-    set_tx_status: WriteSignal<TxStatus>,
-) -> impl IntoView {
-    let b = bundle.clone();
-
-    view! {
-        <Card variant=CardVariant::Gold tag="PASSO 02 — ASSINAR" hover=false>
-            <div class="flex-col gap-6 mt-4">
-                <p class="t-mono-sm t-muted">
-                    "Uma transação vinculará seu ID de membro à sua carteira."
-                </p>
-                <div class="stat-block">
-                    <span class="stat-label">"Loan Machine"</span>
-                    <HashDisplay value=bundle.loan_machine_address.clone() />
-                </div>
-                <div class="stat-block">
-                    <span class="stat-label">"Gas Estimado"</span>
-                    <span class="stat-value-sm">{bundle.gas_join.clone()}" gas"</span>
-                </div>
-                <Button
-                    variant=BtnVariant::Primary
-                    size=BtnSize::Lg
-                    full_width=true
-                    on_click=Box::new(move || {
-                        set_tx_status.set(TxStatus::Pending);
-                        send_bundle_to_privy(b.clone());
-                    })
-                >
-                    "ASSINAR COM SUA CARTEIRA"
-                </Button>
-            </div>
-        </Card>
-    }
-}
-
-
 #[component]
 fn TxStatusCard(
     tx_status: ReadSignal<TxStatus>,
-    set_tx_status: WriteSignal<TxStatus>,
+    on_retry: Callback<()>,
 ) -> impl IntoView {
     move || match tx_status.get() {
-
-        TxStatus::Idle => view! { <div></div> }.into_any(),
+        TxStatus::Idle => ().into_any(),
 
         TxStatus::Pending => view! {
-            <Card variant=CardVariant::Default hover=false>
+            <Card hover=false>
                 <div class="flex-center gap-4" style="padding: var(--sp-8) 0">
                     <span class="spinner"></span>
                     <span class="t-mono-sm t-muted">
@@ -375,7 +318,8 @@ fn TxStatusCard(
                     </span>
                 </div>
             </Card>
-        }.into_any(),
+        }
+        .into_any(),
 
         TxStatus::Complete(hash) => view! {
             <Card variant=CardVariant::Gold tag="VINCULAÇÃO ENVIADA" hover=false>
@@ -393,10 +337,11 @@ fn TxStatusCard(
                     </p>
                 </div>
             </Card>
-        }.into_any(),
+        }
+        .into_any(),
 
         TxStatus::Failed(err) => view! {
-            <Card variant=CardVariant::Default hover=false>
+            <Card hover=false>
                 <div class="flex-col gap-4 mt-4">
                     <Alert kind=AlertKind::Error>
                         "Falha ao enviar transação."
@@ -404,42 +349,13 @@ fn TxStatusCard(
                     <p class="t-mono-sm t-muted">{err}</p>
                     <Button
                         variant=BtnVariant::Ghost
-                        on_click=Box::new(move || {
-                            set_tx_status.set(TxStatus::Idle);
-                        })
+                        on_click=Box::new(move || on_retry.run(()))
                     >
                         "TENTAR NOVAMENTE"
                     </Button>
                 </div>
             </Card>
-        }.into_any(),
-    }
-}
-
-// ── JS INTEROP ────────────────────────────────────────────────
-
-fn send_bundle_to_privy(bundle: VinculationBundle) {
-    #[cfg(target_arch = "wasm32")]
-    {
-        use wasm_bindgen::JsValue;
-        use js_sys::Function;
-        use wasm_bindgen::JsCast;
-
-        // Map domain bundle → bridge's {to, data} shape
-        let json = format!(
-            r#"{{"to":"{}","data":"{}"}}"#,
-            bundle.loan_machine_address,
-            bundle.join_calldata,
-        );
-
-        let window = web_sys::window().unwrap();
-        if let Ok(val) = js_sys::Reflect::get(&window, &JsValue::from_str("loan_machine_send_tx")) {
-            if let Ok(func) = val.dyn_into::<Function>() {
-                let arg = JsValue::from_str(&json);
-                let _ = func.call1(&JsValue::NULL, &arg);
-            }
         }
+        .into_any(),
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    let _ = bundle;
 }

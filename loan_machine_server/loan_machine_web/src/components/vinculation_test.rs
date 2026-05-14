@@ -2,15 +2,18 @@
 //
 // SSR snapshot tests for the vinculation components.
 //
-// These only cover the INITIAL RENDER of each component.
-// Reactivity (signal updates, events, spawn_local futures) does not
-// tick in SSR rendering — those cases need wasm-bindgen-test in a
-// real browser. See `vinculation_wasm_test.rs` for that layer.
-
+// These only cover the INITIAL RENDER of the form.  Reactivity
+// (signal updates, events, Action futures) does not tick in SSR
+// rendering — those cases need wasm-bindgen-test in a real browser.
+// See `vinculation_wasm_test.rs` for that layer.
+//
+// Note: the old `VinculationGate` component was removed during the
+// client-side refactor; gating is now done by `RequireWallet` in
+// `app.rs`.  The gate tests went with it.
 
 use leptos::prelude::*;
-use crate::components::vinculation::{VinculationGate, FirstVinculationForm};
-use crate::components::tests_helper::fake_wallet;
+use crate::components::vinculation::FirstVinculationForm;
+use crate::components::gas_modal::provide_gas_modal;
 // ── Helpers ──────────────────────────────────────────────────
 
 /// Render any view to an HTML string inside an Owner scope.
@@ -26,59 +29,17 @@ where
     html
 }
 
-// ── VinculationGate ──────────────────────────────────────────
-//
-// The gate immediately spawns get_wallet_coop() via spawn_local,
-// but during SSR that future is scheduled and never polled to
-// completion — so the first paint always shows the Checking state.
-
-async fn gate_html() -> String {
-    any_spawner::Executor::init_tokio().ok();
-    let local = tokio::task::LocalSet::new();
-    local.run_until(async {
-        render_to_string(|| view! {
-            <VinculationGate smart_wallet=fake_wallet()>
-                <div>"test-children-marker"</div>
-            </VinculationGate>
-        })
-    }).await
-}
-#[tokio::test]
-async fn async_gate_shows_spinner_on_initial_render() {
-    assert!(gate_html().await.contains("spinner"));
-}
-
-#[tokio::test]
-async fn async_gate_shows_checking_message_on_initial_render() {
-    assert!(gate_html().await.contains("Verificando vínculo"));
-}
-
-#[tokio::test]
-async fn async_gate_hides_children_on_initial_render() {
-    // Children only render in the Vinculated branch,
-    // which isn't reachable in SSR without a running server fn
-    assert!(!gate_html().await.contains("test-children-marker"));
-}
-
-#[tokio::test]
-async fn async_gate_hides_form_on_initial_render() {
-    assert!(!gate_html().await.contains("VINCULE SUA CARTEIRA"));
-}
-
 // ── FirstVinculationForm ─────────────────────────────────────
 //
-// This one is fully synchronous — no spawn_local on mount,
-// so SSR render = real render.
+// Fully synchronous on mount — no spawn_local, no Action dispatch
+// until the user submits — so SSR render = real first paint.
 
 fn form_html() -> String {
-    render_to_string(|| view! {
-        <FirstVinculationForm
-            smart_wallet=fake_wallet()
-            on_success=|_| {}
-        />
+    render_to_string(|| {
+        provide_gas_modal();
+        view! {<FirstVinculationForm on_success=|| {} />}
     })
 }
-
 // Title + subtitle
 #[test]
 fn form_shows_title() {
@@ -130,19 +91,13 @@ fn form_shows_prepare_button() {
     assert!(form_html().contains("PREPARAR VINCULAÇÃO"));
 }
 
-// Cards 2 and 3 — bundle+tx status — must be hidden initially
-#[test]
-fn form_hides_step_02_initially() {
-    let html = form_html();
-    assert!(!html.contains("PASSO 02"),              "step 02 tag leaked");
-    assert!(!html.contains("ASSINAR COM SUA CARTEIRA"), "sign button leaked");
-}
+
 
 #[test]
 fn form_hides_tx_status_initially() {
     let html = form_html();
-    assert!(!html.contains("Aguardando assinatura"),   "pending state leaked");
-    assert!(!html.contains("VINCULAÇÃO ENVIADA"),      "complete state leaked");
+    assert!(!html.contains("Aguardando assinatura"),     "pending state leaked");
+    assert!(!html.contains("VINCULAÇÃO ENVIADA"),        "complete state leaked");
     assert!(!html.contains("Falha ao enviar transação"), "failed state leaked");
 }
 

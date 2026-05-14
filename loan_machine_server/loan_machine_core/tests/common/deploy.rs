@@ -36,6 +36,7 @@ struct Deployed {
     third_admin:             Address,
     loan_machine_bytecode:   Vec<u8>,
     _anvil:               AnvilInstance,
+    platform_admin_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 /// What each test sees. Same field names as before, but `blockchain` is
@@ -54,7 +55,7 @@ pub struct DeployedEnv {
     pub third_admin:             Address,
     pub loan_machine_bytecode:   Vec<u8>,
     pub blockchain:           Arc<BlockchainService>,
-    pub platform_admin_lock: tokio::sync::Mutex<()>,
+    pub platform_admin_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 static DEPLOYED: OnceCell<Deployed> = OnceCell::const_new();
@@ -80,7 +81,7 @@ pub async fn get_deployed() -> DeployedEnv {
         third_admin:             d.third_admin,
         loan_machine_bytecode:   d.loan_machine_bytecode.clone(),
         blockchain:           Arc::new(blockchain),
-        platform_admin_lock: tokio::sync::Mutex::new(()),
+        platform_admin_lock: d.platform_admin_lock.clone(),
     }
 }
 
@@ -187,5 +188,6 @@ async fn deploy() -> Deployed {
         second_admin:            admin2_addr,
         third_admin:             admin3_addr,
         loan_machine_bytecode:   loan_machine_bytecode,
+        platform_admin_lock: Arc::new(tokio::sync::Mutex::new(())),
     }
 }

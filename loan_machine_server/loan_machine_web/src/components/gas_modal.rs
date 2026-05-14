@@ -43,47 +43,32 @@ pub fn use_gas_modal() -> WriteSignal<Option<GasModalRequest>> {
 
 async fn fetch_prices() -> Option<(f64, f64)> {
     let url = "https://api.coingecko.com/api/v3/simple/price\
-               ?ids=ethereum\
-               &vs_currencies=usd,brl";
+               ?ids=ethereum&vs_currencies=usd,brl";
 
     #[cfg(target_arch = "wasm32")]
     {
         use js_sys::Reflect;
-        use wasm_bindgen::JsCast;   // ← this was missing
-        use wasm_bindgen::JsValue;
+        use wasm_bindgen::{JsCast, JsValue};
         use wasm_bindgen_futures::JsFuture;
+        use web_sys::Response;
 
-        let window = web_sys::window()?;
-        let promise = Reflect::get(&window, &JsValue::from_str("fetch"))
-            .ok()
-            .and_then(|f| f.dyn_into::<js_sys::Function>().ok())?
-            .call1(&JsValue::NULL, &JsValue::from_str(url))
-            .ok()?;
+        // Typed fetch + Response::json — same JS calls underneath,
+        // a quarter of the lines and no Reflect dance for the network step.
+        let window   = web_sys::window()?;
+        let response: Response = JsFuture::from(window.fetch_with_str(url))
+            .await.ok()?
+            .dyn_into().ok()?;
+        let json = JsFuture::from(response.json().ok()?).await.ok()?;
 
-        let response = JsFuture::from(js_sys::Promise::from(promise))
-            .await
-            .ok()?;
-
-        let json_promise = Reflect::get(&response, &JsValue::from_str("json"))
-            .ok()
-            .and_then(|f| f.dyn_into::<js_sys::Function>().ok())?
-            .call0(&response)
-            .ok()?;
-
-        let json = JsFuture::from(js_sys::Promise::from(json_promise))
-            .await
-            .ok()?;
-
+        // The JSON shape is { ethereum: { usd, brl } } — small enough
+        // to walk with Reflect rather than pulling in serde-wasm-bindgen.
         let eth_obj = Reflect::get(&json, &JsValue::from_str("ethereum")).ok()?;
         let eth_usd = Reflect::get(&eth_obj, &JsValue::from_str("usd"))
-            .ok()
-            .and_then(|v| v.as_f64())?;
+            .ok().and_then(|v| v.as_f64())?;
         let brl_per_eth = Reflect::get(&eth_obj, &JsValue::from_str("brl"))
-            .ok()
-            .and_then(|v| v.as_f64())?;
-        let usd_brl = brl_per_eth / eth_usd;
+            .ok().and_then(|v| v.as_f64())?;
 
-        Some((eth_usd, usd_brl))
+        Some((eth_usd, brl_per_eth / eth_usd))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -102,6 +87,12 @@ pub fn GasModal() -> impl IntoView {
 
     // Resource fires whenever the modal opens (req goes from None → Some).
     // When req is None the resource is idle — no unnecessary fetches.
+    //
+    // Trade-off worth knowing: this *does* refetch on every open, even if
+    // the modal was just open ten seconds ago. CoinGecko's free tier (~30
+    // req/min) makes this fine in practice; if you ever want it cached for
+    // the session, lift the Resource into a context at app root and have
+    // this component read from it instead of owning its own.
     let prices = LocalResource::new(
         move || {
             let open = req.get().is_some();
@@ -113,7 +104,8 @@ pub fn GasModal() -> impl IntoView {
 
     move || {
         req.get().map(|r| {
-            let on_confirm = r.on_confirm.clone();
+            // `Callback<T>` is Copy in Leptos 0.7 — no clone needed.
+            let on_confirm = r.on_confirm;
             let title      = r.title.clone();
 
             view! {

@@ -31,7 +31,7 @@ pub fn FormStep(
     name_err: ReadSignal<String>,
     admin2_err: ReadSignal<String>,
     admin3_err: ReadSignal<String>,
-    loading: ReadSignal<bool>,
+    #[prop(into)] loading: Signal<bool>,
     founder_wallet: WalletAddress,
     on_submit: Box<dyn Fn() + Send + Sync>,
 ) -> impl IntoView {
