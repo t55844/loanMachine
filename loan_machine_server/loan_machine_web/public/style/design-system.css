@@ -289,6 +289,14 @@ body {
     border-color  var(--transition-medium);
 }
 
+.card-link { 
+  text-decoration: none; 
+  color: inherit; 
+  display: block; 
+  margin: var(--sp-4); 
+  color: var(--c-green)
+  }
+
 .card:hover {
   transform: translateY(-4px);
   border-color: var(--c-gray-3);
@@ -443,7 +451,7 @@ body {
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--c-gray-4);
+  color: var(--c-paper);
 }
 
 .stat-value {
@@ -851,8 +859,49 @@ body {
     border-color: rgba(201,148,26,0.45);
 }
 
+/* ── COPY BUTTON ────────────────────────────────────────── */
+.copy-btn {
+    flex-shrink: 0;
+    background: rgba(201, 148, 26, 0.12);
+    border: 1px solid rgba(201, 148, 26, 0.25);
+    color: var(--c-gold);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.copy-btn:hover {
+    background: rgba(201, 148, 26, 0.22);
+    border-color: rgba(201, 148, 26, 0.45);
+}
+.copy-btn-copied {
+    background: rgba(40, 200, 80, 0.18);
+    border-color: rgba(40, 200, 80, 0.45);
+    color: var(--c-green);
+}
+
+/* ── MONEY ──────────────────────────────────────────────── */
+.money {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums; /* aligns digits across rows */
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+.money + .money { margin-left: var(--sp-2); }   /* gap when stacked inline */
+.money-eth  { color: var(--c-yellow); }
+.money-fiat { color: var(--c-green); }
+
 /* ── GAS MODAL ────────────────────────────────────────────── */
-.gas-modal-backdrop {
+.gas-modal-backdrop          { display: none; }
+
+.gas-modal-backdrop.open {
     position: fixed;
     inset: 0;
     z-index: 1000;
@@ -956,3 +1005,34 @@ body {
     margin-top: var(--sp-3);
     padding: var(--sp-2) var(--sp-3);
 }
+
+
+.link-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: var(--sp-2) var(--sp-4);
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    text-decoration: none;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.link-tag:hover { transform: translateY(-1px); }
+.link-tag:active { transform: scale(0.98); }
+
+.link-tag-yellow { background: var(--c-yellow-soft); border-color: rgba(240,204,0,0.45); color: var(--c-yellow); }
+.link-tag-yellow:hover { background: rgba(240,204,0,0.18); box-shadow: var(--shadow-yellow); }
+
+.link-tag-gold { background: var(--c-gold-soft); border-color: rgba(201,148,26,0.45); color: var(--c-gold); }
+.link-tag-gold:hover { background: rgba(201,148,26,0.22); box-shadow: var(--shadow-gold); }
+
+.link-tag-green { background: var(--c-green-soft); border-color: rgba(46,204,113,0.45); color: var(--c-green); }
+.link-tag-green:hover { background: rgba(46,204,113,0.18); box-shadow: 0 4px 24px rgba(46,204,113,0.20); }
+
+.link-tag-sm { font-size: 0.68rem; padding: var(--sp-1) var(--sp-3); }
+.link-tag-lg { font-size: 1rem;    padding: var(--sp-3) var(--sp-5); }

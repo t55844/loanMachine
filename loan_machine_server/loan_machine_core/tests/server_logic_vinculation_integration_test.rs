@@ -6,8 +6,13 @@ use loan_machine_core::server_logic::vinculation::{
     VinculationLogicError,
 };
 use loan_machine_core::services::identity::IdentityService;
+use loan_machine_core::services::subgraph::SubgraphService;
 use loan_machine_models::requests::DocKind;
-use loan_machine_models::wallet_address::{ from_alloy};
+use loan_machine_models::wallet_address::from_alloy;
+
+use serde_json::json;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 // Known-valid CPF for tests
 const TEST_CPF: &str = "529.982.247-25";
@@ -22,7 +27,21 @@ async fn get_wallet_coop_returns_none_for_unapproved_wallet() {
     let env = common::get_deployed().await;
     let wallet = from_alloy(env.unapproved_wallet);
 
+    // Subgraph returns no events → helper falls through to on-chain
+    // scan, which also finds nothing for this never-vinculated wallet.
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": { "memberRegisteredEvents": [] }
+        })))
+        .mount(&server)
+        .await;
+
+    let subgraph = SubgraphService::new(server.uri());
+
     let result = get_wallet_coop_logic(
+        &subgraph,
         &env.blockchain,
         wallet,
     )
@@ -30,6 +49,45 @@ async fn get_wallet_coop_returns_none_for_unapproved_wallet() {
     .expect("logic should not error for an unknown wallet");
 
     assert!(result.is_none(), "unapproved wallet should not be in any coop yet");
+}
+
+#[tokio::test]
+async fn get_wallet_coop_returns_coop_from_subgraph_hit() {
+    let env = common::get_deployed().await;
+    let wallet = from_alloy(env.unapproved_wallet);   // any address — chain isn't hit
+
+    let coop_id      = "0x1111111111111111111111111111111111111111111111111111111111111111";
+    let loan_machine = "0x2222222222222222222222222222222222222222";
+
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": {
+                "memberRegisteredEvents": [{
+                    "cooperative": {
+                        "coopId":      coop_id,
+                        "name":        "TestCoop",
+                        "loanMachine": loan_machine,
+                        "active":      true,
+                    }
+                }]
+            }
+        })))
+        .mount(&server)
+        .await;
+
+    let subgraph = SubgraphService::new(server.uri());
+
+    let info = get_wallet_coop_logic(&subgraph, &env.blockchain, wallet)
+        .await
+        .expect("subgraph hit should not error")
+        .expect("subgraph hit should return Some(CoopInfo)");
+
+    assert_eq!(info.name,         "TestCoop");
+    assert_eq!(info.coop_id,      coop_id);
+    assert_eq!(info.loan_machine, loan_machine);
+    assert!(info.active);
 }
 
 #[tokio::test]
@@ -60,7 +118,7 @@ async fn prepare_vinculation_rejects_unapproved_wallet() {
 async fn prepare_vinculation_happy_path_returns_bundle() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet = from_alloy(env.approved_wallet);
+    let wallet = from_alloy(env.second_admin);
 
     let bundle = prepare_first_vinculation_logic(
         &identity,
@@ -111,7 +169,7 @@ async fn prepare_vinculation_rejects_invalid_cpf() {
 async fn cpf_and_cnpj_produce_different_calldata() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet = from_alloy(env.approved_wallet);
+    let wallet = from_alloy(env.second_admin);
 
     // Valid for both — using test-known-valid values
     let cpf_result = prepare_first_vinculation_logic(
@@ -176,7 +234,7 @@ async fn prepare_vinculation_rejects_invalid_cnpj() {
 async fn bundle_contains_coop_registry_address() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet = from_alloy(env.approved_wallet);
+    let wallet = from_alloy(env.second_admin);
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
@@ -197,7 +255,7 @@ async fn bundle_contains_coop_registry_address() {
 async fn bundle_calldata_starts_with_join_coop_selector() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet = from_alloy(env.approved_wallet);
+    let wallet = from_alloy(env.second_admin);
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
@@ -221,7 +279,7 @@ async fn different_salts_produce_different_calldata() {
 
     let id_a = IdentityService::with_salt([0x01u8; 32]);
     let id_b = IdentityService::with_salt([0x02u8; 32]);
-    let wallet = from_alloy(env.approved_wallet);
+    let wallet = from_alloy(env.second_admin);
 
     let bundle_a = prepare_first_vinculation_logic(
         &id_a, &env.blockchain, &env.coop_registry_address,

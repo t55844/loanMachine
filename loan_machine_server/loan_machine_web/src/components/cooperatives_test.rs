@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use crate::components::cooperatives::{CoopCard, CooperativesPage};
 use loan_machine_models::responses::CooperativeView;
+use leptos_router::components::Router;
+use leptos_router::location::RequestUrl;
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -47,9 +49,15 @@ fn fixture_inactive() -> CooperativeView {
 // in wasm-bindgen-test integration tests, not here.
 
 fn page_html() -> String {
-    render_to_string(|| view! { <CooperativesPage /> })
+    render_to_string(move || {
+        provide_context(RequestUrl::new("/"));
+        view! {
+            <Router>
+                <CooperativesPage />
+            </Router>
+        }
+    })
 }
-
 #[test]
 fn page_shows_section_title() {
     let html = page_html();
@@ -78,8 +86,16 @@ fn page_does_not_show_empty_state_on_initial_render() {
 // ── CoopCard ─────────────────────────────────────────────────
 // (unchanged — CoopCard never depended on wallet state)
 
+
 fn card_html(coop: CooperativeView) -> String {
-    render_to_string(move || view! { <CoopCard coop=coop /> })
+    render_to_string(move || {
+        provide_context(RequestUrl::new("/"));
+        view! {
+            <Router>
+                <CoopCard coop=coop />
+            </Router>
+        }
+    })
 }
 
 #[test]

@@ -6,6 +6,7 @@ use loan_machine_models::wallet_address::WalletAddress;
 use crate::components::auth_bar::AuthBar;
 use crate::components::tests_helper::fake_wallet;
 use crate::wallet_auth::session::{WalletCtx, WalletSession};
+use crate::components::tests_helper::seed_prices;
 
 // ── Render helpers ────────────────────────────────────────────────────────
 //
@@ -16,6 +17,7 @@ fn render_with(session: WalletSession) -> String {
     let owner = Owner::new();
     owner.with(|| {
         let (s, set) = signal(session);
+        seed_prices(None);
         provide_context(WalletCtx { session: s, set });
         view! { <AuthBar/> }.to_html()
     })

@@ -2,7 +2,62 @@
 use serde::{Deserialize, Serialize};
 
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UserCoop {
+    /// Lowercased LoanMachine address (matches the subgraph Cooperative.id).
+    pub id: String,
 
+    /// bytes32 hex from the registry (the on-chain coopId).  This is what
+    /// you pass to server fns that take `coop_id: String`.
+    #[serde(rename = "coopId")]
+    pub coop_id: String,
+
+    pub name: String,
+
+    /// Same value as `id` but in mixed-case checksummed form when the
+    /// subgraph stores it that way.  Use `id` for keys, this for display.
+    #[serde(rename = "loanMachine")]
+    pub loan_machine: String,
+
+    pub active: bool,
+}
+ 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct OpenElectionBundle {
+    pub to:      String, // "0x..." LoanMachine address
+    pub data:    String, // "0x..." ABI-encoded openElection(candidateId, opponentId)
+    pub gas_hex: String, // "0x..." pinned gas limit
+}
+ 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ElectionView {
+    pub id:               u32,
+    /// Each entry is a bytes32 hex string, e.g. "0xab12...".
+    pub candidates:       Vec<String>,
+    pub start_time:       u64,
+    pub end_time:         u64,
+    pub is_active:        bool,
+    /// "0x000...000" when election hasn't been decided.
+    pub winner_id:        String,
+    pub winning_votes:    i32,
+    pub total_votes_cast: i32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CoopViewerState {
+    pub coop: CooperativeView,   // reuse what the list already returns
+    pub role: ViewerRole,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ViewerRole {
+    Visitor,             // wallet has no relation to this coop
+    ApprovalPending,     // open admin proposal exists to approve this wallet
+    Approved,            // wallet approved on-chain, not yet vinculated
+    Member,              // vinculated member
+    Moderator,           // member who's been elected moderator
+    Admin,               // coop admin (may or may not also be a member)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CooperativeView {

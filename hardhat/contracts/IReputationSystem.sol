@@ -24,8 +24,8 @@ interface IReputationSystem {
         int32     potentialRemainingVotes;
     }
 
-    // Events
-    event MemberToWalletVinculation(bytes32 indexed memberId, address indexed wallet, address[] walletVinculated, uint256 timestamp);
+    // Events 
+    event MemberRegistered( bytes32 indexed memberId, address indexed wallet, address[] allWallets, bool isFirstWallet, uint256 timestamp);
     event ReputationChanged(bytes32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
     event AuthorizedCallerUpdated(address indexed caller, bool authorized);
     event ElectionOpened(uint32 indexed electionId, bytes32 indexed candidateId, uint256 startTime, uint256 endTime);

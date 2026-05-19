@@ -115,8 +115,14 @@
         {
           "indexed": false,
           "internalType": "address[]",
-          "name": "walletVinculated",
+          "name": "allWallets",
           "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isFirstWallet",
+          "type": "bool"
         },
         {
           "indexed": false,
@@ -125,7 +131,7 @@
           "type": "uint256"
         }
       ],
-      "name": "MemberToWalletVinculation",
+      "name": "MemberRegistered",
       "type": "event"
     },
     {

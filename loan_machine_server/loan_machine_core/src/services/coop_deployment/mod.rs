@@ -171,6 +171,7 @@ impl CoopDeploymentService {
         founder_addr: Address,
         admin_addrs: &[Address],         // already alloy
         threshold: u32,
+        founder_member_id: FixedBytes<32>,
     ) -> Result<CoopDeployBundle, CoopDeploymentError> {
         if admin_addrs.len() != REQUIRED_ADMIN_COUNT {
             return Err(CoopDeploymentError::AdminCountWrong {
@@ -193,6 +194,7 @@ impl CoopDeploymentService {
             admins:     admin_addrs.to_vec(),
             threshold:  U256::from(threshold),
             accessCode: access_code.clone(),
+            founderMemberId: founder_member_id,
         };
         let initialize_data = init_call.abi_encode();
 

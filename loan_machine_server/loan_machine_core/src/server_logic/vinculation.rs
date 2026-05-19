@@ -4,6 +4,9 @@ use loan_machine_models::requests::DocKind;
 use loan_machine_models::wallet_address::{WalletAddress,to_alloy};
 use crate::services::blockchain::{BlockchainService, BlockchainError};
 use crate::services::identity::{IdentityService, IdentityError}; // ← swap IdentityError for the real name
+use crate::services::blockchain::loan_machine_fns_helpers::{is_wallet_approved, encode_join_coop, estimate_join_coop_gas};
+use crate::services::subgraph::SubgraphService;
+use crate::server_logic::helpers::resolve_wallet_coop;
 
 #[derive(Debug, thiserror::Error)]
 pub enum VinculationLogicError {
@@ -21,18 +24,15 @@ pub enum VinculationLogicError {
 
     #[error(transparent)]
     ServerLogicBlockchain(#[from] BlockchainError),
+
+
 }
 pub async fn get_wallet_coop_logic(
+    subgraph: &SubgraphService,
     blockchain: &BlockchainService,
     smart_wallet: WalletAddress,
 ) -> Result<Option<CoopInfo>, VinculationLogicError> {
-    let wallet_addr = to_alloy(&smart_wallet);   // boundary
-    let coop_id = blockchain.coop_registry.get_wallet_coop(wallet_addr).await?;
-    if coop_id == FixedBytes::<32>::ZERO {
-        return Ok(None);
-    }
-    let info = blockchain.coop_registry.get_coop_info(coop_id).await?;
-    Ok(Some(info))
+    Ok(resolve_wallet_coop(subgraph, blockchain, &smart_wallet).await?)
 }
 
 pub async fn prepare_first_vinculation_logic(
@@ -57,16 +57,18 @@ pub async fn prepare_first_vinculation_logic(
     let coop_registry     = &blockchain.coop_registry;
     let loan_machine_addr = coop_registry.get_loan_machine(coop_id_bytes).await?;
 
-    let approved = coop_registry
-        .is_wallet_approved(loan_machine_addr, wallet_addr).await?;
+    let approved = is_wallet_approved(&coop_registry.provider, loan_machine_addr, wallet_addr).await?;
     if !approved {
         return Err(VinculationLogicError::ServerLogicWalletNotApproved);
     }
 
-    let join_calldata = coop_registry
-        .encode_join_coop(member_id, wallet_addr, &access_code);
-    let gas = coop_registry
-        .estimate_join_coop_gas(loan_machine_addr, member_id, wallet_addr, &access_code)
+
+    let join_calldata = encode_join_coop( member_id, wallet_addr, &access_code);
+
+    let gas = estimate_join_coop_gas(
+        &coop_registry.provider,
+        loan_machine_addr, member_id,
+        wallet_addr, &access_code)
         .await?;
 
     Ok(VinculationBundle {
@@ -76,3 +78,5 @@ pub async fn prepare_first_vinculation_logic(
         gas_join: format!("0x{:x}", gas),
     })
 }
+
+

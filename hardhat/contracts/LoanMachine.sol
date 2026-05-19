@@ -124,12 +124,10 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     bool    private active;
 
     mapping(address => bool) private approvedWallets;
-    mapping(address => bool) public  isMember;
     address[] private memberWallets;
 
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
     event AccessCodeRotated();
-    event MemberJoined(address indexed wallet, bytes32 indexed memberId);
     event CoopDeactivated();
     event CoopReactivated();
 
@@ -291,12 +289,15 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     function initializeMultisig(
         address[] calldata _admins,
         uint256   _threshold,
-        string calldata accessCode
+        string calldata accessCode,
+        bytes32   founderMemberId      
     ) external {
         if (_initialized) revert LoanMachine_AlreadyInitialized();
         if (_admins.length == 0) revert LoanMachine_NotEnoughAdmins();
         if (_threshold == 0 || _threshold > _admins.length)
             revert LoanMachine_InvalidThreshold();
+        if (founderMemberId == bytes32(0))
+            revert LoanMachine_MemberIdOrWalletInvalid();
 
         for (uint256 i = 0; i < _admins.length; i++) {
             address a = _admins[i];
@@ -304,13 +305,25 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             isAdmin[a] = true;
             admins.push(a);
             emit AdminAdded(a);
-        }
 
+            approvedWallets[a] = true;
+            emit WalletApproved(a);
+        }
         adminThreshold = _threshold;
         accessCodeHash = keccak256(abi.encodePacked(accessCode));
         active         = true;
-        _initialized   = true;
+
+        // Founder joins inline — same effect as joinCoop() but skipping the
+        // access-code check (we just set the hash on the line above, and the
+        // founder doesn't need to know their own code at this exact moment).
+        address founder = _admins[0];
+        memberWallets.push(founder);
+        _rs.reputationChange(founderMemberId, 1, true);
+        _rs.registerMemberWallet(founderMemberId, founder);
+
+        _initialized = true;
     }
+
 
     // =============================================================
     //               MULTISIG ADMIN FUNCTIONS
@@ -345,14 +358,12 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         ProposalType pType,
         bytes calldata data
     ) external onlyAdmin returns (uint256 proposalId) {
-        // Wallet approvals require moderator cosign. Block this path for them
-        // so callers must use proposeWalletApproval or bootstrapApproveWallet.
         if (pType == ProposalType.ApproveWallet) revert LoanMachine_ModeratorCosignRequired();
 
         return _createProposal(pType, data, false, false);
     }
 
-    function proposeWalletApproval(address wallet) external onlyAdmin returns (uint256 proposalId) {
+    function proposeWalletApproval(address wallet) external returns (uint256 proposalId) {
         return _createProposal(
             ProposalType.ApproveWallet,
             abi.encode(wallet),
@@ -490,23 +501,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         emit AdminAdded(newAdmin);
         emit AdminTransferred(oldAdmin, newAdmin);
     }
-
-    // =============================================================
-    //         WALLET APPROVAL WITH MODERATOR CO-SIGNATURE
-    // =============================================================
-
-    
-
-    /// @notice Bootstrap: no moderator exists yet. Requires ALL admins.
-    function bootstrapApproveWallet(address wallet) external onlyAdmin returns (uint256 proposalId) {
-        return _createProposal(
-            ProposalType.ApproveWallet,
-            abi.encode(wallet),
-            true,            // unanimous: every admin must confirm
-            false            // no moderator yet, can't require cosign
-        );
-    }
-
     
     // =============================================================
     //               WITHDRAWAL WITH DELAY
@@ -603,25 +597,28 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         address wallet,
         string calldata accessCode
     ) external onlyActive {
-        if (!approvedWallets[wallet])
-            revert LoanMachine_NotApproved();
-        if (isMember[wallet])
-            revert LoanMachine_AlreadyMember();
+        if (!approvedWallets[wallet])      revert LoanMachine_NotApproved();
+        //if (isMember)              revert LoanMachine_AlreadyMember();
         if (keccak256(abi.encodePacked(accessCode)) != accessCodeHash)
             revert LoanMachine_InvalidAccessCode();
 
-        isMember[wallet] = true;
+        
         memberWallets.push(wallet);
         _rs.registerMemberWallet(memberId, wallet);
-
-        emit MemberJoined(wallet, memberId);
     }
 
     // =============================================================
     //               REPUTATION SYSTEM — PUBLIC SURFACE
     // =============================================================
 
-    function vinculationMemberToWallet(bytes32 memberId, address wallet) external {
+    function vinculationMemberToWallet(bytes32 memberId, address wallet)
+        external
+        onlyActive
+    {
+        if (!approvedWallets[wallet])
+            revert LoanMachine_NotApproved();
+        if (_rs.walletToMemberId[msg.sender] != memberId)
+            revert LoanMachine_MemberIdOrWalletInvalid();
         _rs.registerMemberWallet(memberId, wallet);
     }
 

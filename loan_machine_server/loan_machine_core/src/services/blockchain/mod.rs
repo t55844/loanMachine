@@ -14,6 +14,7 @@ pub mod abis;
 pub mod coop_registry;
 pub mod provider;
 pub mod deployable;
+pub mod loan_machine_fns_helpers;
 // Future modules (uncomment when implemented):
 // pub mod loans;
 // pub mod account;
@@ -27,6 +28,8 @@ pub use provider::Provider;
 
 pub mod contract_errors;
 pub use contract_errors::{translate_revert, friendly_from_error, extract_revert_data};
+
+use loan_machine_models::wallet_address::WalletAddress;
 
 // ── ERRORS ───────────────────────────────────────────────────
 // One central error type for all blockchain operations.
@@ -44,8 +47,7 @@ pub enum BlockchainError {
     #[error("{message}")]
     ContractRevert {
         message: String,
-        #[source]
-        source: alloy::contract::Error,
+        #[source]source: alloy::contract::Error,
     },
 
     /// Any other contract-layer failure: RPC error, decode error,
@@ -58,6 +60,12 @@ pub enum BlockchainError {
 
     #[error("Cooperative not found")]
     CoopNotFound,
+
+    #[error("provider call failed: {0}")]
+    Provider(String),
+
+    #[error("carteira não vinculada a nenhum membro: {0}")]
+    WalletNotVinculated(WalletAddress),
 }
 
 impl BlockchainError {
@@ -74,6 +82,17 @@ impl BlockchainError {
             Self::Call(err)
         }
     }
+
+    pub fn from_gas_estimate(err: alloy::contract::Error) -> Self {
+        if let Some(bytes) = extract_revert_data(&err) {
+            Self::ContractRevert {
+                message: translate_revert(&bytes),
+                source: err,
+            }
+        } else {
+            Self::GasEstimate(err)
+        }
+    }
 }
 
 // ── MAIN SERVICE STRUCT ───────────────────────────────────────
@@ -81,9 +100,8 @@ impl BlockchainError {
 // Each domain gets its own sub-service.
 
 pub struct BlockchainService {
+    pub raw_provider :      Arc<Provider>,
     pub coop_registry: CoopRegistryService,
-    // pub loans:   LoansService,      ← add when ready
-    // pub account: AccountService,    ← add when ready
 }
 
 impl BlockchainService {
@@ -91,15 +109,15 @@ impl BlockchainService {
         rpc_url:         &str,
         coop_registry_addr:    &str,
     ) -> Result<Self, BlockchainError> {
-        // Build a single shared provider — all sub-services use the same connection
-        let provider = Arc::new(provider::build_provider(rpc_url)?);
+        let raw_provider = Arc::new(provider::build_provider(rpc_url)?);
 
         let coop_registry_address: Address = coop_registry_addr
             .parse()
             .map_err(|_| BlockchainError::InvalidAddress)?;
 
         Ok(Self {
-            coop_registry: CoopRegistryService::new(provider.clone(), coop_registry_address),
+            raw_provider:      raw_provider.clone(),
+            coop_registry: CoopRegistryService::new(raw_provider, coop_registry_address),
         })
     }
 }

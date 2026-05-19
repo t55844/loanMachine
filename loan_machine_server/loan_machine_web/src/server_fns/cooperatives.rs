@@ -1,7 +1,7 @@
 // loan_machine_web/src/server_fns/cooperatives.rs
 use leptos::prelude::*;
 use leptos::server_fn::ServerFnError;
-use loan_machine_models::responses::CooperativeView;
+use loan_machine_models::responses::{CooperativeView, CoopViewerState};
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
 pub async fn list_cooperatives() -> Result<Vec<CooperativeView>, ServerFnError> {
@@ -24,4 +24,22 @@ pub async fn list_cooperatives() -> Result<Vec<CooperativeView>, ServerFnError> 
         active: r.active,
         registered_at: r.registered_at.parse().unwrap_or(0),
     }).collect())
+}
+
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn get_coop_viewer_state(
+    coop_id: String,
+) -> Result<CoopViewerState, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::coop_view::get_viewer_state_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let auth   = Authenticated::require().await?;
+    let wallet = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    get_viewer_state_logic(&state.subgraph, &coop_id, wallet)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))
 }

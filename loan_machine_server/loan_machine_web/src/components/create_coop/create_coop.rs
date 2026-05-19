@@ -1,29 +1,20 @@
 // loan_machine_web/src/components/create_coop.rs
 //
-// Six-step flow that chains two server calls and two on-chain txs:
+// Six-step flow that chains two server calls and two on-chain txs.
+// See create_coop_steps.rs for the per-step rendering.
 //
-//   Form           → user fills coop config, submits
-//   AccessCode     → prepare action returned a deploy bundle; show the
-//                    access code; user must save it, then click sign
-//   WaitingDeploy  → TX 1 (deploy LoanMachine) is in flight on-chain
-//   SignInit       → TX 1 confirmed; bridge gave us a contract address;
-//                    user clicks to sign TX 2 (initializeMultisig)
-//   Registering    → TX 2 confirmed; register action is in flight
-//   Done           → cooperative is fully registered; show details
-//
-// Architecture notes (matches the patterns from the study notes):
-//   - All JS interop is behind `privy_bridge`.  This file does not
-//     import any wasm-bindgen types.
-//   - Both server fns are `Action`s.  No `spawn_local`, no hand-rolled
-//     loading / error / reg_started signals.
-//   - Bridge events arrive via `on_tx_outcome` (TX 2) and
-//     `on_deploy_outcome` (TX 1).  Cleanup is automatic on unmount.
-//   - The two action settlements are handled in `Effect`s that read
-//     `action.value()` and react to None / Some(Ok) / Some(Err).
+// CHANGES vs prior version:
+//   • The single `cpf_cnpj` String signal is replaced by the pair
+//     (doc_kind, document) — same shape vinculation uses.
+//   • `CreateCoopRequest` now carries `doc_kind: DocKind` and
+//     `document: String` instead of a single `member_id: String`.
+//     See loan_machine_models/src/requests.rs — you'll need to update
+//     that struct accordingly.  Note at the bottom of this turn lists
+//     every downstream change.
 
 use leptos::prelude::*;
 use loan_machine_models::{
-    requests::{CreateCoopRequest, RegisterDeployedCoopRequest},
+    requests::{CreateCoopRequest, DocKind, RegisterDeployedCoopRequest},
     responses::CoopRegistrationResult,
 };
 use loan_machine_models::wallet_address::WalletAddress;
@@ -68,24 +59,24 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
     // ── Step + form-field signals ───────────────────────────
     let (step, set_step) = signal(CoopStep::Form);
 
-    let (name,   set_name)   = signal(String::new());
-    let (admin2, set_admin2) = signal(String::new());
-    let (admin3, set_admin3) = signal(String::new());
+    let (name,     set_name)     = signal(String::new());
+    let (doc_kind, set_doc_kind) = signal(DocKind::Cpf);
+    let (document, set_document) = signal(String::new());
+    let (admin2,   set_admin2)   = signal(String::new());
+    let (admin3,   set_admin3)   = signal(String::new());
 
-    let (name_err,   set_name_err)   = signal(String::new());
-    let (admin2_err, set_admin2_err) = signal(String::new());
-    let (admin3_err, set_admin3_err) = signal(String::new());
+    let (name_err,     set_name_err)     = signal(String::new());
+    let (document_err, set_document_err) = signal(String::new());
+    let (admin2_err,   set_admin2_err)   = signal(String::new());
+    let (admin3_err,   set_admin3_err)   = signal(String::new());
 
-    // Single top-of-page error display.  Written from multiple sources
-    // (prepare action, bridge events, register action) — easier to
-    // funnel them all here than to derive from N separate sources.
+    // Single top-of-page error display.
     let (error, set_error) = signal(String::new());
 
     // Results from the two on-chain steps.
     let (contract_address, set_contract_address) = signal(String::new());
     let (reg_result, set_reg_result) = signal(Option::<CoopRegistrationResult>::None);
 
-    // AccessCode checkbox.
     let (code_saved, set_code_saved) = signal(false);
 
     // ── Server-fn Actions ───────────────────────────────────
@@ -94,8 +85,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         async move { prepare_create_coop(req).await }
     });
 
-    // The register action takes () because its request is assembled
-    // at dispatch time from current signal values.
     let register = Action::new(move |_: &()| {
         let req = RegisterDeployedCoopRequest {
             name:                 name.get_untracked(),
@@ -113,10 +102,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
     });
 
     // ── Step transitions ────────────────────────────────────
-    //
-    // Always sets the target step; only clears `error` when moving
-    // *forward* (so a rollback after a failure keeps the error visible
-    // to the user on the screen they land on).
     let advance = move |next: CoopStep| {
         if next.index() > step.get_untracked().index() {
             set_error.set(String::new());
@@ -129,10 +114,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         let Some(result) = prepare.value().get() else { return };
         match result {
             Ok(_) => {
-                // Defensive guard: only advance if still on Form.
-                // The Effect could in principle re-fire if value()
-                // updates while we're past Form (it won't in normal
-                // flow, but cheap to be safe).
                 if step.get_untracked() == CoopStep::Form {
                     advance(CoopStep::AccessCode);
                 }
@@ -141,7 +122,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         }
     });
 
-    // ── TX 1 outcome (contract deployment) ──────────────────
+    // ── TX 1 outcome (deploy) ───────────────────────────────
     privy_bridge::on_deploy_outcome(move |outcome| match outcome {
         DeployOutcome::Complete { contract_address: addr, .. } => {
             set_contract_address.set(addr);
@@ -153,11 +134,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         }
     });
 
-    // ── TX 2 outcome (multisig init) ────────────────────────
-    //
-    // No more step-guard like the old code had.  Bridge subscriptions
-    // are mount-scoped, so vinculation's `on_tx_outcome` listener
-    // can't trigger us — different routes can't be mounted at once.
+    // ── TX 2 outcome (init multisig) ────────────────────────
     privy_bridge::on_tx_outcome(move |outcome| match outcome {
         TxOutcome::Complete(_hash) => {
             advance(CoopStep::Registering);
@@ -165,7 +142,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         }
         TxOutcome::Failed(err) => {
             set_error.set(format!("Falha na inicialização: {err}"));
-            // Stay on SignInit — user can retry.
         }
     });
 
@@ -212,36 +188,64 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                     CoopStep::Form => view! {
                         <FormStep
                             name set_name
+                            doc_kind set_doc_kind
+                            document set_document
                             admin2 set_admin2
                             admin3 set_admin3
-                            name_err admin2_err admin3_err
+                            name_err document_err admin2_err admin3_err
                             loading
                             founder_wallet=founder_wallet
                             on_submit=Box::new(move || {
-                                let n  = name.get_untracked();
-                                let a2 = admin2.get_untracked();
-                                let a3 = admin3.get_untracked();
+                                let n        = name.get_untracked();
+                                let dk       = doc_kind.get_untracked();
+                                let doc      = document.get_untracked();
+                                let a2       = admin2.get_untracked();
+                                let a3       = admin3.get_untracked();
 
                                 let a2_parsed: Result<WalletAddress, _> = a2.parse();
                                 let a3_parsed: Result<WalletAddress, _> = a3.parse();
 
-                                let name_ok   = !n.trim().is_empty();
-                                let admin2_ok = a2_parsed.is_ok();
-                                let admin3_ok = a3_parsed.is_ok();
+                                let name_ok     = !n.trim().is_empty();
+                                let document_ok = !doc.trim().is_empty()
+                                    && doc.chars().filter(|c| c.is_ascii_digit()).count()
+                                        == dk.max_digits(); // assumes DocKind::max_digits() — see note below
+                                let admin2_ok   = a2_parsed.is_ok();
+                                let admin3_ok   = a3_parsed.is_ok();
 
-                                set_name_err.set(if name_ok     { String::new() } else { "Nome obrigatório".into() });
-                                set_admin2_err.set(if admin2_ok { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
-                                set_admin3_err.set(if admin3_ok { String::new() } else { "Endereço inválido (0x + 40 hex)".into() });
+                                set_name_err.set(if name_ok {
+                                    String::new()
+                                } else {
+                                    "Nome obrigatório".into()
+                                });
+                                set_document_err.set(if document_ok {
+                                    String::new()
+                                } else {
+                                    match dk {
+                                        DocKind::Cpf  => "CPF deve ter 11 dígitos".into(),
+                                        DocKind::Cnpj => "CNPJ deve ter 14 dígitos".into(),
+                                    }
+                                });
+                                set_admin2_err.set(if admin2_ok {
+                                    String::new()
+                                } else {
+                                    "Endereço inválido (0x + 40 hex)".into()
+                                });
+                                set_admin3_err.set(if admin3_ok {
+                                    String::new()
+                                } else {
+                                    "Endereço inválido (0x + 40 hex)".into()
+                                });
 
-                                if let (true, Ok(a2_addr), Ok(a3_addr)) = (name_ok, a2_parsed, a3_parsed) {
-                                    // Dispatch the prepare Action — its
-                                    // pending state drives the button's
-                                    // loading prop automatically.
+                                if let (true, true, Ok(a2_addr), Ok(a3_addr))
+                                    = (name_ok, document_ok, a2_parsed, a3_parsed)
+                                {
                                     prepare.dispatch(CreateCoopRequest {
                                         name:          n,
                                         founder_wallet,
                                         admin_wallets: vec![founder_wallet, a2_addr, a3_addr],
                                         threshold:     2,
+                                        doc_kind:      dk,
+                                        document:      doc,
                                     });
                                 }
                             })
@@ -307,9 +311,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                             gas_hex: g.clone(),
                                         }],
                                         on_confirm: Callback::new(move |_| {
-                                            // Pin the server's gas estimate
-                                            // to skip an eth_estimateGas RPC
-                                            // on the JS side.
                                             privy_bridge::send_tx(&a, &d, Some(&g));
                                         }),
                                     }));

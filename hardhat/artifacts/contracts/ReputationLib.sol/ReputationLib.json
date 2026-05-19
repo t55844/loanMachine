@@ -141,12 +141,18 @@
         },
         {
           "indexed": false,
+          "internalType": "bool",
+          "name": "isFirstWallet",
+          "type": "bool"
+        },
+        {
+          "indexed": false,
           "internalType": "uint256",
           "name": "timestamp",
           "type": "uint256"
         }
       ],
-      "name": "MemberToWalletVinculation",
+      "name": "MemberRegistered",
       "type": "event"
     },
     {
@@ -262,8 +268,8 @@
       "type": "event"
     }
   ],
-  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220228993ab789824aa5179be3aa1cc65c0005993c9f0d9ab235e8e777ec9d4124b64736f6c63430008130033",
-  "deployedBytecode": "0x600080fdfea2646970667358221220228993ab789824aa5179be3aa1cc65c0005993c9f0d9ab235e8e777ec9d4124b64736f6c63430008130033",
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea26469706673582212208d646565fb5fa9ebf24908cd8deebb73e727d02d62ead2197cfecb615d392afc64736f6c63430008130033",
+  "deployedBytecode": "0x600080fdfea26469706673582212208d646565fb5fa9ebf24908cd8deebb73e727d02d62ead2197cfecb615d392afc64736f6c63430008130033",
   "linkReferences": {},
   "deployedLinkReferences": {}
 }

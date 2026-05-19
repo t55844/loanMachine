@@ -15,7 +15,7 @@ pub fn CoopChoicePage() -> impl IntoView {
                     </p>
                 </div>
                 <div class="grid-2 gap-6">
-                    <a href="/vinculate" style="text-decoration: none">
+                    <a href="/vinculation" style="text-decoration: none">
                         <Card hover=true>
                             <span class="card-tag">"MEMBRO"</span>
                             <h2

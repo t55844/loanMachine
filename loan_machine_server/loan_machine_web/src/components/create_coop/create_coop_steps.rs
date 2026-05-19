@@ -4,33 +4,42 @@
 // No signals, no effects, no server calls — only props in, view out.
 // All callbacks arrive as Box<dyn Fn() + Send + Sync> from CreateCoopPage.
 //
-// The Send + Sync bounds are required because Leptos SSR runs on a
-// multi-threaded Tokio runtime. Box<dyn Fn()> alone erases threading
-// guarantees; the compiler can't prove the closure is safe to cross
-// thread boundaries, so it rejects it. Closures in create_coop.rs close
-// over Leptos signals, which are Send + Sync in 0.7, so they satisfy
-// the bound automatically — we just have to declare it here.
+// CHANGES vs prior version:
+//   • FormStep now takes the (doc_kind, document) signal pair instead
+//     of a single cpf_cnpj String.
+//   • The hand-rolled CPF/CNPJ input block (the part you tried and
+//     failed) is replaced by <DocumentInput .../>.  All toggle and
+//     filter logic lives inside that component now.
+//   • New prop: document_err (mirrors the other *_err signals).
 
 use leptos::prelude::*;
+use loan_machine_models::requests::DocKind;
 use loan_machine_models::responses::CoopRegistrationResult;
 use loan_machine_models::wallet_address::WalletAddress;
+use crate::components::cpf_cnpj::doc_input_snipet::{DocumentInput};
 
 use crate::components::ui::*;
 use crate::components::create_coop::create_coop::CoopStep;
+use leptos_router::components::A;
 
 // ── FormStep ──────────────────────────────────────────────────
 
 #[component]
 pub fn FormStep(
-    name: ReadSignal<String>,
-    set_name: WriteSignal<String>,
-    admin2: ReadSignal<String>,
-    set_admin2: WriteSignal<String>,
-    admin3: ReadSignal<String>,
-    set_admin3: WriteSignal<String>,
-    name_err: ReadSignal<String>,
-    admin2_err: ReadSignal<String>,
-    admin3_err: ReadSignal<String>,
+    name:         ReadSignal<String>,
+    set_name:     WriteSignal<String>,
+    doc_kind:     ReadSignal<DocKind>,
+    set_doc_kind: WriteSignal<DocKind>,
+    document:     ReadSignal<String>,
+    set_document: WriteSignal<String>,
+    admin2:       ReadSignal<String>,
+    set_admin2:   WriteSignal<String>,
+    admin3:       ReadSignal<String>,
+    set_admin3:   WriteSignal<String>,
+    name_err:     ReadSignal<String>,
+    document_err: ReadSignal<String>,
+    admin2_err:   ReadSignal<String>,
+    admin3_err:   ReadSignal<String>,
     #[prop(into)] loading: Signal<bool>,
     founder_wallet: WalletAddress,
     on_submit: Box<dyn Fn() + Send + Sync>,
@@ -47,6 +56,16 @@ pub fn FormStep(
                     error=Signal::derive(move || name_err.get())
                 />
 
+                // Founder document — same reusable component as vinculation.
+                // Used to derive the founder's memberId server-side, which
+                // is then baked into the initializeMultisig calldata so the
+                // founder is a full member the moment the contract is live.
+                <DocumentInput
+                    doc_kind set_doc_kind
+                    document set_document
+                    error=Signal::derive(move || document_err.get())
+                />
+
                 <div class="form-group">
                     <label class="form-label">"Carteira Fundadora (você)"</label>
                     <div class="hash-display">{founder_wallet.short()}</div>
@@ -58,7 +77,7 @@ pub fn FormStep(
                 <TextInput
                     label="Admin 2 — Carteira"
                     placeholder="0x0000...0000"
-                    hint=Some("Segundo administrador da cooperativa").unwrap()
+                    hint="Segundo administrador da cooperativa"
                     value=admin2 set_value=set_admin2
                     error=Signal::derive(move || admin2_err.get())
                 />
@@ -66,7 +85,7 @@ pub fn FormStep(
                 <TextInput
                     label="Admin 3 — Carteira"
                     placeholder="0x0000...0000"
-                    hint=Some("Terceiro administrador da cooperativa").unwrap()
+                    hint="Terceiro administrador da cooperativa"
                     value=admin3 set_value=set_admin3
                     error=Signal::derive(move || admin3_err.get())
                 />
@@ -154,7 +173,6 @@ pub fn AccessCodeStep(
 }
 
 // ── WaitingStep ───────────────────────────────────────────────
-// Reused for WaitingDeploy and Registering — both are spinner + two text lines.
 
 #[component]
 pub fn WaitingStep(label: &'static str, hint: &'static str) -> impl IntoView {
@@ -214,7 +232,7 @@ pub fn DoneStep(reg_result: ReadSignal<Option<CoopRegistrationResult>>) -> impl 
 
                     <div class="stat-block">
                         <span class="stat-label">"ID da Cooperativa"</span>
-                        <HashDisplay value=r.coop_id_hex />
+                        <HashDisplay value=r.coop_id_hex.clone() />
                     </div>
                     <div class="stat-block">
                         <span class="stat-label">"Endereço do Contrato"</span>
@@ -225,17 +243,15 @@ pub fn DoneStep(reg_result: ReadSignal<Option<CoopRegistrationResult>>) -> impl 
                         <HashDisplay value=r.registration_tx_hash />
                     </div>
 
-                    <a href="/" style="text-decoration: none">
+                    <A href=format!("/cooperatives/{}", r.coop_id_hex.clone()) attr:class="card-link">
                         <Button variant=BtnVariant::Ghost full_width=true>
-                            "IR PARA O DASHBOARD"
+                            <span class="stat-label">"Painel de controle"</span>
                         </Button>
-                    </a>
+                    </A>
                 </div>
             </Card>
         }.into_any(),
 
-        // reg_result is None only if Done is reached before the signal is set,
-        // which cannot happen through normal flow.
         None => view! {
             <Alert kind=AlertKind::Error>"Erro inesperado: resultado não encontrado."</Alert>
         }.into_any(),

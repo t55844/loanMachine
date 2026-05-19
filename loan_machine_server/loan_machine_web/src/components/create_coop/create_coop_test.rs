@@ -63,7 +63,7 @@ fn choice_shows_create_coop_card_text() {
 
 #[test]
 fn choice_vinculate_link_is_correct() {
-    assert!(choice_html().contains(r#"href="/vinculate""#));
+    assert!(choice_html().contains(r#"href="/vinculation""#));
 }
 
 #[test]

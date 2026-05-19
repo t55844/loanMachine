@@ -117,8 +117,8 @@ export class Cooperative extends Entity {
     this.set("active", Value.fromBoolean(value));
   }
 
-  get members(): MemberJoinedEventLoader {
-    return new MemberJoinedEventLoader(
+  get members(): MemberRegisteredEventLoader {
+    return new MemberRegisteredEventLoader(
       "Cooperative",
       this.get("id")!.toString(),
       "members",
@@ -1376,7 +1376,7 @@ export class WalletRevokedEvent extends Entity {
   }
 }
 
-export class MemberJoinedEvent extends Entity {
+export class MemberRegisteredEvent extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -1384,25 +1384,28 @@ export class MemberJoinedEvent extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id != null, "Cannot save MemberJoinedEvent entity without an ID");
+    assert(
+      id != null,
+      "Cannot save MemberRegisteredEvent entity without an ID",
+    );
     if (id) {
       assert(
         id.kind == ValueKind.STRING,
-        `Entities of type MemberJoinedEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+        `Entities of type MemberRegisteredEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
       );
-      store.set("MemberJoinedEvent", id.toString(), this);
+      store.set("MemberRegisteredEvent", id.toString(), this);
     }
   }
 
-  static loadInBlock(id: string): MemberJoinedEvent | null {
-    return changetype<MemberJoinedEvent | null>(
-      store.get_in_block("MemberJoinedEvent", id),
+  static loadInBlock(id: string): MemberRegisteredEvent | null {
+    return changetype<MemberRegisteredEvent | null>(
+      store.get_in_block("MemberRegisteredEvent", id),
     );
   }
 
-  static load(id: string): MemberJoinedEvent | null {
-    return changetype<MemberJoinedEvent | null>(
-      store.get("MemberJoinedEvent", id),
+  static load(id: string): MemberRegisteredEvent | null {
+    return changetype<MemberRegisteredEvent | null>(
+      store.get("MemberRegisteredEvent", id),
     );
   }
 
@@ -1432,6 +1435,19 @@ export class MemberJoinedEvent extends Entity {
     this.set("cooperative", Value.fromString(value));
   }
 
+  get memberId(): Bytes {
+    let value = this.get("memberId");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set memberId(value: Bytes) {
+    this.set("memberId", Value.fromBytes(value));
+  }
+
   get wallet(): Bytes {
     let value = this.get("wallet");
     if (!value || value.kind == ValueKind.NULL) {
@@ -1445,17 +1461,43 @@ export class MemberJoinedEvent extends Entity {
     this.set("wallet", Value.fromBytes(value));
   }
 
-  get memberId(): Bytes {
-    let value = this.get("memberId");
+  get allWallets(): Array<Bytes> {
+    let value = this.get("allWallets");
     if (!value || value.kind == ValueKind.NULL) {
       throw new Error("Cannot return null for a required field.");
     } else {
-      return value.toBytes();
+      return value.toBytesArray();
     }
   }
 
-  set memberId(value: Bytes) {
-    this.set("memberId", Value.fromBytes(value));
+  set allWallets(value: Array<Bytes>) {
+    this.set("allWallets", Value.fromBytesArray(value));
+  }
+
+  get isFirstWallet(): boolean {
+    let value = this.get("isFirstWallet");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set isFirstWallet(value: boolean) {
+    this.set("isFirstWallet", Value.fromBoolean(value));
+  }
+
+  get timestamp(): string {
+    let value = this.get("timestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set timestamp(value: string) {
+    this.set("timestamp", Value.fromString(value));
   }
 
   get blockTimestamp(): string {
@@ -4320,144 +4362,6 @@ export class BorrowerDebtSettledEvent extends Entity {
   }
 }
 
-export class MemberToWalletVinculationEvent extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(
-      id != null,
-      "Cannot save MemberToWalletVinculationEvent entity without an ID",
-    );
-    if (id) {
-      assert(
-        id.kind == ValueKind.STRING,
-        `Entities of type MemberToWalletVinculationEvent must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
-      );
-      store.set("MemberToWalletVinculationEvent", id.toString(), this);
-    }
-  }
-
-  static loadInBlock(id: string): MemberToWalletVinculationEvent | null {
-    return changetype<MemberToWalletVinculationEvent | null>(
-      store.get_in_block("MemberToWalletVinculationEvent", id),
-    );
-  }
-
-  static load(id: string): MemberToWalletVinculationEvent | null {
-    return changetype<MemberToWalletVinculationEvent | null>(
-      store.get("MemberToWalletVinculationEvent", id),
-    );
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get cooperative(): string {
-    let value = this.get("cooperative");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set cooperative(value: string) {
-    this.set("cooperative", Value.fromString(value));
-  }
-
-  get memberId(): Bytes {
-    let value = this.get("memberId");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set memberId(value: Bytes) {
-    this.set("memberId", Value.fromBytes(value));
-  }
-
-  get wallet(): Bytes {
-    let value = this.get("wallet");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set wallet(value: Bytes) {
-    this.set("wallet", Value.fromBytes(value));
-  }
-
-  get walletVinculated(): Array<Bytes> {
-    let value = this.get("walletVinculated");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytesArray();
-    }
-  }
-
-  set walletVinculated(value: Array<Bytes>) {
-    this.set("walletVinculated", Value.fromBytesArray(value));
-  }
-
-  get timestamp(): string {
-    let value = this.get("timestamp");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set timestamp(value: string) {
-    this.set("timestamp", Value.fromString(value));
-  }
-
-  get blockTimestamp(): string {
-    let value = this.get("blockTimestamp");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set blockTimestamp(value: string) {
-    this.set("blockTimestamp", Value.fromString(value));
-  }
-
-  get transactionHash(): Bytes {
-    let value = this.get("transactionHash");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBytes();
-    }
-  }
-
-  set transactionHash(value: Bytes) {
-    this.set("transactionHash", Value.fromBytes(value));
-  }
-}
-
 export class ReputationChangedEvent extends Entity {
   constructor(id: string) {
     super();
@@ -5454,7 +5358,7 @@ export class NewModeratorEvent extends Entity {
   }
 }
 
-export class MemberJoinedEventLoader extends Entity {
+export class MemberRegisteredEventLoader extends Entity {
   _entity: string;
   _field: string;
   _id: string;
@@ -5466,9 +5370,9 @@ export class MemberJoinedEventLoader extends Entity {
     this._field = field;
   }
 
-  load(): MemberJoinedEvent[] {
+  load(): MemberRegisteredEvent[] {
     let value = store.loadRelated(this._entity, this._id, this._field);
-    return changetype<MemberJoinedEvent[]>(value);
+    return changetype<MemberRegisteredEvent[]>(value);
   }
 }
 

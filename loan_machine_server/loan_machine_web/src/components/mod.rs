@@ -7,6 +7,12 @@ pub mod create_coop;
 pub mod gas_modal;
 pub mod cooperatives;
 pub mod gates;
+pub mod coop_control;
+pub mod elections;
+pub mod user;
+pub mod cpf_cnpj;
+pub mod helpers;
+
 // test of components
 #[cfg(all(test, feature = "ssr"))]
 mod home_test;

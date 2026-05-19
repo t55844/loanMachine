@@ -22,6 +22,7 @@ dataSources:
       entities:
         - Cooperative
         - CoopRegisteredEvent
+        - MemberRegisteredEvent
       abis:
         - name: CoopRegistry
           file: ./abis/CoopRegistry.json
@@ -59,7 +60,7 @@ templates:
         - WalletApprovedEvent
         - WalletRevokedEvent
         # Membership
-        - MemberJoinedEvent
+        - MemberRegistered
         - AccessCodeRotatedEvent
         - CoopDeactivatedEvent
         - CoopReactivatedEvent
@@ -89,7 +90,6 @@ templates:
         - BorrowerOverdueEvent
         - BorrowerDebtSettledEvent
         # Reputation
-        - MemberToWalletVinculationEvent
         - ReputationChangedEvent
         - AuthorizedCallerUpdatedEvent
         # Elections
@@ -128,8 +128,8 @@ templates:
           handler: handleWalletRevoked
 
         # Membership
-        - event: MemberJoined(indexed address,indexed bytes32)
-          handler: handleMemberJoined
+        - event: MemberRegistered(indexed bytes32,indexed address,address[],bool,uint256)
+          handler: handleMemberRegistered
         - event: AccessCodeRotated()
           handler: handleAccessCodeRotated
         - event: CoopDeactivated()
@@ -188,8 +188,6 @@ templates:
           handler: handleBorrowerDebtSettled
 
         # Reputation (inlined ReputationLib)
-        - event: MemberToWalletVinculation(indexed bytes32,indexed address,address[],uint256)
-          handler: handleMemberToWalletVinculation
         - event: ReputationChanged(indexed bytes32,int32,bool,int32,uint256)
           handler: handleReputationChanged
         - event: AuthorizedCallerUpdated(indexed address,bool)

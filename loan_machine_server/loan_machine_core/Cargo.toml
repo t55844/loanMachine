@@ -66,6 +66,7 @@ p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
 rand = "0.8"
 base64 = "0.22"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+dotenvy = "0.15"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 axum-test = "15"

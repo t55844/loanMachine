@@ -53,7 +53,7 @@ dotenvy = { version = "0.15", optional = true }
 getrandom    = { version = "0.2", features = ["js"] }
 wasm-bindgen = { version = "0.2" }
 web-sys = { version = "0.3", features = [
-    "Window", "CustomEvent", "CustomEventInit", "EventTarget","Navigator",
+    "Window", "CustomEvent", "CustomEventInit", "EventTarget","Navigator","Storage","Clipboard",
 ] }
 js-sys  = { version = "0.3" }
 alloy = { workspace = true, optional = true, features = ["sol-types", "rpc-types", "network", "contract", "providers", "transport-http"] }
@@ -85,6 +85,7 @@ alloy = { workspace = true, features = [
     "sol-types", "rpc-types", "network",
     "signer-local", "node-bindings",
 ] }
+wasm-bindgen-test = "0.3"
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]

@@ -518,38 +518,16 @@ export class LoanUncovered__Params {
   }
 }
 
-export class MemberJoined extends ethereum.Event {
-  get params(): MemberJoined__Params {
-    return new MemberJoined__Params(this);
+export class MemberRegistered extends ethereum.Event {
+  get params(): MemberRegistered__Params {
+    return new MemberRegistered__Params(this);
   }
 }
 
-export class MemberJoined__Params {
-  _event: MemberJoined;
+export class MemberRegistered__Params {
+  _event: MemberRegistered;
 
-  constructor(event: MemberJoined) {
-    this._event = event;
-  }
-
-  get wallet(): Address {
-    return this._event.parameters[0].value.toAddress();
-  }
-
-  get memberId(): Bytes {
-    return this._event.parameters[1].value.toBytes();
-  }
-}
-
-export class MemberToWalletVinculation extends ethereum.Event {
-  get params(): MemberToWalletVinculation__Params {
-    return new MemberToWalletVinculation__Params(this);
-  }
-}
-
-export class MemberToWalletVinculation__Params {
-  _event: MemberToWalletVinculation;
-
-  constructor(event: MemberToWalletVinculation) {
+  constructor(event: MemberRegistered) {
     this._event = event;
   }
 
@@ -561,12 +539,16 @@ export class MemberToWalletVinculation__Params {
     return this._event.parameters[1].value.toAddress();
   }
 
-  get walletVinculated(): Array<Address> {
+  get allWallets(): Array<Address> {
     return this._event.parameters[2].value.toAddressArray();
   }
 
+  get isFirstWallet(): boolean {
+    return this._event.parameters[3].value.toBoolean();
+  }
+
   get timestamp(): BigInt {
-    return this._event.parameters[3].value.toBigInt();
+    return this._event.parameters[4].value.toBigInt();
   }
 }
 
@@ -1760,29 +1742,6 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
-  bootstrapApproveWallet(wallet: Address): BigInt {
-    let result = super.call(
-      "bootstrapApproveWallet",
-      "bootstrapApproveWallet(address):(uint256)",
-      [ethereum.Value.fromAddress(wallet)],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_bootstrapApproveWallet(wallet: Address): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "bootstrapApproveWallet",
-      "bootstrapApproveWallet(address):(uint256)",
-      [ethereum.Value.fromAddress(wallet)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-
   canPayRequisition(requisitionId: BigInt, borrower: Address): boolean {
     let result = super.call(
       "canPayRequisition",
@@ -2627,25 +2586,6 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
-  isMember(param0: Address): boolean {
-    let result = super.call("isMember", "isMember(address):(bool)", [
-      ethereum.Value.fromAddress(param0),
-    ]);
-
-    return result[0].toBoolean();
-  }
-
-  try_isMember(param0: Address): ethereum.CallResult<boolean> {
-    let result = super.tryCall("isMember", "isMember(address):(bool)", [
-      ethereum.Value.fromAddress(param0),
-    ]);
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBoolean());
-  }
-
   isModerator(memberId: Bytes): boolean {
     let result = super.call("isModerator", "isModerator(bytes32):(bool)", [
       ethereum.Value.fromFixedBytes(memberId),
@@ -2971,40 +2911,6 @@ export class BlockWithdrawalCall__Outputs {
 
   constructor(call: BlockWithdrawalCall) {
     this._call = call;
-  }
-}
-
-export class BootstrapApproveWalletCall extends ethereum.Call {
-  get inputs(): BootstrapApproveWalletCall__Inputs {
-    return new BootstrapApproveWalletCall__Inputs(this);
-  }
-
-  get outputs(): BootstrapApproveWalletCall__Outputs {
-    return new BootstrapApproveWalletCall__Outputs(this);
-  }
-}
-
-export class BootstrapApproveWalletCall__Inputs {
-  _call: BootstrapApproveWalletCall;
-
-  constructor(call: BootstrapApproveWalletCall) {
-    this._call = call;
-  }
-
-  get wallet(): Address {
-    return this._call.inputValues[0].value.toAddress();
-  }
-}
-
-export class BootstrapApproveWalletCall__Outputs {
-  _call: BootstrapApproveWalletCall;
-
-  constructor(call: BootstrapApproveWalletCall) {
-    this._call = call;
-  }
-
-  get proposalId(): BigInt {
-    return this._call.outputValues[0].value.toBigInt();
   }
 }
 
@@ -3353,6 +3259,10 @@ export class InitializeMultisigCall__Inputs {
 
   get accessCode(): string {
     return this._call.inputValues[2].value.toString();
+  }
+
+  get founderMemberId(): Bytes {
+    return this._call.inputValues[3].value.toBytes();
   }
 }
 

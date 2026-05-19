@@ -40,7 +40,7 @@ pub async fn get_wallet_coop() -> Result<Option<CoopInfo>, ServerFnError> {
     let wallet = auth.wallet().await?;
     let state = expect_context::<AppState>();
 
-    get_wallet_coop_logic(&state.blockchain_service, wallet)
+    get_wallet_coop_logic(&state.subgraph,&state.blockchain_service, wallet)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))
 }

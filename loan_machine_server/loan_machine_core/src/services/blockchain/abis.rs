@@ -29,7 +29,8 @@ sol! {
         function initializeMultisig(
             address[] calldata admins,
             uint256   threshold,
-            string calldata accessCode
+            string calldata accessCode,
+            bytes32   founderMemberId      
         ) external;
 
         // ── MULTISIG ADMIN ───────────────────────────────────
@@ -47,10 +48,6 @@ sol! {
         // ── WALLET APPROVAL (admin + moderator co-sign) ──────
         function proposeWalletApproval(address wallet) external returns (uint256 requestId);
 
-        
-
-        // Bootstrap: no moderator yet, requires unanimous admin
-        function bootstrapApproveWallet(address wallet) external returns (uint256 proposalId);
 
         function cosignProposal(
             uint256 proposalId,

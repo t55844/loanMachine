@@ -19,13 +19,7 @@ pub struct VinculateMemberRequest {
     pub access_code:  String,   // cooperative invite code
 }
 
-#[derive(Deserialize)]
-pub struct DonateRequest {
-    pub amount:    String,   // decimal string e.g. "10.50"
-    pub member_id: u32,
-    pub from:      WalletAddress,   // sender wallet address
-    pub coop_id:   String,   // which cooperative's LoanMachine to donate to
-}
+
 
 #[derive(Serialize, Deserialize,Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DocKind{
@@ -54,12 +48,21 @@ impl DocKind{
             DocKind::Cnpj => "CNPJ",
         }
     }
+
+    pub fn max_digits(&self) -> usize {
+        match self {
+            DocKind::Cpf  => 11,
+            DocKind::Cnpj => 14,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateCoopRequest {
     pub name:           String,         
     pub founder_wallet: WalletAddress,         
-    pub admin_wallets:  Vec<WalletAddress>,    
-    pub threshold:      u32,            
+    pub admin_wallets:  Vec<WalletAddress>,
+    pub threshold:      u32,   
+    pub doc_kind:    DocKind,
+    pub document:    String,         
 }

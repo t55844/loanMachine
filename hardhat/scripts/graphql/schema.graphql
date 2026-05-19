@@ -19,7 +19,7 @@ type Cooperative @entity(immutable: false) {
   active: Boolean!                # toggled by CoopDeactivated/Reactivated
 
   # Reverse relations — query "give me everything for this coop"
-  members:        [MemberJoinedEvent!]!                    @derivedFrom(field: "cooperative")
+  members:        [MemberRegisteredEvent!]!                    @derivedFrom(field: "cooperative")
   donations:      [DonatedEvent!]!                         @derivedFrom(field: "cooperative")
   withdrawals:    [WithdrawnEvent!]!                       @derivedFrom(field: "cooperative")
   borrows:        [BorrowedEvent!]!                        @derivedFrom(field: "cooperative")
@@ -133,11 +133,14 @@ type WalletRevokedEvent @entity(immutable: true) {
 
 # ── MEMBERSHIP ────────────────────────────────────────────────
 
-type MemberJoinedEvent @entity(immutable: true) {
+type MemberRegisteredEvent @entity(immutable: true) {
   id: ID!
   cooperative: Cooperative!
-  wallet: Bytes!
   memberId: Bytes!
+  wallet: Bytes!
+  allWallets: [Bytes!]!
+  isFirstWallet: Boolean!
+  timestamp: String!
   blockTimestamp: String!
   transactionHash: Bytes!
 }
@@ -381,17 +384,6 @@ type BorrowerDebtSettledEvent @entity(immutable: true) {
 }
 
 # ── REPUTATION ────────────────────────────────────────────────
-
-type MemberToWalletVinculationEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
-  memberId: Bytes!
-  wallet: Bytes!
-  walletVinculated: [Bytes!]!
-  timestamp: String!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
 
 type ReputationChangedEvent @entity(immutable: true) {
   id: ID!

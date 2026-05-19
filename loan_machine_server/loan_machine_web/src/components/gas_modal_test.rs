@@ -1,33 +1,11 @@
 // loan_machine_web/src/components/gas_modal_test.rs
-//
-// SSR snapshot tests for the GasModal flow.
-//
-// WHAT THESE TESTS COVER
-// ──────────────────────
-//   - GasEstimate hex → decimal parsing (pure logic, no Leptos)
-//   - Modal renders nothing when no request is in context
-//   - Modal renders title, estimate label, gas units, hex, alert, and
-//     both action buttons when a request IS in context
-//   - Multiple estimates each get their own block
-//   - The Suspense fallback or "unavailable" message appears in SSR
-//     because LocalResource can't fetch outside the browser
-//
-// WHAT THEY DON'T COVER (and why)
-// ───────────────────────────────
-//   - Resolved USD / BRL values: LocalResource fetches CoinGecko via the
-//     browser fetch API. In SSR there's no fetch, so the Suspense never
-//     resolves; the breakdown rows never render. Verifying actual ETH×rate
-//     numbers needs wasm-bindgen-test in a real browser.
-//   - The "click button → modal opens" flow inside CreateCoopPage:
-//     we'd have to simulate a real click + an existing CoopDeployBundle,
-//     which is browser-only territory. The contract here (set request →
-//     modal renders) IS validated by the open/closed tests below.
 
 use leptos::prelude::*;
 use crate::components::gas_modal::{
     GasEstimate, GasModal, GasModalRequest, provide_gas_modal,
 };
 
+use crate::components::tests_helper::seed_prices;
 // ── Helper ────────────────────────────────────────────────────
 // Same pattern as create_coop_test.rs / vinculation_test.rs.
 
@@ -94,36 +72,55 @@ fn gas_units_returns_zero_on_empty_string() {
     assert_eq!(est.gas_units(), 0);
 }
 
-// ── Modal CLOSED — no request in context ───────────────────
+
+
+
+// ── Modal CLOSED — request signal is None ──────────────────
 //
-// When the request signal is None, the modal closure returns None and
-// nothing should reach the DOM.
+// The modal uses an always-mounted shell with CSS-toggled visibility
+// (so click handlers don't churn). "Closed" means:
+//   - the shell IS in the DOM (backdrop, card, buttons)
+//   - but the `open` class is absent (CSS hides it)
+//   - and the request-driven content (title, alert, estimates) is gone
 
 fn closed_html() -> String {
     render_to_string(|| {
+        seed_prices(None);
         provide_gas_modal();
         view! { <GasModal /> }
     })
 }
 
+
 #[test]
-fn closed_modal_renders_no_backdrop() {
-    assert!(!closed_html().contains("gas-modal-backdrop"));
+fn closed_modal_omits_open_class() {
+    let html = closed_html();
+    // class:open serializes as " open" inside the class attribute when true.
+    // When false, it's omitted entirely.
+    assert!(
+        !html.contains("gas-modal-backdrop open")
+            && !html.contains("gas-modal-backdrop  open"),
+        "expected no `open` class on backdrop, got: {html}",
+    );
 }
 
 #[test]
-fn closed_modal_renders_no_card() {
-    assert!(!closed_html().contains("gas-modal-card"));
+fn closed_modal_omits_request_driven_content() {
+    let html = closed_html();
+    // The card-tag (title), alert, and estimate blocks only render
+    // when req.get() is Some(_). None of them should appear when closed.
+    assert!(!html.contains("card-tag"));
+    assert!(!html.contains("Revise o custo estimado"));
+    assert!(!html.contains("gas-estimate-block"));
 }
 
 #[test]
-fn closed_modal_renders_no_confirm_button() {
-    assert!(!closed_html().contains("CONFIRMAR E ASSINAR"));
-}
-
-#[test]
-fn closed_modal_renders_no_cancel_button() {
-    assert!(!closed_html().contains("CANCELAR"));
+fn closed_modal_keeps_shell_mounted() {
+    // Sanity check: the always-mounted shell IS present even when closed.
+    // This documents the architecture for future readers.
+    let html = closed_html();
+    assert!(html.contains("gas-modal-backdrop"));
+    assert!(html.contains("gas-modal-card"));
 }
 
 // ── Modal OPEN — request set with one estimate ─────────────
@@ -133,6 +130,7 @@ fn closed_modal_renders_no_cancel_button() {
 
 fn open_html() -> String {
     render_to_string(|| {
+        seed_prices(None);
         provide_gas_modal();
         let setter = expect_context::<WriteSignal<Option<GasModalRequest>>>();
         setter.set(Some(GasModalRequest {

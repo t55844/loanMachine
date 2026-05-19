@@ -1,7 +1,14 @@
+import { Bytes, BigInt, ethereum } from "@graphprotocol/graph-ts"
+
 import { CoopRegistered } from "../generated/CoopRegistry/CoopRegistry"
-import { LoanMachine } from "../generated/templates"
-import { Cooperative, CoopRegisteredEvent } from "../generated/schema"
-import { ethereum, BigInt } from "@graphprotocol/graph-ts"
+import { LoanMachine as LoanMachineBound } from "../generated/CoopRegistry/LoanMachine"
+import { LoanMachine as LoanMachineTemplate } from "../generated/templates"
+
+import {
+  Cooperative,
+  CoopRegisteredEvent,
+  MemberRegisteredEvent
+} from "../generated/schema"
 
 function makeId(event: ethereum.Event): string {
   return event.transaction.hash.toHex() + "-" + event.logIndex.toString()
@@ -15,11 +22,21 @@ function formatTimestamp(ts: BigInt): string {
   let h  = dt.getUTCHours().toString();       if (h.length  == 1) h  = "0" + h
   let mi = dt.getUTCMinutes().toString();     if (mi.length == 1) mi = "0" + mi
   let s  = dt.getUTCSeconds().toString();     if (s.length  == 1) s  = "0" + s
-  return d + "/" + m + "/" + dt.getUTCFullYear().toString() + " " + h + ":" + mi + ":" + s
+  return d + "/" + m + "/" + dt.getUTCFullYear().toString()
+       + " " + h + ":" + mi + ":" + s
+}
+
+function isZeroBytes(b: Bytes): boolean {
+  for (let i = 0; i < b.length; i++) {
+    if (b[i] != 0) return false
+  }
+  return true
 }
 
 export function handleCoopRegistered(event: CoopRegistered): void {
-  // Cooperative.id == lowercased LoanMachine address
+  // Cooperative.id == lowercased LoanMachine address — other handlers
+  // derive coopId from event.address (the LoanMachine), so this MUST
+  // match what they'll look up later.
   let coopEntityId = event.params.loanMachine.toHexString()
 
   let coop = new Cooperative(coopEntityId)
@@ -38,6 +55,37 @@ export function handleCoopRegistered(event: CoopRegistered): void {
   log.transactionHash = event.transaction.hash
   log.save()
 
-  // Spawn the dynamic LoanMachine indexer for this coop
-  LoanMachine.create(event.params.loanMachine)
+  // ── BACKFILL: founder MemberRegisteredEvent ─────────────────
+  //
+  // initializeMultisig() emits MemberRegistered for the founder BEFORE
+  // this CoopRegistered event fires.  The template doesn't exist yet
+  // at that point, so loan-machine.ts never sees it.  We reconstruct
+  // the missing entity here by reading state directly from the
+  // already-initialized contract.
+  let lm = LoanMachineBound.bind(event.params.loanMachine)
+
+  let adminsResult = lm.try_getAdmins()
+  if (!adminsResult.reverted && adminsResult.value.length > 0) {
+    let founder = adminsResult.value[0]
+
+    let memberIdResult = lm.try_getMemberId(founder)
+    if (!memberIdResult.reverted && !isZeroBytes(memberIdResult.value)) {
+      let entity = new MemberRegisteredEvent(
+        event.transaction.hash.toHex() + "-founder-backfill"
+      )
+      entity.cooperative   = coopEntityId
+      entity.wallet        = founder
+      entity.memberId      = memberIdResult.value
+      entity.isFirstWallet = true
+      entity.allWallets    = [founder as Bytes]
+      entity.timestamp       = formatTimestamp(event.block.timestamp)
+      entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
+      entity.transactionHash = event.transaction.hash
+      entity.save()
+    }
+  }
+
+  // Spawn the dynamic indexer.  Anything emitted AFTER this point
+  // gets picked up by loan-machine.ts normally.
+  LoanMachineTemplate.create(event.params.loanMachine)
 }

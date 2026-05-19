@@ -50,11 +50,17 @@ test-web-one:
 	cd loan_machine_server && $(CARGO) test -p loan_machine_web $(NAME) -- --nocapture
 
 # ── Chain helpers ─────────────────────────────────────────────
+compile:
+	cd ./hardhat && npx hardhat clean && npx hardhat compile
 
 fund-anvil-wallet:
 	curl -X POST http://localhost:8545 \
 	  -H "Content-Type: application/json" \
 	  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["$(WALLET)","0x8AC7230489E80000"],"id":1}'
+
+fund-used-wallets:
+	fund-anvil-wallet WALLET=0x8Fb852022882B2AA3C3a0fE39f3169CdC01C887D \
+	fund-anvil-wallet WALLET=0x9535424e6F3F82C9c3aCA0d747C59E187f216Ac4
 
 deploy-local:
 	@curl -sS -o /dev/null http://localhost:8545 \
@@ -68,6 +74,12 @@ deploy-local:
 	cd loan_machine_server && $(CARGO) run -p loan_machine_core --bin deploy_local --features deployable
 
 # ── Subgraph ──────────────────────────────────────────────────
+local-graph-codegen:
+	rm -rf ./scripts/graphql/generated ./generated && cd ./hardhat/scripts/graphql && graph codegen --output-dir ./generated
+
+local-graph-build:
+	rm -rf ./scripts/graphql/build ./build && cd ./hardhat/scripts/graphql && graph build --output-dir ./build
+
 
 graph-up:
 	@grep -qE '^COOP_REGISTRY_ADDRESS=["\x27]?0x' $(ENV_FILE) 2>/dev/null \

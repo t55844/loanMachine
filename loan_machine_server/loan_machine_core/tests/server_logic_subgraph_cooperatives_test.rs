@@ -161,3 +161,4 @@ async fn fetch_cooperatives_decode_error_on_wrong_shape() {
     assert!(matches!(err, SubgraphError::Decode(_)),
         "expected Decode error, got {err:?}");
 }
+

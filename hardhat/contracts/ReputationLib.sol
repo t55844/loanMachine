@@ -53,8 +53,7 @@ library ReputationLib {
     }
 
     // ─── EVENTS ──────────────────────────────────────────────
-
-    event MemberToWalletVinculation(bytes32 indexed memberId, address indexed wallet, address[] allWallets, uint256 timestamp);
+    event MemberRegistered( bytes32 indexed memberId, address indexed wallet, address[] allWallets, bool isFirstWallet, uint256 timestamp);
     event ReputationChanged(bytes32 indexed memberId, int32 points, bool increase, int32 newReputation, uint256 timestamp);
     event ElectionOpened(uint32 indexed electionId, bytes32 indexed candidateId, uint256 startTime, uint256 endTime);
     event ElectionClosed(uint32 indexed electionId, bytes32 indexed winnerId, int32 winningVotes);
@@ -92,26 +91,24 @@ library ReputationLib {
         if (memberId == bytes32(0) || wallet == address(0))
             revert RS_MemberIdOrWalletInvalid();
 
-        // Reject if wallet is already bound to a DIFFERENT member
         bytes32 existingId = rs.walletToMemberId[wallet];
         if (existingId != bytes32(0) && existingId != memberId)
             revert RS_WalletAlreadyLinkedToAnotherMember();
 
-        // Reject duplicate within same member
         address[] storage wallets = rs.walletsOfMember[memberId];
         for (uint256 i = 0; i < wallets.length; i++) {
             if (wallets[i] == wallet) revert RS_WalletAlreadyVinculated();
         }
 
-        // First wallet becomes the primary
-        if (rs.memberToWallet[memberId] == address(0)) {
+        bool isFirstWallet = (rs.memberToWallet[memberId] == address(0));
+        if (isFirstWallet) {
             rs.memberToWallet[memberId] = wallet;
         }
         rs.walletToMemberId[wallet] = memberId;
         rs.walletsOfMember[memberId].push(wallet);
 
-        emit MemberToWalletVinculation(
-            memberId, wallet, rs.walletsOfMember[memberId], block.timestamp
+        emit MemberRegistered(
+            memberId, wallet, rs.walletsOfMember[memberId], isFirstWallet, block.timestamp
         );
     }
 

@@ -12,10 +12,12 @@ use crate::components::home::HomePage;
 use crate::components::create_coop::coop_choice::CoopChoicePage;
 use crate::components::create_coop::create_coop::CreateCoopPage;
 use crate::components::cooperatives::CooperativesPage;
-use crate::components::vinculation::FirstVinculationForm;
 use crate::wallet_auth::{provide_wallet, use_wallet, WalletSession};
-
-
+use crate::components::coop_control::coop_control_panel::CoopControlPanelRoute;
+use crate::components::user::user_coops::{UserCoopsPage};
+use crate::components::elections::elections::ElectionsPage;
+use crate::components::vinculation::FirstVinculationForm;
+use crate::components::helpers::prices::{provide_prices_context};
 
 
 // ── NAVIGATION ──────────────────────────────────────────────
@@ -31,8 +33,8 @@ pub fn Navbar(
                 <ul class="navbar-links">
                     <li><a href="/" class="navbar-link">"Pagina inicial"</a></li>
                     <li><a href="/cooperatives" class="navbar-link">"Cooperativas"</a></li>
-                    <li><a href="/create-coop" class="navbar-link">"Create Coop"</a></li>
-                    <li><a href="/vinculate" class="navbar-link">"Vinculação"</a></li>
+                    <li><a href="/create-coop" class="navbar-link">"Crie uma Cooper."</a></li>
+                    <li><a href="/user" class="navbar-link">"Usuario"</a></li>
                     <li>
                         <span class="badge badge-live badge-yellow">"Live"</span>
                     </li>
@@ -47,6 +49,7 @@ pub fn Navbar(
 #[component]
 pub fn App() -> impl IntoView {
     // Cross-cutting setup. Each call is exactly one concern.
+    provide_prices_context();
     provide_gas_modal();
     let wallet_ctx = provide_wallet();
 
@@ -63,8 +66,12 @@ pub fn App() -> impl IntoView {
             <Routes fallback=NotFound>
                 <Route path=path!("/")             view=HomeRoute />
                 <Route path=path!("/cooperatives") view=CooperativesRoute />
+                <Route path=path!("/cooperatives/:id") view=CoopControlPanelRoute />
                 <Route path=path!("/create-coop")  view=CreateCoopRoute />
-                <Route path=path!("/vinculate")    view=VinculateRoute />
+                <Route path=path!("/user")    view=UserRoute />
+
+                <Route path=path!("/elections/:id")    view=ElectionsRoute/>
+                <Route path=path!("/vinculation")    view=VinculateRoute />
             </Routes>
         </Router>
     }
@@ -113,25 +120,50 @@ fn CreateCoopRoute() -> impl IntoView {
     }
 }
 
+
 #[component]
-fn VinculateRoute() -> impl IntoView {
+fn UserRoute() -> impl IntoView {
     view! {
         <RequireWallet
             pending=|| view! { <HomeSkeleton /> }
-            fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::Vinculation /> }
-            render=move |_| view! {
-                <section class="section">
-                    <div class="container-sm">
-                        <FirstVinculationForm
-                            on_success=move || {
-                                #[cfg(target_arch = "wasm32")]
-                                {
-                                    let _ = web_sys::window().unwrap().location().set_href("/");
-                                }
-                            }
-                        />
-                    </div>
-                </section>
+            fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::CreateCoop /> }
+            render=move |_| view! { <UserCoopsPage  /> }
+        />
+    }
+}
+
+#[component]
+fn ElectionsRoute() -> impl IntoView {
+    use leptos_router::hooks::use_params_map;
+    let params = use_params_map();
+    view! {
+        <RequireWallet
+            pending=|| view! { <HomeSkeleton /> }
+            fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::CreateCoop /> }
+            render=move |wallet| {
+                let coop_id = params.read().get("id").unwrap_or_default();
+                view! { <ElectionsPage coop_id caller_wallet=wallet /> }
+            }
+        />
+    }
+}
+
+
+#[component]
+fn VinculateRoute() -> impl IntoView {
+    use leptos_router::hooks::use_navigate;
+    let navigate = use_navigate();
+    view! {
+        <RequireWallet
+            pending=|| view! { <HomeSkeleton /> }
+            fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::CreateCoop /> }
+            render=move |_wallet| {
+                let nav = navigate.clone();
+                view! {
+                    <FirstVinculationForm on_success=move || {
+                        nav("/user", Default::default());
+                    } />
+                }
             }
         />
     }

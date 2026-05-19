@@ -1,0 +1,174 @@
+// loan_machine_web/src/components/coop_control_panel.rs
+
+use leptos::prelude::*;
+use leptos::server_fn::ServerFnError;
+use leptos_router::hooks::use_params;
+use leptos_router::params::Params;
+
+use crate::components::gates::{
+    HomeSkeleton, LoginRequiredCard, LoginRequiredKind, RequireWallet,
+};
+use crate::components::ui::*;
+use crate::server_fns::cooperatives::get_coop_viewer_state;
+use crate::wallet_auth::privy_bridge;
+use loan_machine_models::responses::{CooperativeView, ViewerRole};
+use loan_machine_models::wallet_address::WalletAddress;
+
+// ── PARAMS ──────────────────────────────────────────────────
+
+#[derive(Params, PartialEq, Clone)]
+struct CoopParams {
+    id: Option<String>,
+}
+
+// ── ROUTE ENTRY ─────────────────────────────────────────────
+
+#[component]
+pub fn CoopControlPanelRoute() -> impl IntoView {
+    view! {
+        <RequireWallet
+            pending=|| view! { <HomeSkeleton /> }
+            fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::Cooperatives /> }
+            render=move |wallet| view! { <CoopControlPanel wallet=wallet /> }
+        />
+    }
+}
+
+// ── PANEL ───────────────────────────────────────────────────
+
+#[component]
+pub(crate) fn CoopControlPanel(wallet: WalletAddress) -> impl IntoView {
+    let params = use_params::<CoopParams>();
+
+    // Bumped by sub-components after a successful tx so the role
+    // re-resolves (Approved → Member, etc.) without a page reload.
+    let (refresh, set_refresh) = signal(0u64);
+
+    let coop_id = Memo::new(move |_| {
+        params.read().as_ref().ok().and_then(|p| p.id.clone())
+    });
+
+    let state = LocalResource::new(move || {
+        let id = coop_id.get();
+        let _tick = refresh.get(); // subscribe so bumps refetch
+        async move {
+            let Some(id) = id else {
+                return Err(ServerFnError::new("missing_coop_id"));
+            };
+            let token = privy_bridge::get_access_token().await.unwrap_or_default();
+            if token.is_empty() {
+                return Err(ServerFnError::new("no_token_available"));
+            }
+            get_coop_viewer_state(id).await
+        }
+    });
+
+    let on_state_changed = Callback::new(move |()| set_refresh.update(|n| *n += 1));
+
+    view! {
+        <section class="section">
+            <div class="container">
+                <Suspense fallback=|| view! { <PanelSkeleton /> }>
+                    {move || state.get().map(|res| match res {
+                        Err(e) => view! {
+                            <Alert kind=AlertKind::Error>
+                                {format!("Failed to load coop: {e}")}
+                            </Alert>
+                        }.into_any(),
+                        Ok(s) => view! {
+                            <CoopHeader coop=s.coop.clone() />
+                            <Divider />
+                            <RoleSection
+                                role=s.role
+                                wallet=wallet.clone()
+                                coop=s.coop
+                                on_state_changed=on_state_changed
+                            />
+                        }.into_any(),
+                    })}
+                </Suspense>
+            </div>
+        </section>
+    }
+}
+
+#[component]
+fn PanelSkeleton() -> impl IntoView {
+    view! {
+        <div class="flex-center" style="padding: var(--sp-16) 0">
+            <span class="spinner"></span>
+        </div>
+    }
+}
+
+// ── HEADER (always shown) ───────────────────────────────────
+
+#[component]
+pub(crate) fn CoopHeader(coop: CooperativeView) -> impl IntoView {
+    let (badge_color, badge_text) = if coop.active {
+        (BadgeColor::Green, "ACTIVE")
+    } else {
+        (BadgeColor::Red, "INACTIVE")
+    };
+    let variant = if coop.active { CardVariant::Yellow } else { CardVariant::Default };
+
+    view! {
+        <Card variant=variant tag="COOPERATIVE" hover=false>
+            <div class="flex-between mb-4">
+                <Badge color=badge_color filled=coop.active live=coop.active>
+                    {badge_text}
+                </Badge>
+                <span class="t-mono-xs t-muted">
+                    {format!("ts {}", coop.registered_at)}
+                </span>
+            </div>
+            <h2 class="t-display-md t-yellow mb-6">{coop.name.clone()}</h2>
+            <div class="flex-col gap-4">
+                <div class="stat-block">
+                    <DataLabel>"Loan Machine"</DataLabel>
+                    <HashDisplay value=coop.loan_machine.clone() />
+                </div>
+                <div class="stat-block">
+                    <DataLabel>"Coop ID"</DataLabel>
+                    <HashDisplay value=coop.coop_id.clone() />
+                </div>
+            </div>
+        </Card>
+    }
+}
+
+// ── DISPATCH (the panel's only real job) ────────────────────
+
+#[component]
+pub(crate) fn RoleSection(
+    role: ViewerRole,
+    wallet: WalletAddress, 
+    coop: CooperativeView,
+    on_state_changed: Callback<()>,
+) -> impl IntoView {
+    // Suppress unused warnings until each sub-component lands.
+    let _ = (&wallet, &coop, &on_state_changed);
+
+    match role {
+        ViewerRole::Visitor          => view! { <TodoPlaceholder label="REQUEST APPROVAL FORM" /> }.into_any(),
+        ViewerRole::ApprovalPending  => view! { <TodoPlaceholder label="APPROVAL PENDING NOTICE" /> }.into_any(),
+        ViewerRole::Approved         => view! { <TodoPlaceholder label="FIRST VINCULATION SECTION" /> }.into_any(),
+        ViewerRole::Member           => view! { <TodoPlaceholder label="MEMBER PANEL" /> }.into_any(),
+        ViewerRole::Moderator        => view! { <TodoPlaceholder label="MODERATOR PANEL" /> }.into_any(),
+        ViewerRole::Admin            => view! { <TodoPlaceholder label="ADMIN PANEL" /> }.into_any(),
+    }
+}
+
+/// Honest "this isn't built yet" placeholder.  Every role gets one
+/// until its real sub-component lands.  Visible in dev, easy to grep.
+#[component]
+fn TodoPlaceholder(label: &'static str) -> impl IntoView {
+    view! {
+        <Card variant=CardVariant::Default hover=false>
+            <Badge color=BadgeColor::Gold>"TODO"</Badge>
+            <p class="t-mono-sm t-muted" style="margin-top: var(--sp-4)">
+                {format!("Sub-component pending: {label}")}
+            </p>
+        </Card>
+    }
+}

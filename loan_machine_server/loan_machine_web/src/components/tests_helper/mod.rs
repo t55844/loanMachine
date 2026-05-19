@@ -1,6 +1,8 @@
 // loan_machine_web/tests/common/mod.rs
 use std::str::FromStr;
 use loan_machine_models::wallet_address::WalletAddress;
+use crate::components::helpers::prices::Prices;
+use leptos::prelude::*;
 
 /// A syntactically valid wallet address for tests. The bytes are arbitrary
 /// (all-1s rather than all-0s so it doesn't collide with Address::ZERO),
@@ -8,4 +10,9 @@ use loan_machine_models::wallet_address::WalletAddress;
 pub fn fake_wallet() -> WalletAddress {
     WalletAddress::from_str("0x1111111111111111111111111111111111111111")
         .expect("fake_wallet fixture must parse")
+}
+
+pub fn seed_prices(value: Option<Prices>) {
+    let (r, _) = signal(value);
+    provide_context(r);
 }

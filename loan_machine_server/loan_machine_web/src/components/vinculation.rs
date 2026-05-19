@@ -10,23 +10,18 @@
 // when the user accepts; that's where we set tx_status → Pending and
 // hand the bundle to `privy_bridge::send_tx`.
 //
-// This file deliberately does not import `wasm_bindgen::JsCast` or
-// `web_sys::CustomEvent` — all JS interop lives behind
-// `crate::wallet_auth::privy_bridge`.
-// (The one wasm-bindgen import that *does* remain is for the
-// `<input>` form-field type check inside `IdentifyCard`, which is a
-// DOM concern, not a Privy concern.)
+// All JS interop lives behind `crate::wallet_auth::privy_bridge`.
+// The CPF/CNPJ input block lives behind `ui::DocumentInput` — no
+// wasm_bindgen / web_sys imports in this file anymore.
 
 use leptos::prelude::*;
 use leptos::ev::SubmitEvent;
-use leptos::web_sys;
-use wasm_bindgen::JsCast;
 
 use crate::components::ui::*;
 use crate::components::gas_modal::{use_gas_modal, GasEstimate, GasModalRequest};
 use crate::wallet_auth::privy_bridge::{self, TxOutcome};
 use loan_machine_models::requests::DocKind;
-
+use crate::components::cpf_cnpj::doc_input_snipet::{DocumentInput};
 use crate::server_fns::vinculation::prepare_first_vinculation;
 
 // ── STATE TYPES ───────────────────────────────────────────────
@@ -74,7 +69,8 @@ pub fn FirstVinculationForm(
 
     // ── Derived signals from the action ────────────────────────
     let loading = prepare.pending();
-    let error_text = Signal::derive(move || match prepare.value().get() {
+    let error_text = Signal::derive(move ||
+        match prepare.value().get() {
         Some(Err(e)) => e.to_string(),
         _ => String::new(),
     });
@@ -89,7 +85,8 @@ pub fn FirstVinculationForm(
     // Subscribe to bridge events. The closure maps the bridge's
     // TxOutcome (Complete/Failed) into our richer TxStatus.
     // Cleanup is automatic on unmount — the bridge handles it.
-    privy_bridge::on_tx_outcome(move |outcome| match outcome {
+    privy_bridge::on_tx_outcome(move |outcome|
+        match outcome {
         TxOutcome::Complete(hash) => set_tx_status.set(TxStatus::Complete(hash)),
         TxOutcome::Failed(err) => set_tx_status.set(TxStatus::Failed(err)),
     });
@@ -102,19 +99,6 @@ pub fn FirstVinculationForm(
     });
 
     // ── Open the gas modal when a fresh bundle is ready ────────
-    //
-    // Triggers on the transition where:
-    //   - the action just settled with Ok(bundle)        (bundle.get() = Some)
-    //   - no tx is in flight or completed                (tx_status = Idle)
-    //
-    // Re-runs naturally when:
-    //   - a new prepare settles (new bundle replaces old)
-    //   - user clicks "TENTAR NOVAMENTE" after a failure (tx_status: Failed → Idle)
-    //   In both cases the modal pops back up — desired retry behaviour.
-    //
-    // Does NOT re-open after a successful confirm because tx_status
-    // moves to Pending, then Complete; only an explicit reset to Idle
-    // can reopen.
     let set_gas_modal = use_gas_modal();
     Effect::new(move |_| {
         if tx_status.get() != TxStatus::Idle {
@@ -142,7 +126,6 @@ pub fn FirstVinculationForm(
 
     view! {
         <div class="flex-col gap-8">
-            // STEP 1 — fill in form, dispatch prepare.
             <IdentifyCard
                 error=error_text
                 loading=loading
@@ -151,9 +134,6 @@ pub fn FirstVinculationForm(
                 })
             />
 
-            // STEP 2 (here in the form) — show tx progress once
-            // signing has started.  The "confirm" step itself lives
-            // in <GasModal />, opened by the effect above.
             <TxStatusCard
                 tx_status=tx_status
                 on_retry=Callback::new(move |()| set_tx_status.set(TxStatus::Idle))
@@ -170,42 +150,19 @@ fn IdentifyCard(
     #[prop(into)] error: Signal<String>,
     #[prop(into)] loading: Signal<bool>,
 ) -> impl IntoView {
-    let (doc_kind, set_doc_kind) = signal(DocKind::Cpf);
-    let (document, set_document) = signal(String::new());
-    let (coop_id, set_coop_id) = signal(String::new());
+    // Signals owned by the form.  The toggle-and-clear behavior + the
+    // input filter live inside DocumentInput — nothing to wire here.
+    let (doc_kind,   set_doc_kind)    = signal(DocKind::Cpf);
+    let (document,   set_document)    = signal(String::new());
+    let (coop_id,    set_coop_id)     = signal(String::new());
     let (access_code, set_access_code) = signal(String::new());
-
-    let switch_to = move |kind: DocKind| {
-        set_doc_kind.set(kind);
-        set_document.set(String::new());
-    };
-
-    let on_document_input = move |ev: leptos::ev::Event| {
-        let Some(input) = ev
-            .target()
-            .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
-        else {
-            return;
-        };
-        let raw = input.value();
-        let max_len = doc_kind.get().max_input_len();
-        let cleaned: String = raw
-            .chars()
-            .filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '/'))
-            .take(max_len)
-            .collect();
-        if cleaned != raw {
-            input.set_value(&cleaned);
-        }
-        set_document.set(cleaned);
-    };
 
     let on_prepare = move |ev: SubmitEvent| {
         ev.prevent_default();
         on_submit.run(FormFields {
-            kind: doc_kind.get(),
-            document: document.get(),
-            coop_id: coop_id.get(),
+            kind:        doc_kind.get(),
+            document:    document.get(),
+            coop_id:     coop_id.get(),
             access_code: access_code.get(),
         });
     };
@@ -223,54 +180,10 @@ fn IdentifyCard(
                 on:submit=on_prepare
                 style="display:flex; flex-direction:column; gap:var(--sp-6); margin-top:var(--sp-4)"
             >
-                <div class="doc-kind-toggle" role="tablist">
-                    <button
-                        type="button"
-                        role="tab"
-                        class=move || if doc_kind.get() == DocKind::Cpf {
-                            "toggle-btn toggle-btn-active"
-                        } else {
-                            "toggle-btn"
-                        }
-                        on:click=move |_| switch_to(DocKind::Cpf)
-                    >
-                        "CPF"
-                    </button>
-                    <button
-                        type="button"
-                        role="tab"
-                        class=move || if doc_kind.get() == DocKind::Cnpj {
-                            "toggle-btn toggle-btn-active"
-                        } else {
-                            "toggle-btn"
-                        }
-                        on:click=move |_| switch_to(DocKind::Cnpj)
-                    >
-                        "CNPJ"
-                    </button>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">
-                        {move || doc_kind.get().label()}
-                    </label>
-                    <input
-                        class="form-input"
-                        type="text"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        prop:value=document
-                        placeholder=move || doc_kind.get().placeholder()
-                        maxlength=move || doc_kind.get().max_input_len() as i32
-                        on:input=on_document_input
-                    />
-                    <span class="form-hint">
-                        {move || match doc_kind.get() {
-                            DocKind::Cpf  => "11 dígitos — formatação opcional",
-                            DocKind::Cnpj => "14 dígitos — formatação opcional",
-                        }}
-                    </span>
-                </div>
+                <DocumentInput
+                    doc_kind set_doc_kind
+                    document set_document
+                />
 
                 <TextInput
                     label="ID da Cooperativa"

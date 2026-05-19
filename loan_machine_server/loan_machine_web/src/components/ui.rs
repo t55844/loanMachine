@@ -3,8 +3,7 @@
 // Usage: use crate::components::ui::*;
 use crate::app::{Navbar};
 use leptos::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
+
 // ── LAYOUT ──────────────────────────────────────────────────
 
 /// Page wrapper with navbar + content
@@ -291,43 +290,8 @@ pub fn StatBlock(
 /// Monospaced address/hash display with copy button
 #[component]
 pub fn HashDisplay(value: String) -> impl IntoView {
-    let val_for_copy = value.clone();
     let val_for_title = value.clone();
-
-    let (copied, set_copied) = signal(false);
-
-    let handle_copy = move |_| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            use js_sys::{Function, Reflect};
-            use wasm_bindgen::{JsCast, JsValue};
-
-            let v = val_for_copy.clone();
-            let window = web_sys::window().unwrap();
-            let nav  = Reflect::get(&window, &JsValue::from_str("navigator")).unwrap();
-            let clip = Reflect::get(&nav, &JsValue::from_str("clipboard")).unwrap();
-            if let Ok(f) = Reflect::get(&clip, &JsValue::from_str("writeText"))
-                .and_then(|val| val.dyn_into::<Function>().map_err(|e| e.into()))
-            {
-                let _ = f.call1(&clip, &JsValue::from_str(&v));
-            }
-
-            set_copied.set(true);
-            let cb = wasm_bindgen::closure::Closure::<dyn FnMut()>::new(move || {
-                set_copied.set(false);
-            });
-            let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-                cb.as_ref().unchecked_ref(),
-                2000,
-            );
-            cb.forget();
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let _ = &val_for_copy;
-            let _ = set_copied;
-        }
-    };
+    let val_for_copy  = value.clone();
 
     view! {
         <div class="hash-display hash-display-copyable" title=val_for_title>
@@ -335,9 +299,7 @@ pub fn HashDisplay(value: String) -> impl IntoView {
                 <span style="color: var(--c-gold)">{"◈ "}</span>
                 {value}
             </span>
-            <button class="hash-copy-btn" on:click=handle_copy>
-                {move || if copied.get() { "✓" } else { "⧉" }}
-            </button>
+            <CopyButton value=val_for_copy />
         </div>
     }
 }
@@ -431,4 +393,117 @@ pub fn Divider(
     view! {
         <div class="divider-cordel">{s}</div>
     }
+}
+
+
+// ── LINK ────────────────────────────────────────────
+
+use leptos_router::components::A;
+
+#[derive(Clone, PartialEq)]
+pub enum LinkTagColor { Yellow, Gold, Green }
+
+#[derive(Clone, PartialEq)]
+pub enum LinkTagSize  { Sm, Md, Lg }
+
+#[component]
+pub fn LinkTag(
+    #[prop(into)] href: String,
+    #[prop(optional, default=LinkTagColor::Yellow)] color: LinkTagColor,
+    #[prop(optional, default=LinkTagSize::Md)]      size: LinkTagSize,
+    children: Children,
+) -> impl IntoView {
+    let color_class = match color {
+        LinkTagColor::Yellow => "link-tag link-tag-yellow",
+        LinkTagColor::Gold   => "link-tag link-tag-gold",
+        LinkTagColor::Green  => "link-tag link-tag-green",
+    };
+    let size_class = match size {
+        LinkTagSize::Sm => " link-tag-sm",
+        LinkTagSize::Md => "",
+        LinkTagSize::Lg => " link-tag-lg",
+    };
+    let class = format!("{color_class}{size_class}");
+
+    view! {
+        <A href=href attr:class=class>
+            {children()}
+            " →"
+        </A>
+    }
+}
+
+// ── COPY BUTTON ──────────────────────────────────────────────
+
+/// Self-contained copy-to-clipboard button. Shows ⧉, flips to ✓ for 1.5s after a copy.
+#[component]
+pub fn CopyButton(
+    #[prop(into)] value: String,
+    #[prop(optional, default = "Copiar")] title: &'static str,
+) -> impl IntoView {
+    let (copied, set_copied) = signal(false);
+
+    let on_click = {
+        let value = value.clone();
+        move |_| {
+            #[cfg(target_arch = "wasm32")]
+            {
+                use wasm_bindgen::JsCast;
+                let value = value.clone();
+                leptos::task::spawn_local(async move {
+                    let Some(window) = web_sys::window() else { return };
+                    let promise = window.navigator().clipboard().write_text(&value);
+                    if wasm_bindgen_futures::JsFuture::from(promise).await.is_ok() {
+                        set_copied.set(true);
+                        let cb = wasm_bindgen::closure::Closure::once_into_js(
+                            move || set_copied.set(false)
+                        );
+                        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                            cb.as_ref().unchecked_ref(),
+                            1500,
+                        );
+                    }
+                });
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            let _ = &value;
+        }
+    };
+
+    view! {
+        <button
+            class="copy-btn"
+            class:copy-btn-copied=move || copied.get()
+            title=title
+            on:click=on_click
+        >
+            {move || if copied.get() { "✓" } else { "⧉" }}
+        </button>
+    }
+}
+
+
+// ── MONEY ────────────────────────────────────────────────────
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum MoneyCurrency { Eth, Usd, Brl }
+
+/// Formatted monetary value with currency-specific decimals/prefix.
+/// `None` renders the unavailable state ("$—", "R$—", "— ETH").
+#[component]
+pub fn Money(
+    currency: MoneyCurrency,
+    value: Option<f64>,
+) -> impl IntoView {
+    let (modifier, formatted) = match (currency, value) {
+        (MoneyCurrency::Eth, Some(v)) => ("money-eth",  format!("{v:.4} ETH")),
+        (MoneyCurrency::Eth, None)    => ("money-eth",  "— ETH".to_string()),
+        (MoneyCurrency::Usd, Some(v)) => ("money-fiat", format!("${v:.2}")),
+        (MoneyCurrency::Usd, None)    => ("money-fiat", "$—".to_string()),
+        (MoneyCurrency::Brl, Some(v)) => ("money-fiat", format!("R${v:.2}")),
+        (MoneyCurrency::Brl, None)    => ("money-fiat", "R$—".to_string()),
+    };
+    let class = format!("money {modifier}");
+
+    view! { <span class=class>{formatted}</span> }
 }

@@ -65,24 +65,28 @@ pub(crate) fn CoopCard(coop: CooperativeView) -> impl IntoView {
     };
 
     view! {
-        <Card variant=variant tag="COOPERATIVE" hover=true>
-            <div class="flex-between mb-4">
-                <Badge color=badge_color filled=coop.active live=coop.active>
-                    {badge_text}
-                </Badge>
-                <span class="t-mono-xs t-muted">{format!("ts {}", coop.registered_at)}</span>
-            </div>
-            <h3 class="t-display-md t-yellow mb-6">{coop.name.clone()}</h3>
-            <div class="flex-col gap-4">
-                <div class="stat-block">
-                    <span class="stat-label">"Loan Machine"</span>
-                    <HashDisplay value=coop.loan_machine.clone() />
+            <Card variant=variant tag="COOPERATIVE" hover=true>
+                <div class="flex-between mb-4">
+                    <Badge color=badge_color filled=coop.active live=coop.active>
+                        {badge_text}
+                    </Badge>
+                    <span class="t-mono-xs t-muted">{format!("ts {}", coop.registered_at)}</span>
                 </div>
-                <div class="stat-block">
-                    <span class="stat-label">"Coop ID"</span>
-                    <HashDisplay value=coop.coop_id.clone() />
+                <h3 class="t-display-md t-yellow mb-6">{coop.name.clone()}</h3>
+                <div class="flex-col gap-4">
+                    <div class="stat-block">
+                        <span class="stat-label">"Loan Machine"</span>
+                        <HashDisplay value=coop.loan_machine.clone() />
+                    </div>
+                    <div class="stat-block">
+                        <span class="stat-label">"Coop ID"</span>
+                        <HashDisplay value=coop.coop_id.clone() />
+                    </div>
                 </div>
-            </div>
-        </Card>
+                <LinkTag href=format!("/cooperatives/{}", coop.coop_id)>
+                    "Ver cooperativa"
+                </LinkTag>
+                
+            </Card>
     }
 }

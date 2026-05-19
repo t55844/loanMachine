@@ -691,25 +691,6 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "wallet",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "memberId",
-        "type": "bytes32"
-      }
-    ],
-    "name": "MemberJoined",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "internalType": "bytes32",
         "name": "memberId",
         "type": "bytes32"
@@ -723,8 +704,14 @@
       {
         "indexed": false,
         "internalType": "address[]",
-        "name": "walletVinculated",
+        "name": "allWallets",
         "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isFirstWallet",
+        "type": "bool"
       },
       {
         "indexed": false,
@@ -733,7 +720,7 @@
         "type": "uint256"
       }
     ],
-    "name": "MemberToWalletVinculation",
+    "name": "MemberRegistered",
     "type": "event"
   },
   {
@@ -1314,25 +1301,6 @@
     ],
     "name": "blockWithdrawal",
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "wallet",
-        "type": "address"
-      }
-    ],
-    "name": "bootstrapApproveWallet",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -2328,6 +2296,11 @@
         "internalType": "string",
         "name": "accessCode",
         "type": "string"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "founderMemberId",
+        "type": "bytes32"
       }
     ],
     "name": "initializeMultisig",
@@ -2363,25 +2336,6 @@
       }
     ],
     "name": "isBorrowerOverdue",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "isMember",
     "outputs": [
       {
         "internalType": "bool",

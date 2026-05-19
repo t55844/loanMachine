@@ -4,14 +4,14 @@ import {
   ProposalCreated, ProposalConfirmed, ProposalExecuted,
   AdminAdded, AdminRemoved, AdminTransferred, ThresholdChanged,
   ProposalCosigned, WalletApproved, WalletRevoked,
-  MemberJoined, AccessCodeRotated, CoopDeactivated, CoopReactivated,
+  MemberRegistered, AccessCodeRotated, CoopDeactivated, CoopReactivated,
   WithdrawalRequested, WithdrawalExecuted, WithdrawalBlocked, WithdrawalCancelled,
   Donated, Withdrawn, Borrowed, Repaid,
   TotalDonationsUpdated, TotalBorrowedUpdated, AvailableBalanceUpdated, NewDonor,
   LoanRequisitionCreatedCancelled, LoanCovered, LoanFunded, LoanContractGenerated,
   ParcelPaid, LenderRepaid, LoanCompleted, LoanUncovered,
   BorrowerOverdue, BorrowerDebtSettled,
-  MemberToWalletVinculation, ReputationChanged, AuthorizedCallerUpdated,
+  ReputationChanged, AuthorizedCallerUpdated,
   ElectionOpened, CandidateAdded, VoteCast, ElectionClosed,
   UnbeatableMajorityReached, NewModerator
 } from "../generated/templates/LoanMachine/LoanMachine"
@@ -21,14 +21,14 @@ import {
   ProposalCreatedEvent, ProposalConfirmedEvent, ProposalExecutedEvent,
   AdminAddedEvent, AdminRemovedEvent, AdminTransferredEvent, ThresholdChangedEvent,
   ProposalCosignedEvent, WalletApprovedEvent, WalletRevokedEvent,
-  MemberJoinedEvent, AccessCodeRotatedEvent, CoopDeactivatedEvent, CoopReactivatedEvent,
+  MemberRegisteredEvent, AccessCodeRotatedEvent, CoopDeactivatedEvent, CoopReactivatedEvent,
   WithdrawalRequestedEvent, WithdrawalExecutedEvent, WithdrawalBlockedEvent, WithdrawalCancelledEvent,
   DonatedEvent, WithdrawnEvent, BorrowedEvent, RepaidEvent,
   TotalDonationsUpdatedEvent, TotalBorrowedUpdatedEvent, AvailableBalanceUpdatedEvent, NewDonorEvent,
   LoanRequisitionCreatedCancelledEvent, LoanCoveredEvent, LoanFundedEvent,
   LoanContractGeneratedEvent, ParcelPaidEvent, LenderRepaidEvent,
   LoanCompletedEvent, LoanUncoveredEvent, BorrowerOverdueEvent, BorrowerDebtSettledEvent,
-  MemberToWalletVinculationEvent, ReputationChangedEvent, AuthorizedCallerUpdatedEvent,
+  ReputationChangedEvent, AuthorizedCallerUpdatedEvent,
   ElectionOpenedEvent, CandidateAddedEvent, VoteCastEvent, ElectionClosedEvent,
   UnbeatableMajorityReachedEvent, NewModeratorEvent
 } from "../generated/schema"
@@ -165,11 +165,20 @@ export function handleWalletRevoked(event: WalletRevoked): void {
 //                     MEMBERSHIP
 // ═════════════════════════════════════════════════════════════
 
-export function handleMemberJoined(event: MemberJoined): void {
-  let entity = new MemberJoinedEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.wallet          = event.params.wallet
-  entity.memberId        = event.params.memberId
+export function handleMemberRegistered(event: MemberRegistered): void {
+  let entity = new MemberRegisteredEvent(makeId(event))
+  entity.cooperative   = coopId(event)
+  entity.memberId      = event.params.memberId
+  entity.wallet        = event.params.wallet
+  entity.isFirstWallet = event.params.isFirstWallet
+
+  let wallets: Bytes[] = []
+  for (let i = 0; i < event.params.allWallets.length; i++) {
+    wallets.push(event.params.allWallets[i] as Bytes)
+  }
+  entity.allWallets = wallets
+
+  entity.timestamp       = formatTimestamp(event.params.timestamp)
   entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()
@@ -471,23 +480,6 @@ export function handleBorrowerDebtSettled(event: BorrowerDebtSettled): void {
 // ═════════════════════════════════════════════════════════════
 //                     REPUTATION
 // ═════════════════════════════════════════════════════════════
-
-export function handleMemberToWalletVinculation(event: MemberToWalletVinculation): void {
-  let entity = new MemberToWalletVinculationEvent(makeId(event))
-  entity.cooperative = coopId(event)
-  entity.memberId    = event.params.memberId
-  entity.wallet      = event.params.wallet
-
-  let walletVinculatedBytes: Bytes[] = []
-  for (let i = 0; i < event.params.walletVinculated.length; i++) {
-    walletVinculatedBytes.push(event.params.walletVinculated[i] as Bytes)
-  }
-  entity.walletVinculated = walletVinculatedBytes
-  entity.timestamp        = formatTimestamp(event.params.timestamp)
-  entity.blockTimestamp   = formatTimestamp(event.block.timestamp)
-  entity.transactionHash  = event.transaction.hash
-  entity.save()
-}
 
 export function handleReputationChanged(event: ReputationChanged): void {
   let entity = new ReputationChangedEvent(makeId(event))

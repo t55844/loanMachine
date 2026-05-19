@@ -148,8 +148,8 @@
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/contracts/LoanMachine.sol": {
-      "lastModificationDate": 1777767078955,
-      "contentHash": "e123341782dfb9b3b6fc04574dc87fbb",
+      "lastModificationDate": 1779152145890,
+      "contentHash": "4f0e842705cd2dfca342a475bb2fdfed",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -189,9 +189,45 @@
         "LoanMachine"
       ]
     },
+    "/home/thorim/projects/loan-machine/hardhat/contracts/IReputationSystem.sol": {
+      "lastModificationDate": 1778988845093,
+      "contentHash": "ee8d71c0ee5424ea0ea64388a8bd9100",
+      "sourceName": "contracts/IReputationSystem.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 10
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "IReputationSystem"
+      ]
+    },
     "/home/thorim/projects/loan-machine/hardhat/contracts/ReputationLib.sol": {
-      "lastModificationDate": 1776551179467,
-      "contentHash": "fbf17177a5a8814828f5c20dfe350892",
+      "lastModificationDate": 1778984483359,
+      "contentHash": "2ddfef73ee0bf2a9b556e196d7d6d7da",
       "sourceName": "contracts/ReputationLib.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -225,42 +261,6 @@
       ],
       "artifacts": [
         "ReputationLib"
-      ]
-    },
-    "/home/thorim/projects/loan-machine/hardhat/contracts/IReputationSystem.sol": {
-      "lastModificationDate": 1776551179230,
-      "contentHash": "50d8a34de4919f7ac3c63b0ba3553598",
-      "sourceName": "contracts/IReputationSystem.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 10
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "IReputationSystem"
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol": {
