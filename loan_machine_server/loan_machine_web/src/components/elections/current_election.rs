@@ -24,18 +24,20 @@ use crate::components::gas_modal::{use_gas_modal, GasEstimate, GasModalRequest};
 use crate::server_fns::elections::prepare_open_election;
 use crate::wallet_auth::privy_bridge::{self, TxOutcome};
 
+use crate::components::elections::vote_election::VoteElection;
+
 #[component]
 pub fn CurrentElection(
     #[prop(into)] coop_id:       String,
-    #[prop(into)] caller_wallet: WalletAddress,
-    current:      Option<ElectionView>,
+                  current:       Option<ElectionView>,
+                  reputation:    Option<i32>,   // None = loading / unvinculated
     on_tx_success: Callback<()>,
 ) -> impl IntoView {
-    let _ = caller_wallet; // will be used by vote / close actions
-
     match current {
-        Some(v) => ActiveElectionStep(ActiveElectionStepProps { view_data: v }).into_any(),
-        None    => StartElectionStep(StartElectionStepProps {
+        Some(v) => ActiveElectionStep(ActiveElectionStepProps {
+            coop_id, view_data: v, reputation, on_tx_success,
+        }).into_any(),
+        None => StartElectionStep(StartElectionStepProps {
             coop_id, on_tx_success,
         }).into_any(),
     }
@@ -182,9 +184,21 @@ fn StartElectionStep(
 // ActiveElectionStep
 // ─────────────────────────────────────────────────────────────────────────────
 
+
 #[component]
-fn ActiveElectionStep(view_data: ElectionView) -> impl IntoView {
-    let candidate_count = view_data.candidates.len();
+fn ActiveElectionStep(
+    #[prop(into)] coop_id:       String,
+                  view_data:     ElectionView,
+                  reputation:    Option<i32>,
+    on_tx_success: Callback<()>,
+) -> impl IntoView {
+    let candidate_count     = view_data.candidates.len();
+
+    let rep_label = match reputation {
+        Some(r) => r.to_string(),
+        None    => "—".into(),
+    };
+    let zero_rep_warning = matches!(reputation, Some(0));
 
     view! {
         <Card variant=CardVariant::Gold>
@@ -192,18 +206,21 @@ fn ActiveElectionStep(view_data: ElectionView) -> impl IntoView {
             <div class="flex-col gap-6" style="margin-top: var(--sp-6)">
 
                 <Alert kind=AlertKind::Info>
-                    "A eleição está aberta. Os membros podem votar até o encerramento."
+                    "A eleição está aberta. O peso do seu voto é igual à sua reputação."
                 </Alert>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4)">
-                    <StatBlock
-                        label="Total de votos"
-                        value=view_data.total_votes_cast.to_string()
-                    />
-                    <StatBlock
-                        label="Encerramento"
-                        value=format_epoch(view_data.end_time)
-                    />
+                {zero_rep_warning.then(|| view! {
+                    <Alert kind=AlertKind::Warning>
+                        "Você tem reputação zero — seu voto será registrado mas não
+                         influenciará o resultado. Cubra um empréstimo ou quite uma
+                         parcela em dia para ganhar reputação."
+                    </Alert>
+                })}
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-4)">
+                    <StatBlock label="Sua reputação"  value=rep_label />
+                    <StatBlock label="Total de votos" value=view_data.total_votes_cast.to_string() />
+                    <StatBlock label="Encerramento"   value=format_epoch(view_data.end_time) />
                 </div>
 
                 <div class="form-group">
@@ -225,13 +242,15 @@ fn ActiveElectionStep(view_data: ElectionView) -> impl IntoView {
                     </div>
                 </div>
 
-                // TODO: VoteStep and CloseElectionStep go here once
-                // prepare_vote_logic / prepare_close_election_logic land.
+                <VoteElection
+                    coop_id=coop_id
+                    election_id=view_data.id
+                    on_tx_success=on_tx_success
+                />
             </div>
         </Card>
     }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
 // ─────────────────────────────────────────────────────────────────────────────

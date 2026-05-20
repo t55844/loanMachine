@@ -31,6 +31,8 @@ pub use contract_errors::{translate_revert, friendly_from_error, extract_revert_
 
 use loan_machine_models::wallet_address::WalletAddress;
 
+use crate::services::subgraph::SubgraphError;
+
 // ── ERRORS ───────────────────────────────────────────────────
 // One central error type for all blockchain operations.
 
@@ -66,6 +68,9 @@ pub enum BlockchainError {
 
     #[error("carteira não vinculada a nenhum membro: {0}")]
     WalletNotVinculated(WalletAddress),
+
+    #[error(transparent)]
+    Subgraph(#[from] SubgraphError),
 }
 
 impl BlockchainError {

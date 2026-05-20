@@ -142,7 +142,7 @@ fn ElectionsRoute() -> impl IntoView {
             fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::CreateCoop /> }
             render=move |wallet| {
                 let coop_id = params.read().get("id").unwrap_or_default();
-                view! { <ElectionsPage coop_id caller_wallet=wallet /> }
+                view! { <ElectionsPage coop_id /> }
             }
         />
     }

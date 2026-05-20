@@ -1,16 +1,16 @@
 // loan_machine_web/src/server_fns/elections.rs
 //
-// Two #[server] functions, both thin wrappers around server_logic::elections.
+// Four #[server] functions, all thin wrappers around server_logic::elections.
 //
-//   get_current_election  — read.  Anyone authenticated can call it.
-//   prepare_open_election — write bundle.  Caller wallet comes from the JWT
-//                           via Authenticated::require(); never trusted from
-//                           the request body.
+//   get_current_election    — read.  Anyone authenticated can call it.
+//   get_wallet_reputation   — read.  Auth-gated; wallet comes from JWT, not body.
+//   prepare_open_election   — write bundle.  Caller wallet from JWT.
+//   prepare_vote            — write bundle.  Voter wallet from JWT.
 
 use leptos::prelude::*;
 use leptos::server_fn::ServerFnError;
 
-use loan_machine_models::responses::{ElectionView, OpenElectionBundle};
+use loan_machine_models::responses::{ElectionView, OpenElectionBundle, VoteBundle};
 use loan_machine_models::wallet_address::WalletAddress;
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
@@ -21,14 +21,35 @@ pub async fn get_current_election(
     use loan_machine_core::server_logic::elections::get_current_election_logic;
     use crate::server_fns::auth::Authenticated;
 
-    // We don't need the wallet for a read; require() is here so the endpoint
-    // is auth-gated and shows up consistently in tracing/logging.
     let _auth = Authenticated::require().await?;
     let state = expect_context::<AppState>();
 
-    get_current_election_logic(&state.blockchain_service, &coop_id)
+    get_current_election_logic(&state.subgraph, &state.blockchain_service, &coop_id)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn get_wallet_reputation(
+    coop_id: String,
+) -> Result<i32, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::elections::get_wallet_reputation_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    // Wallet from JWT — the client never gets to ask about someone else's rep.
+    let auth   = Authenticated::require().await?;
+    let wallet = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    get_wallet_reputation_logic(
+        &state.subgraph,
+        &state.blockchain_service,
+        &coop_id,
+        wallet,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))
 }
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
@@ -55,4 +76,48 @@ pub async fn prepare_open_election(
     )
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn prepare_vote(
+    coop_id:          String,
+    election_id:      u32,
+    candidate_wallet: WalletAddress,
+) -> Result<VoteBundle, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::elections::prepare_vote_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    // Voter wallet from JWT — body only carries who you're voting *for*.
+    let auth  = Authenticated::require().await?;
+    let voter = auth.wallet().await?;
+    let state = expect_context::<AppState>();
+
+    prepare_vote_logic(
+        &state.subgraph,
+        &state.blockchain_service,
+        &coop_id,
+        election_id,
+        candidate_wallet,
+        voter,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn get_last_closed_election(
+    coop_id: String,
+) -> Result<Option<ElectionView>, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::elections::get_last_closed_election_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let _auth = Authenticated::require().await?;
+    let state = expect_context::<AppState>();
+
+    get_last_closed_election_logic(&state.subgraph, &state.blockchain_service, &coop_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))
 }

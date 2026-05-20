@@ -86,7 +86,24 @@ async fn prepare_open_election_errors_when_candidate_not_vinculated() {
 async fn get_current_election_returns_none_on_fresh_coop() {
     let env = common::get_deployed().await;
 
-    let result = get_current_election_logic(&env.blockchain, &env.coop_id_hex)
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": { "memberRegisteredEvents": [{
+                    "cooperative": {
+                        "coopId":  "0xefcbd6de3a895f71f3888329edcba05543ab0bd0f5833a5d84bd4352ee45fec9",
+                        "memberId":  "0xdcb6857f0be97113138f58260b76a23ec1b831907bfd709276888f6a24ad41e4",
+                        "isFirstWallet":      true,
+                    },
+                    "wallet": "0x000000000000000000000000000000000000bEEF",
+                }] }
+        })))
+        .mount(&server)
+        .await;
+    let subgraph = SubgraphService::new(server.uri());
+
+    let result = get_current_election_logic(&subgraph, &env.blockchain, &env.coop_id_hex)
         .await
         .expect("read should not error on a healthy contract");
 

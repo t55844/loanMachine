@@ -1,23 +1,5 @@
 // loan_machine_web/src/components/elections/last_result.rs
-//
-// Purely presentational — renders the most recently CLOSED election.
-// Receives `last: Option<ElectionView>` and either renders the result
-// or an empty-state card.
-//
-// ── Data layer (TODO) ─────────────────────────────────────────
-// The contract has no `getLastClosedElectionId()` — `getCurrentElectionId()`
-// returns -1 for *both* "no elections" and "last election closed", so there's
-// no way to find the last result from the chain alone without iterating.
-//
-// The right source is the subgraph:
-//   1. Add `get_last_closed_election(s: &SubgraphService, coop_id: &str)`
-//      to server_logic/subgraph_queries/elections.rs:
-//      query ElectionClosed entities ordered by blockTimestamp desc, limit 1.
-//   2. Add `get_last_closed_election` #[server] fn in server_fns/elections.rs.
-//   3. In elections.rs (page): add a Resource for it and pass the result here.
-//
-// Until that lands, ElectionsPage passes `last=None` and this component
-// renders the empty state below.
+
 
 use leptos::prelude::*;
 
@@ -72,7 +54,7 @@ fn ClosedElectionStep(view_data: ElectionView) -> impl IntoView {
 
                 // ── Winner ───────────────────────────────────────────
                 <div class="form-group">
-                    <label class="form-label">"Vencedor (Member ID)"</label>
+                    <label class="form-label">"Vencedor (Carteira)"</label>
                     <div style="margin-top: var(--sp-3)">
                         {if winner_is_zero {
                             view! { <span class="t-mono-xs t-muted">"N/A — sem votos"</span> }.into_any()

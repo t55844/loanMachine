@@ -28,6 +28,13 @@ pub struct OpenElectionBundle {
     pub data:    String, // "0x..." ABI-encoded openElection(candidateId, opponentId)
     pub gas_hex: String, // "0x..." pinned gas limit
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct VoteBundle  {
+    pub to:      String, 
+    pub data:    String, 
+    pub gas_hex: String, 
+}
  
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ElectionView {
