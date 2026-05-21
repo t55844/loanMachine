@@ -7,6 +7,7 @@ use leptos_router::location::RequestUrl;
 use crate::components::coop_control::coop_control_panel::CoopControlPanelRoute;
 use crate::components::tests_helper::seed_prices;
 use crate::wallet_auth::session::{WalletCtx, WalletSession};
+use crate::components::gas_modal::provide_gas_modal;
 
 // ── Helper ────────────────────────────────────────────────
 
@@ -77,29 +78,38 @@ fn fake_coop() -> CooperativeView {
 }
 
 fn render_role(role: ViewerRole) -> String {
-    render_to_string(move || view! {
-        <RoleSection
-            role=role
-            wallet=fake_wallet()
-            coop=fake_coop()
-            on_state_changed=Callback::new(|_| {})
-        />
+    render_to_string(move || {
+        provide_gas_modal();   // needed by RequestApproval + FirstVinculationForm
+        view! {
+            <RoleSection
+                role=role
+                wallet=fake_wallet()
+                coop=fake_coop()
+                on_state_changed=Callback::new(|_| {})
+            />
+        }
     })
 }
 
-#[test]
-fn visitor_role_shows_request_approval_placeholder() {
-    assert!(render_role(ViewerRole::Visitor).contains("REQUEST APPROVAL FORM"));
-}
 
 #[test]
-fn approval_pending_role_shows_pending_placeholder() {
-    assert!(render_role(ViewerRole::ApprovalPending).contains("APPROVAL PENDING NOTICE"));
+fn visitor_role_shows_request_approval_card() {
+    let html = render_role(ViewerRole::Visitor);
+    assert!(html.contains("VISITANTE — PEDIDO DE APROVAÇÃO"),
+        "expected approval-request card tag, got:\n{html}");
+    assert!(html.contains("INICIAR PEDIDO DE APROVAÇÃO"),
+        "expected initiate button, got:\n{html}");
 }
 
+
+
 #[test]
-fn approved_role_shows_first_vinculation_placeholder() {
-    assert!(render_role(ViewerRole::Approved).contains("FIRST VINCULATION SECTION"));
+fn approved_role_shows_first_vinculation_form() {
+    let html = render_role(ViewerRole::Approved);
+    assert!(html.contains("VINCULE SUA CARTEIRA"),
+        "expected vinculation form title, got:\n{html}");
+    assert!(html.contains("PASSO 01"),
+        "expected vinculation form step card, got:\n{html}");
 }
 
 #[test]

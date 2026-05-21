@@ -60,7 +60,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
     let (step, set_step) = signal(CoopStep::Form);
 
     let (name,     set_name)     = signal(String::new());
-    let (doc_kind, set_doc_kind) = signal(DocKind::Cpf);
+    let (doc_kind, set_doc_kind) = signal(DocKind::Cnpj);
     let (document, set_document) = signal(String::new());
     let (admin2,   set_admin2)   = signal(String::new());
     let (admin3,   set_admin3)   = signal(String::new());

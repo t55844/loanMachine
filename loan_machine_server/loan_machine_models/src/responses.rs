@@ -1,6 +1,27 @@
 // src/models/responses.rs
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ApprovalStatus {
+    None,
+    Pending {
+        proposal_id:        u64,
+        created_at:         u64,
+        confirmations:      u32,
+        threshold:          u32,
+        total_admins:       u32,
+        moderator_cosigned: bool,
+    },
+    Approved,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct RequestApprovalBundle {
+    pub to:      String,
+    pub data:    String,
+    pub gas_hex: String,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserCoop {

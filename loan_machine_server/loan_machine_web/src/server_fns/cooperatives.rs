@@ -39,7 +39,7 @@ pub async fn get_coop_viewer_state(
     let wallet = auth.wallet().await?;
     let state  = expect_context::<AppState>();
 
-    get_viewer_state_logic(&state.subgraph, &coop_id, wallet)
+    get_viewer_state_logic(&state.subgraph, &state.blockchain_service,&coop_id, wallet)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))
 }

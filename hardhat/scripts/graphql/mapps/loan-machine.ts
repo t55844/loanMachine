@@ -67,6 +67,7 @@ export function handleProposalCreated(event: ProposalCreated): void {
   entity.proposer        = event.params.proposer
   entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
+
   entity.save()
 }
 

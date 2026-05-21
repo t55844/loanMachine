@@ -1,32 +1,17 @@
 // loan_machine_core/src/server_logic/coop_view.rs
-//
-// Single responsibility: given a coopId + a wallet address,
-// return what that wallet can see and do in that cooperative.
-//
-// Two data sources, two concerns:
-//
-//   1. Subgraph  → CooperativeView (the coop's own data)
-//   2. Chain     → ViewerRole      (this wallet's relationship to the contract)
-//
-// The split is intentional. The subgraph is fast and indexed; the chain
-// is the source of truth for per-wallet state that changes with each tx.
-// Neither leaks into the other.
-//
-// ── PHASE TRACKING ────────────────────────────────────────────────────────
-//
-//   Phase 1 (now):  derive_role always returns Visitor.
-//                   The panel renders; subgraph data is live.
-//
-//   Phase 2 (next): derive_role reads the LoanMachine contract at
-//                   coop.loan_machine and checks wallet state.
-//                   Only this function changes — everything above is stable.
 
 use loan_machine_models::responses::{CooperativeView, CoopViewerState, ViewerRole};
-use loan_machine_models::wallet_address::WalletAddress;
 use thiserror::Error;
 
 use crate::services::subgraph::SubgraphService;
 use crate::server_logic::subgraph_queries::cooperative_by_id::fetch_one_coop;
+
+use alloy::primitives::{Address, B256};
+
+use loan_machine_models::wallet_address::{self, WalletAddress};
+
+use crate::services::blockchain::{abis::LoanMachine, BlockchainService};
+use crate::server_logic::subgraph_queries::pending_approval::fetch_pending_approval;
 
 // ── ERROR ─────────────────────────────────────────────────────────────────
 
@@ -42,23 +27,17 @@ pub enum CoopViewError {
     StringToNumber(String),
 }
 
-// ── PUBLIC ENTRY POINT ────────────────────────────────────────────────────
 
-/// Builds the viewer state the control panel renders.
-///
-/// Called by the `get_coop_viewer_state` server fn.
-/// The `blockchain_service` parameter is unused in Phase 1 — it's present
-/// here already so the server fn signature never needs to change when
-/// Phase 2 plugs in.
+
 pub async fn get_viewer_state_logic(
-    subgraph: &SubgraphService,
-    coop_id:  &str,
-    wallet:   WalletAddress,
+    subgraph:    &SubgraphService,
+    blockchain:  &BlockchainService,
+    coop_id_hex: &str,
+    wallet:      WalletAddress,
 ) -> Result<CoopViewerState, CoopViewError> {
-    // Step 1 — coop data from the index.
-    let row = fetch_one_coop(subgraph, coop_id)
+    let row = fetch_one_coop(subgraph, coop_id_hex)
         .await?
-        .ok_or_else(|| CoopViewError::NotFound(coop_id.to_string()))?;
+        .ok_or_else(|| CoopViewError::NotFound(coop_id_hex.to_string()))?;
 
     let registered_at_u64 = row.registered_at.parse()
         .map_err(|_| CoopViewError::StringToNumber(row.registered_at.to_string()))?;
@@ -72,41 +51,53 @@ pub async fn get_viewer_state_logic(
         registered_at: registered_at_u64,
     };
 
-    // Step 2 — derive role from chain.
-    // Phase 1: always Visitor.
-    // Phase 2: pass blockchain_service + coop.loan_machine here.
-    let role = derive_role(&coop, wallet).await;
-
+    let role = derive_role(&coop, &wallet, subgraph, blockchain).await;
     Ok(CoopViewerState { coop, role })
 }
 
+async fn derive_role(
+    coop:       &CooperativeView,
+    wallet:     &WalletAddress,
+    subgraph:   &SubgraphService,
+    blockchain: &BlockchainService,
+) -> ViewerRole {
+    // Parse the LM address once. If it's malformed (shouldn't happen, but
+    // defensive), drop to Visitor so the user at least sees something.
+    let Ok(lm_addr): Result<Address, _> = coop.loan_machine.parse() else {
+        return ViewerRole::Visitor;
+    };
+    let provider     = &blockchain.coop_registry.provider;
+    let contract     = LoanMachine::new(lm_addr, provider.clone());
+    let wallet_addr  = wallet_address::to_alloy(wallet);
 
-// ── ROLE DERIVATION ───────────────────────────────────────────────────────
-//
-// Phase 1: stub.
-//
-// Phase 2 implementation (what goes here):
-//
-//   let address: Address = coop.loan_machine.parse()?;
-//   let contract = LoanMachine::new(address, blockchain_service.provider());
-//   let wallet_alloy = wallet_address::to_alloy(&wallet);
-//
-//   // First match wins — ordered from most to least privileged.
-//   if contract.isAdmin(wallet_alloy).call().await?.is_admin { return Admin }
-//
-//   let member_id = contract.getMemberId(wallet_alloy).call().await?._0;
-//   if member_id != B256::ZERO {
-//       if contract.isModerator(member_id).call().await?._0 { return Moderator }
-//       return Member;
-//   }
-//
-//   if contract.isWalletApproved(wallet_alloy).call().await?._0 { return Approved }
-//
-//   // Check open admin proposals for this wallet → ApprovalPending.
-//   // (proposal scan logic goes here)
-//
-//   Visitor
+    // 1. Admin?  Errors here collapse to Visitor (safe default — the user
+    //    will just see the request-approval form, no privilege leaked).
+    if let Ok(r) = contract.isAdmin(wallet_addr).call().await {
+        if r._0 { return ViewerRole::Admin; }
+    }
 
-async fn derive_role(_coop: &CooperativeView, _wallet: WalletAddress) -> ViewerRole {
+    // 2. Vinculated?  memberId of bytes32(0) = no.
+    let member_id = contract.getMemberId(wallet_addr).call().await
+        .map(|r| r._0)
+        .unwrap_or(B256::ZERO);
+
+    if member_id != B256::ZERO {
+        if let Ok(r) = contract.isModerator(member_id).call().await {
+            if r._0 { return ViewerRole::Moderator; }
+        }
+        return ViewerRole::Member;
+    }
+
+    // 3. Approved wallet but not yet vinculated → ready for first vinculation.
+    if let Ok(r) = contract.isWalletApproved(wallet_addr).call().await {
+        if r._0 { return ViewerRole::Approved; }
+    }
+
+    // 4. Has an open approval proposal in flight?
+    if let Ok(Some(_)) = fetch_pending_approval(subgraph, lm_addr, wallet_addr).await {
+        return ViewerRole::ApprovalPending;
+    }
+
+    // 5. None of the above.
     ViewerRole::Visitor
 }

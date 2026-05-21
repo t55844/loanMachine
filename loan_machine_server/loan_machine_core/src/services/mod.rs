@@ -6,3 +6,4 @@ pub mod chain_config;
 pub mod subgraph;
 pub mod privy_auth;
 pub mod coop_deployment;
+pub mod cache;

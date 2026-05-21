@@ -152,7 +152,7 @@ fn IdentifyCard(
 ) -> impl IntoView {
     // Signals owned by the form.  The toggle-and-clear behavior + the
     // input filter live inside DocumentInput — nothing to wire here.
-    let (doc_kind,   set_doc_kind)    = signal(DocKind::Cpf);
+    let (doc_kind,   set_doc_kind)    = signal(DocKind::Cnpj);
     let (document,   set_document)    = signal(String::new());
     let (coop_id,    set_coop_id)     = signal(String::new());
     let (access_code, set_access_code) = signal(String::new());

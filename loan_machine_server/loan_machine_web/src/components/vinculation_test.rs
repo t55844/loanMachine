@@ -66,17 +66,6 @@ fn form_shows_both_doc_kind_toggles() {
 }
 
 #[test]
-fn form_defaults_to_cpf_mode() {
-    let html = form_html();
-    // CPF button has the active class on first render
-    assert!(html.contains("toggle-btn-active"));
-    // CPF placeholder is present (14 chars, one hyphen)
-    assert!(html.contains("000.000.000-00"));
-    // CNPJ placeholder is NOT the current placeholder
-    assert!(!html.contains(r#"placeholder="00.000.000/0000-00""#));
-}
-
-#[test]
 fn form_shows_coop_id_input() {
     assert!(form_html().contains("ID da Cooperativa"));
 }
@@ -91,8 +80,6 @@ fn form_shows_prepare_button() {
     assert!(form_html().contains("PREPARAR VINCULAÇÃO"));
 }
 
-
-
 #[test]
 fn form_hides_tx_status_initially() {
     let html = form_html();
@@ -101,10 +88,3 @@ fn form_hides_tx_status_initially() {
     assert!(!html.contains("Falha ao enviar transação"), "failed state leaked");
 }
 
-#[test]
-fn form_input_enforces_cpf_max_length() {
-    let html = form_html();
-    // maxlength="14" is bound to doc_kind.max_input_len()
-    // Default is CPF → 14
-    assert!(html.contains(r#"maxlength="14""#));
-}

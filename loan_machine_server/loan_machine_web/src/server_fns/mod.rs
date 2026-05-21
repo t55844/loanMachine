@@ -5,3 +5,4 @@ pub mod auth;
 pub mod elections;
 pub mod user_coops;
 pub mod wallet_balance;
+pub mod coop_approval;

@@ -5,3 +5,4 @@ pub mod coop_view;
 pub mod elections;
 pub mod wallet_balance;
 pub mod helpers;
+pub mod coop_approval;

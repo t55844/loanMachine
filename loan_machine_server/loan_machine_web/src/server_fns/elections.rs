@@ -21,7 +21,10 @@ pub async fn get_current_election(
     use loan_machine_core::server_logic::elections::get_current_election_logic;
     use crate::server_fns::auth::Authenticated;
 
-    let _auth = Authenticated::require().await?;
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+
+
     let state = expect_context::<AppState>();
 
     get_current_election_logic(&state.subgraph, &state.blockchain_service, &coop_id)
@@ -38,8 +41,12 @@ pub async fn get_wallet_reputation(
     use crate::server_fns::auth::Authenticated;
 
     // Wallet from JWT — the client never gets to ask about someone else's rep.
-    let auth   = Authenticated::require().await?;
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+    
     let wallet = auth.wallet().await?;
+
+
     let state  = expect_context::<AppState>();
 
     get_wallet_reputation_logic(
@@ -62,7 +69,9 @@ pub async fn prepare_open_election(
     use loan_machine_core::server_logic::elections::prepare_open_election_logic;
     use crate::server_fns::auth::Authenticated;
 
-    let auth   = Authenticated::require().await?;
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+
     let caller = auth.wallet().await?;
     let state  = expect_context::<AppState>();
 
@@ -89,7 +98,10 @@ pub async fn prepare_vote(
     use crate::server_fns::auth::Authenticated;
 
     // Voter wallet from JWT — body only carries who you're voting *for*.
-    let auth  = Authenticated::require().await?;
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+
+    
     let voter = auth.wallet().await?;
     let state = expect_context::<AppState>();
 
@@ -114,7 +126,9 @@ pub async fn get_last_closed_election(
     use loan_machine_core::server_logic::elections::get_last_closed_election_logic;
     use crate::server_fns::auth::Authenticated;
 
-    let _auth = Authenticated::require().await?;
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+
     let state = expect_context::<AppState>();
 
     get_last_closed_election_logic(&state.subgraph, &state.blockchain_service, &coop_id)

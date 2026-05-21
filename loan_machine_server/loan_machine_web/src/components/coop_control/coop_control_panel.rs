@@ -138,7 +138,9 @@ pub(crate) fn CoopHeader(coop: CooperativeView) -> impl IntoView {
 }
 
 // ── DISPATCH (the panel's only real job) ────────────────────
-
+use crate::components::vinculation::FirstVinculationForm;
+use crate::components::coop_control::approval_pending::ApprovalPending;
+use crate::components::coop_control::coop_approval::RequestApproval;
 #[component]
 pub(crate) fn RoleSection(
     role: ViewerRole,
@@ -148,11 +150,25 @@ pub(crate) fn RoleSection(
 ) -> impl IntoView {
     // Suppress unused warnings until each sub-component lands.
     let _ = (&wallet, &coop, &on_state_changed);
-
+    let coop_id = coop.coop_id.clone();
     match role {
-        ViewerRole::Visitor          => view! { <TodoPlaceholder label="REQUEST APPROVAL FORM" /> }.into_any(),
-        ViewerRole::ApprovalPending  => view! { <TodoPlaceholder label="APPROVAL PENDING NOTICE" /> }.into_any(),
-        ViewerRole::Approved         => view! { <TodoPlaceholder label="FIRST VINCULATION SECTION" /> }.into_any(),
+        ViewerRole::Visitor => view! {
+            <RequestApproval
+                coop_id
+                on_tx_success=on_state_changed
+            />
+        }.into_any(),
+
+        ViewerRole::ApprovalPending => view! {
+            <ApprovalPending coop_id />
+        }.into_any(),
+
+        ViewerRole::Approved => view! {
+            <FirstVinculationForm
+                on_success=move || on_state_changed.run(())
+            />
+        }.into_any(),
+
         ViewerRole::Member           => view! { <TodoPlaceholder label="MEMBER PANEL" /> }.into_any(),
         ViewerRole::Moderator        => view! { <TodoPlaceholder label="MODERATOR PANEL" /> }.into_any(),
         ViewerRole::Admin            => view! { <TodoPlaceholder label="ADMIN PANEL" /> }.into_any(),

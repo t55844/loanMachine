@@ -140,7 +140,7 @@ fn ElectionsRoute() -> impl IntoView {
         <RequireWallet
             pending=|| view! { <HomeSkeleton /> }
             fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::CreateCoop /> }
-            render=move |wallet| {
+            render=move |_| {
                 let coop_id = params.read().get("id").unwrap_or_default();
                 view! { <ElectionsPage coop_id /> }
             }
@@ -157,7 +157,7 @@ fn VinculateRoute() -> impl IntoView {
         <RequireWallet
             pending=|| view! { <HomeSkeleton /> }
             fallback=|| view! { <LoginRequiredCard kind=LoginRequiredKind::CreateCoop /> }
-            render=move |_wallet| {
+            render=move |_| {
                 let nav = navigate.clone();
                 view! {
                     <FirstVinculationForm on_success=move || {

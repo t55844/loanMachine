@@ -57,4 +57,13 @@ impl Authenticated {
             .await
             .map_err(|e| ServerFnError::new(format!("wallet lookup: {e}")))
     }
+    pub async fn is_member(&self, coop_id: &str) -> Result<bool, ServerFnError> {
+        let wallet = self.wallet().await?;
+        let state  = expect_context::<AppState>();
+        state.cache_moka
+            .is_member(&state.subgraph, &wallet, coop_id)
+            .await
+            .map_err(|e| ServerFnError::new(format!("membership: {e}")))
+    }
+    
 }

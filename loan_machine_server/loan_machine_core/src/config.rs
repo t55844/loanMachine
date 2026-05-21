@@ -12,7 +12,7 @@ use crate::services::privy_auth::PrivyAuthService;
 use crate::services::subgraph::SubgraphService;
 use crate::services::coop_deployment::CoopDeploymentService;
 use crate::services::blockchain::deployable::{LoanMachine as LoanMachineBytecode};
-
+use crate::services::cache::MembershipCache;
 use secrecy::SecretString;
 
 #[derive(Clone)]
@@ -32,7 +32,8 @@ pub struct AppState {
     pub subgraph:           SubgraphService,     
     pub privy:              Arc<PrivyService>,
     pub privy_auth:         Arc<PrivyAuthService>, 
-    pub coop_deployment:    Arc<CoopDeploymentService>,  
+    pub coop_deployment:    Arc<CoopDeploymentService>,
+    pub cache_moka:   MembershipCache
 
 }
 
@@ -85,6 +86,8 @@ impl AppState {
             &usdc_address,
         ).expect("Failed to initialize CoopDeploymentService");
 
+        let cache_moka = MembershipCache::new();
+
         Self {
             leptos_options,
             coop_registry_address:    CoopRegistryAddress(coop_registry_address),
@@ -95,6 +98,7 @@ impl AppState {
             privy_auth:         Arc::new(privy_auth),
             subgraph:           subgraph,
             coop_deployment:    Arc::new(coop_deployment),
+            cache_moka: cache_moka
         }
     }
 }

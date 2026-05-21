@@ -52,6 +52,7 @@ jsonwebtoken = "9"
 secrecy = "0.8"
 base64 = "0.22"
 urlencoding = "2"
+moka = { version = "0.12.15", features = ["future"] }
 
 [dev-dependencies]
 alloy = { workspace = true, features = [
