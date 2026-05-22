@@ -83,6 +83,8 @@ fn render_role(role: ViewerRole) -> String {
         view! {
             <RoleSection
                 role=role
+                is_admin=true
+                is_moderator=true
                 wallet=fake_wallet()
                 coop=fake_coop()
                 on_state_changed=Callback::new(|_| {})

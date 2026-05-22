@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use loan_machine_models::responses::CoopInfo;
 use loan_machine_models::wallet_address::{to_alloy, WalletAddress};
-use crate::services::blockchain::abis::{CoopRegistry, LoanMachine};
 use crate::services::blockchain::{BlockchainError, BlockchainService};
+use crate::services::blockchain::abis::{CoopRegistry, LoanMachine};
 use crate::services::subgraph::SubgraphService;
 
 pub async fn resolve_wallet_coop(

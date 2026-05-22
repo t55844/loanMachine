@@ -4,3 +4,6 @@ pub mod user_coops;
 pub mod last_closed_election;
 pub mod pending_approval;
 pub mod membership;
+pub mod pending_proposals_count;
+pub mod user_related_coops;
+pub mod approve_wallet_proposals;

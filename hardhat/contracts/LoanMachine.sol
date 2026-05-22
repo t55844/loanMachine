@@ -95,6 +95,9 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     bool private _initialized;
 
+    mapping(address => uint256) private pendingApprovalProposalId;
+
+
     event ProposalCreated(uint256 indexed proposalId, ProposalType indexed pType, address indexed proposer);
     event ProposalConfirmed(uint256 indexed proposalId, address indexed admin, uint256 confirmations);
     event ProposalExecuted(uint256 indexed proposalId, ProposalType indexed pType);
@@ -215,6 +218,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_RequisitionNotCancellable();
     error LoanMachine_RequisitionAlreadyFullyCovered();
     error LoanMachine_IntervalOfPaymentAboveLimit();
+    error LoanMachine_WalletApprovalAlreadyProposed();
+    error LoanMachine_WalletAlreadyApproved();
 
     // =============================================================
     //                         MODIFIERS
@@ -333,24 +338,24 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         ProposalType pType,
         bytes memory data,
         bool requiresUnanimous,
-        bool requiresModeratorCosign
+        bool requiresModeratorCosign,
+        bool proposerCounts                             
     ) internal returns (uint256 proposalId) {
         proposalId = proposalCounter++;
         proposals[proposalId] = Proposal({
-            pType:                   pType,
-            data:                    data,
-            confirmations:           1,
-            executed:                false,
-            createdAt:               block.timestamp,
-            requiresUnanimous:       requiresUnanimous,
+            pType: pType, data: data,
+            confirmations: proposerCounts ? 1 : 0,      
+            executed: false, createdAt: block.timestamp,
+            requiresUnanimous: requiresUnanimous,
             requiresModeratorCosign: requiresModeratorCosign,
-            moderatorCosignedBy:     bytes32(0)
+            moderatorCosignedBy: bytes32(0)
         });
-        hasConfirmedProposal[proposalId][msg.sender] = true;
 
+        if (proposerCounts) {
+            hasConfirmedProposal[proposalId][msg.sender] = true;
+            emit ProposalConfirmed(proposalId, msg.sender, 1);
+        }
         emit ProposalCreated(proposalId, pType, msg.sender);
-        emit ProposalConfirmed(proposalId, msg.sender, 1);
-
         _maybeExecute(proposalId);
     }
 
@@ -360,16 +365,20 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     ) external onlyAdmin returns (uint256 proposalId) {
         if (pType == ProposalType.ApproveWallet) revert LoanMachine_ModeratorCosignRequired();
 
-        return _createProposal(pType, data, false, false);
+        return _createProposal(pType, data, false, false, true);
     }
 
     function proposeWalletApproval(address wallet) external returns (uint256 proposalId) {
-        return _createProposal(
-            ProposalType.ApproveWallet,
-            abi.encode(wallet),
-            false,           // doesn't need unanimous admin
-            true             // does need moderator cosign
+        if (wallet == address(0))            revert LoanMachine_MemberIdOrWalletInvalid();
+        if (approvedWallets[wallet])         revert LoanMachine_WalletAlreadyApproved();
+        if (pendingApprovalProposalId[wallet] != 0)
+            revert LoanMachine_WalletApprovalAlreadyProposed();
+
+        proposalId = _createProposal(
+            ProposalType.ApproveWallet, abi.encode(wallet),
+            false, true, false                                     
         );
+        pendingApprovalProposalId[wallet] = proposalId;
     }
 
     function confirmProposal(uint256 proposalId) external onlyAdmin {
@@ -443,6 +452,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         } else if (p.pType == ProposalType.ApproveWallet){
             address wallet = abi.decode(p.data, (address));
             approvedWallets[wallet] = true;
+            delete pendingApprovalProposalId[wallet];
             emit WalletApproved(wallet);
         } else if (p.pType == ProposalType.Deactivate) {
             active = false;

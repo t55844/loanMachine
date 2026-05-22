@@ -11,7 +11,7 @@ use crate::services::blockchain::{abis::LoanMachine, BlockchainError, Blockchain
 use crate::services::subgraph::{ SubgraphError, SubgraphService};
 
 use loan_machine_models::responses::VoteBundle;
-use crate::server_logic::helpers::{resolve_member_id, resolve_member_wallet};
+use crate::server_logic::helpers::{resolve_member_id, resolve_member_wallet,resolve_member_reputation};
 
 #[derive(Debug, Error)]
 pub enum ElectionError {
@@ -107,6 +107,10 @@ pub async fn prepare_vote_logic(
         .await?
         .ok_or_else(|| BlockchainError::WalletNotVinculated(voter_wallet.clone()))?;
 
+    let _reputation = resolve_member_reputation(
+        subgraph, provider, loan_machine_addr, voter_id,
+    ).await?;
+
     let voter_addr: Address = wallet_address::to_alloy(&voter_wallet);
     let call = contract.voteForModerator(election_id, candidate_id, voter_id);
 
@@ -170,7 +174,7 @@ pub async fn prepare_open_election_logic(
     .await?
     .ok_or_else(|| BlockchainError::WalletNotVinculated(candidate_wallet.clone()))?;
 
-let opponent_id = resolve_member_id(
+    let opponent_id = resolve_member_id(
         subgraph, provider, loan_machine_addr, &opponent_wallet,
     )
     .await?

@@ -1,6 +1,46 @@
 // src/models/responses.rs
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ApproveWalletProposalRow {
+    pub proposal_id:        u64,
+    pub proposer:           String,
+    pub created_at:         u64,
+    pub confirmations:      u32,
+    pub moderator_cosigned: bool,
+    pub viewer_confirmed:   bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ApproveWalletPending {
+    pub threshold:    u32,
+    pub total_admins: u32,
+    pub proposals:    Vec<ApproveWalletProposalRow>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UserProfileCoop {
+    pub id:            String,          // lowercased LoanMachine addr
+    pub coop_id:       String,          // bytes32 hex
+    pub name:          String,
+    pub loan_machine:  String,
+    pub active:        bool,
+    pub member_id:     String,  // bytes32 hex if vinculated in this coop
+    pub is_member:     bool,
+    pub is_admin:      bool,
+    pub is_moderator:  bool,
+    pub is_approved:          bool,   // NEW: approved wallet (set even when vinculated)
+    pub has_pending_approval: bool, 
+    pub pending_count: u32,             // actionable items for *this* viewer
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UserProfile {
+    pub wallet: String,
+    pub coops:  Vec<UserProfileCoop>,
+}
+
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ApprovalStatus {
@@ -75,6 +115,8 @@ pub struct ElectionView {
 pub struct CoopViewerState {
     pub coop: CooperativeView,   // reuse what the list already returns
     pub role: ViewerRole,
+    pub is_admin:     bool,
+    pub is_moderator: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

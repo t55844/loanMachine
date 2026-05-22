@@ -80,6 +80,8 @@ pub(crate) fn CoopControlPanel(wallet: WalletAddress) -> impl IntoView {
                             <Divider />
                             <RoleSection
                                 role=s.role
+                                is_admin=s.is_admin
+                                is_moderator=s.is_moderator
                                 wallet=wallet.clone()
                                 coop=s.coop
                                 on_state_changed=on_state_changed
@@ -141,37 +143,56 @@ pub(crate) fn CoopHeader(coop: CooperativeView) -> impl IntoView {
 use crate::components::vinculation::FirstVinculationForm;
 use crate::components::coop_control::approval_pending::ApprovalPending;
 use crate::components::coop_control::coop_approval::RequestApproval;
+use crate::components::coop_control::admin_panel::{AdminPanel, ModeratorPanel};
 #[component]
 pub(crate) fn RoleSection(
     role: ViewerRole,
-    wallet: WalletAddress, 
+    is_admin: bool,
+    is_moderator: bool,
+    wallet: WalletAddress,
     coop: CooperativeView,
     on_state_changed: Callback<()>,
 ) -> impl IntoView {
-    // Suppress unused warnings until each sub-component lands.
-    let _ = (&wallet, &coop, &on_state_changed);
+    let _ = &wallet;
     let coop_id = coop.coop_id.clone();
-    match role {
+
+    // 1. Membership ladder — what's the user's relationship to the coop?
+    let ladder = match role {
         ViewerRole::Visitor => view! {
-            <RequestApproval
-                coop_id
-                on_tx_success=on_state_changed
-            />
+            <RequestApproval coop_id=coop_id.clone() on_tx_success=on_state_changed />
         }.into_any(),
 
         ViewerRole::ApprovalPending => view! {
-            <ApprovalPending coop_id />
+            <ApprovalPending coop_id=coop_id.clone() />
         }.into_any(),
 
         ViewerRole::Approved => view! {
-            <FirstVinculationForm
-                on_success=move || on_state_changed.run(())
-            />
+            <FirstVinculationForm on_success=move || on_state_changed.run(()) />
         }.into_any(),
 
-        ViewerRole::Member           => view! { <TodoPlaceholder label="MEMBER PANEL" /> }.into_any(),
-        ViewerRole::Moderator        => view! { <TodoPlaceholder label="MODERATOR PANEL" /> }.into_any(),
-        ViewerRole::Admin            => view! { <TodoPlaceholder label="ADMIN PANEL" /> }.into_any(),
+        ViewerRole::Member => view! {
+            <TodoPlaceholder label="MEMBER PANEL" />
+        }.into_any(),
+
+        // Legacy variants — kept only if you haven't deleted them yet.
+        ViewerRole::Admin | ViewerRole::Moderator => view! {
+            <TodoPlaceholder label="MEMBER PANEL" />
+        }.into_any(),
+    };
+
+    // 2. Capability panels — additive. Admin and moderator can both render.
+    view! {
+        {ladder}
+        {is_admin.then(|| view! {
+            <div style="margin-top: var(--sp-6)">
+                <AdminPanel coop_id=coop_id.clone() on_tx_success=on_state_changed />
+            </div>
+        })}
+        {is_moderator.then(|| view! {
+            <div style="margin-top: var(--sp-6)">
+                <ModeratorPanel coop_id=coop_id.clone() on_tx_success=on_state_changed />
+            </div>
+        })}
     }
 }
 

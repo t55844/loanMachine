@@ -174,6 +174,10 @@ library ReputationLib {
         bytes32 candidateId,
         bytes32 opponent
     ) internal {
+        if (candidateId == bytes32(0) || opponent == bytes32(0))
+        revert RS_MemberIdOrWalletInvalid();
+        if (candidateId == opponent) revert RS_InvalidCandidate();
+
         uint256 len = rs.elections.length;
         if (len > 0 && rs.elections[len - 1].active)
             revert RS_ActiveElectionExists();
@@ -209,7 +213,15 @@ library ReputationLib {
         bytes32 candidateId
     ) internal {
         _requireElectionActive(rs, electionId);
-        rs.elections[electionId].candidates.push(candidateId);
+        if (candidateId == bytes32(0) || rs.memberToWallet[candidateId] == address(0))
+            revert RS_InvalidCandidate();
+        if (rs.isModerator[candidateId]) revert RS_InvalidCandidate();
+
+        bytes32[] storage cs = rs.elections[electionId].candidates;
+        for (uint256 i = 0; i < cs.length; i++) {
+            if (cs[i] == candidateId) revert RS_InvalidCandidate();
+        }
+        cs.push(candidateId);
         emit CandidateAdded(electionId, candidateId);
     }
 

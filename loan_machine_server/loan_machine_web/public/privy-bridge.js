@@ -53,7 +53,7 @@ function getClient() {
 
   const appId = getAppId();
   if (!appId) {
-    console.error('[privy-bridge] APP_CONFIG.privyAppId missing');
+    //console.error('[privy-bridge] APP_CONFIG.privyAppId missing');
     return null;
   }
 
@@ -237,7 +237,7 @@ window.loan_machine_try_restore = async function () {
       fire('privy_restore_done', {});   // ← "we checked, no user"
     }
   } catch (err) {
-    console.error('[privy-bridge] restore error:', err);
+    //console.error('[privy-bridge] restore error:', err);
     fire('privy_restore_done', {});     // ← still leave Restoring on failure
   }
 };
@@ -259,7 +259,7 @@ window.loan_machine_init_privy = async function () {
     fire('privy_wallet_ready', { address });
   } catch (err) {
     if (err.message === 'cancelled' || err.message === 'back') return;
-    console.error('[privy-bridge] auth error:', err);
+    //console.error('[privy-bridge] auth error:', err);
     fire('privy_auth_error', { error: err.message });
   }
 };
@@ -334,7 +334,7 @@ window.loan_machine_send_tx = async function (txJson) {
 
     fire('privy_tx_complete', { tx_hash: txHash });
   } catch (err) {
-    console.error('[privy-bridge] tx error:', err);
+    //console.error('[privy-bridge] tx error:', err);
     fire('privy_tx_error', { error: err.message });
   }
 };
@@ -378,11 +378,7 @@ window.loan_machine_deploy_contract = async function (deployData, gasLimit) {
     const tip        = BigInt(tipHex);
     const maxFee     = baseFee * 2n + tip; // generous headroom for next block
 
-console.log(baseFeeHex)
-console.log(tipHex)
-console.log(baseFee)
-console.log(tip)
-console.log(maxFee)
+
 
     const unsigned = {
       from,                                       // who's signing
@@ -396,7 +392,6 @@ console.log(maxFee)
       type:                 2,                
       // Note: no `to` field — that's what makes it a deployment
     };
-  console.log(unsigned)
     // Ask Privy to sign WITHOUT broadcasting. The key stays in the iframe;
     // we just get back the signed RLP bytes.
     const signedTx = await embeddedWallet.request({
@@ -423,7 +418,7 @@ console.log(maxFee)
       contract_address: receipt.contractAddress,
     });
   } catch (err) {
-    console.error('[privy-bridge] deploy error:', err);
+    //console.error('[privy-bridge] deploy error:', err);
     fire('privy_tx_error', { error: err.message });
   }
 };

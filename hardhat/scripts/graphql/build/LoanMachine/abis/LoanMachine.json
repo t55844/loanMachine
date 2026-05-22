@@ -177,6 +177,16 @@
   },
   {
     "inputs": [],
+    "name": "LoanMachine_WalletAlreadyApproved",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_WalletApprovalAlreadyProposed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "LoanMachine_WithdrawalAlreadyExecuted",
     "type": "error"
   },

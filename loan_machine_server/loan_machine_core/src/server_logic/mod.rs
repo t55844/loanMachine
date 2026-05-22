@@ -6,3 +6,5 @@ pub mod elections;
 pub mod wallet_balance;
 pub mod helpers;
 pub mod coop_approval;
+pub mod user_profile;
+pub mod admin_approvals;

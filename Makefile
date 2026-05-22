@@ -59,9 +59,11 @@ fund-anvil-wallet:
 	  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["$(WALLET)","0x8AC7230489E80000"],"id":1}'
 
 fund-used-wallets:
-	fund-anvil-wallet WALLET=0x8Fb852022882B2AA3C3a0fE39f3169CdC01C887D \
-	fund-anvil-wallet WALLET=0x9535424e6F3F82C9c3aCA0d747C59E187f216Ac4
-	fund-anvil-wallet WALLET=0x19dc8f07697c114ce0303272e494f8eb1bd635f1
+	$(MAKE) fund-anvil-wallet WALLET=0x8Fb852022882B2AA3C3a0fE39f3169CdC01C887D
+	$(MAKE) fund-anvil-wallet WALLET=0x9535424e6F3F82C9c3aCA0d747C59E187f216Ac4
+	$(MAKE) fund-anvil-wallet WALLET=0x19dc8f07697c114ce0303272e494f8eb1bd635f1
+
+
 deploy-local:
 	@curl -sS -o /dev/null http://localhost:8545 \
 	  -X POST -H "Content-Type: application/json" \

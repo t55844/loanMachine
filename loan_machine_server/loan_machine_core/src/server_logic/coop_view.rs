@@ -13,6 +13,7 @@ use loan_machine_models::wallet_address::{self, WalletAddress};
 use crate::services::blockchain::{abis::LoanMachine, BlockchainService};
 use crate::server_logic::subgraph_queries::pending_approval::fetch_pending_approval;
 
+use crate::server_logic::helpers::resolve_member_id;
 // ── ERROR ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Error)]
@@ -28,7 +29,6 @@ pub enum CoopViewError {
 }
 
 
-
 pub async fn get_viewer_state_logic(
     subgraph:    &SubgraphService,
     blockchain:  &BlockchainService,
@@ -40,64 +40,64 @@ pub async fn get_viewer_state_logic(
         .ok_or_else(|| CoopViewError::NotFound(coop_id_hex.to_string()))?;
 
     let registered_at_u64 = row.registered_at.parse()
-        .map_err(|_| CoopViewError::StringToNumber(row.registered_at.to_string()))?;
+        .map_err(|_| CoopViewError::StringToNumber(row.registered_at.clone()))?;
 
     let coop = CooperativeView {
-        id:            row.id,
-        coop_id:       row.coop_id,
-        name:          row.name,
-        loan_machine:  row.loan_machine,
-        active:        row.active,
+        id: row.id, coop_id: row.coop_id, name: row.name,
+        loan_machine: row.loan_machine, active: row.active,
         registered_at: registered_at_u64,
     };
 
-    let role = derive_role(&coop, &wallet, subgraph, blockchain).await;
-    Ok(CoopViewerState { coop, role })
+    let (role, is_admin, is_moderator) =
+        derive_role_and_flags(&coop, &wallet, subgraph, blockchain).await;
+
+    Ok(CoopViewerState { coop, role, is_admin, is_moderator })
 }
 
-async fn derive_role(
+async fn derive_role_and_flags(
     coop:       &CooperativeView,
     wallet:     &WalletAddress,
     subgraph:   &SubgraphService,
     blockchain: &BlockchainService,
-) -> ViewerRole {
-    // Parse the LM address once. If it's malformed (shouldn't happen, but
-    // defensive), drop to Visitor so the user at least sees something.
+) -> (ViewerRole, bool, bool) {
     let Ok(lm_addr): Result<Address, _> = coop.loan_machine.parse() else {
-        return ViewerRole::Visitor;
+        return (ViewerRole::Visitor, false, false);
     };
-    let provider     = &blockchain.coop_registry.provider;
-    let contract     = LoanMachine::new(lm_addr, provider.clone());
-    let wallet_addr  = wallet_address::to_alloy(wallet);
+    let provider    = &blockchain.coop_registry.provider;
+    let contract    = LoanMachine::new(lm_addr, provider.clone());
+    let wallet_addr = wallet_address::to_alloy(wallet);
 
-    // 1. Admin?  Errors here collapse to Visitor (safe default — the user
-    //    will just see the request-approval form, no privilege leaked).
-    if let Ok(r) = contract.isAdmin(wallet_addr).call().await {
-        if r._0 { return ViewerRole::Admin; }
-    }
+    // Independent capability reads.
+    let is_admin = contract.isAdmin(wallet_addr).call().await
+        .map(|r| r._0).unwrap_or(false);
 
-    // 2. Vinculated?  memberId of bytes32(0) = no.
-    let member_id = contract.getMemberId(wallet_addr).call().await
-        .map(|r| r._0)
+     let member_id_b32 = resolve_member_id(subgraph, provider, lm_addr, wallet)
+        .await
+        .ok()           // Result<Option<B256>, _> → Option<Option<B256>>
+        .flatten()      // → Option<B256>
         .unwrap_or(B256::ZERO);
 
-    if member_id != B256::ZERO {
-        if let Ok(r) = contract.isModerator(member_id).call().await {
-            if r._0 { return ViewerRole::Moderator; }
+    let is_member = member_id_b32 != B256::ZERO;
+
+    let is_moderator = if is_member {
+        contract.isModerator(member_id_b32).call().await
+            .map(|r| r._0).unwrap_or(false)
+    } else { false };
+
+    // Membership ladder: ignores admin/moderator status; those are flags.
+    let role = if is_member {
+        ViewerRole::Member
+    } else {
+        let approved = contract.isWalletApproved(wallet_addr).call().await
+            .map(|r| r._0).unwrap_or(false);
+        if approved {
+            ViewerRole::Approved
+        } else if let Ok(Some(_)) = fetch_pending_approval(subgraph, lm_addr, wallet_addr).await {
+            ViewerRole::ApprovalPending
+        } else {
+            ViewerRole::Visitor
         }
-        return ViewerRole::Member;
-    }
+    };
 
-    // 3. Approved wallet but not yet vinculated → ready for first vinculation.
-    if let Ok(r) = contract.isWalletApproved(wallet_addr).call().await {
-        if r._0 { return ViewerRole::Approved; }
-    }
-
-    // 4. Has an open approval proposal in flight?
-    if let Ok(Some(_)) = fetch_pending_approval(subgraph, lm_addr, wallet_addr).await {
-        return ViewerRole::ApprovalPending;
-    }
-
-    // 5. None of the above.
-    ViewerRole::Visitor
+    (role, is_admin, is_moderator)
 }
