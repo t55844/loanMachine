@@ -1,5 +1,6 @@
 mod common;
 use crate::common::deploy::DeployedEnv;
+use crate::common::{mount_query, one_cooperative_payload, server_returning};
 
 use alloy::network::EthereumWallet;
 use alloy::primitives::{keccak256, Address, U256};
@@ -7,29 +8,23 @@ use alloy::providers::ProviderBuilder;
 use alloy::signers::local::PrivateKeySigner;
 
 use loan_machine_core::server_logic::admin_approvals::{
-    list_pending_approvals_logic,
-    prepare_confirm_proposal_logic,
-    prepare_cosign_proposal_logic,
-    AdminApprovalError,
+    list_pending_approvals_logic, prepare_confirm_proposal_logic,
+    prepare_cosign_proposal_logic, AdminApprovalError,
 };
 use loan_machine_core::services::blockchain::deployable::LoanMachine;
 use loan_machine_core::services::subgraph::SubgraphService;
 use loan_machine_models::wallet_address::from_alloy;
 
 use serde_json::json;
-use wiremock::matchers::{body_string_contains, method, path};
-use wiremock::{Mock, MockServer, ResponseTemplate};
+use wiremock::MockServer;
 
 const ZERO_ADDR: &str = "0x0000000000000000000000000000000000000000";
 
-/// One-off helper kept in this file (not promoted to common/).  Broadcasts
-/// `proposeWalletApproval(target)` from the founder (admin1) and returns the
-/// new on-chain proposal id.  Used only by the happy-path encoding test;
-/// every other test mocks the subgraph and doesn't need a real proposal.
-async fn propose_wallet_approval_inline(
-    env: &DeployedEnv,
-    target: Address,
-) -> u64 {
+/// One-off helper kept in this file (not promoted to common/). Broadcasts
+/// `proposeWalletApproval(target)` from the founder (admin1) and returns
+/// the new on-chain proposal id. Used only by the happy-path encoding
+/// test; every other test mocks the subgraph.
+async fn propose_wallet_approval_inline(env: &DeployedEnv, target: Address) -> u64 {
     let _guard = env.platform_admin_lock.lock().await;
 
     let bytes  = hex::decode(env.platform_admin_key_hex.trim_start_matches("0x")).unwrap();
@@ -63,13 +58,9 @@ async fn list_returns_threshold_and_admin_count_from_chain() {
     let env = common::get_deployed().await;
 
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/"))
-        .and(body_string_contains("ApproveWalletProposals"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "data": { "created": [], "executed": [], "confirmed": [], "cosigned": [] }
-        })))
-        .mount(&server).await;
+    mount_query(&server, "ApproveWalletProposals", json!({
+        "data": { "created": [], "executed": [], "confirmed": [], "cosigned": [] }
+    })).await;
 
     let subgraph = SubgraphService::new(server.uri());
     let r = list_pending_approvals_logic(
@@ -86,21 +77,17 @@ async fn list_filters_executed_proposals() {
     let env = common::get_deployed().await;
 
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/"))
-        .and(body_string_contains("ApproveWalletProposals"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "data": {
-                "created": [
-                    {"proposalId": "0", "proposer": ZERO_ADDR, "blockTimestamp": "100"},
-                    {"proposalId": "1", "proposer": ZERO_ADDR, "blockTimestamp": "101"},
-                ],
-                "executed":  [{"proposalId": "0"}],
-                "confirmed": [],
-                "cosigned":  [],
-            }
-        })))
-        .mount(&server).await;
+    mount_query(&server, "ApproveWalletProposals", json!({
+        "data": {
+            "created": [
+                {"proposalId": "0", "proposer": ZERO_ADDR, "blockTimestamp": "100"},
+                {"proposalId": "1", "proposer": ZERO_ADDR, "blockTimestamp": "101"},
+            ],
+            "executed":  [{"proposalId": "0"}],
+            "confirmed": [],
+            "cosigned":  [],
+        }
+    })).await;
 
     let subgraph = SubgraphService::new(server.uri());
     let r = list_pending_approvals_logic(
@@ -117,18 +104,14 @@ async fn list_viewer_confirmed_flag_is_per_caller() {
     let admin2_hex = format!("{:#x}", env.second_admin).to_lowercase();
 
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/"))
-        .and(body_string_contains("ApproveWalletProposals"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "data": {
-                "created":   [{"proposalId": "0", "proposer": ZERO_ADDR, "blockTimestamp": "100"}],
-                "executed":  [],
-                "confirmed": [{"proposalId": "0", "admin": admin2_hex}],
-                "cosigned":  [],
-            }
-        })))
-        .mount(&server).await;
+    mount_query(&server, "ApproveWalletProposals", json!({
+        "data": {
+            "created":   [{"proposalId": "0", "proposer": ZERO_ADDR, "blockTimestamp": "100"}],
+            "executed":  [],
+            "confirmed": [{"proposalId": "0", "admin": admin2_hex}],
+            "cosigned":  [],
+        }
+    })).await;
 
     let subgraph = SubgraphService::new(server.uri());
 
@@ -148,18 +131,14 @@ async fn list_cosigned_flag_visible_to_all() {
     let env = common::get_deployed().await;
 
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/"))
-        .and(body_string_contains("ApproveWalletProposals"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "data": {
-                "created":   [{"proposalId": "0", "proposer": ZERO_ADDR, "blockTimestamp": "100"}],
-                "executed":  [],
-                "confirmed": [],
-                "cosigned":  [{"proposalId": "0"}],
-            }
-        })))
-        .mount(&server).await;
+    mount_query(&server, "ApproveWalletProposals", json!({
+        "data": {
+            "created":   [{"proposalId": "0", "proposer": ZERO_ADDR, "blockTimestamp": "100"}],
+            "executed":  [],
+            "confirmed": [],
+            "cosigned":  [{"proposalId": "0"}],
+        }
+    })).await;
 
     let subgraph = SubgraphService::new(server.uri());
     let r = list_pending_approvals_logic(
@@ -186,9 +165,6 @@ async fn list_rejects_invalid_coop_id() {
 #[tokio::test]
 async fn prepare_confirm_encodes_proposal_id() {
     let env = common::get_deployed().await;
-
-    // The only test that touches chain *state*. Admin1 proposes; admin2's
-    // address is used for gas estimation (no private key needed).
     let pid = propose_wallet_approval_inline(&env, env.unapproved_wallet).await;
 
     let b = prepare_confirm_proposal_logic(
@@ -218,48 +194,19 @@ async fn prepare_confirm_rejects_invalid_coop_id() {
 }
 
 // ── prepare_cosign_proposal_logic ────────────────────────────────────
-fn one_cooperative_payload() -> serde_json::Value {
-    json!({
-        "data": {
-            "cooperatives": [
-                {
-                    "id": "0xaaa",
-                    "coopId": "0xbbb",
-                    "name": "Coop One",
-                    "loanMachine": "0xccc",
-                    "active": true,
-                    "registeredAt": "1700000000"
-                }
-            ]
-        }
-    })
-}
-
-
-async fn server_returning(body: serde_json::Value) -> MockServer {
-    let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(body))
-        .mount(&server)
-        .await;
-    server
-}
 
 #[tokio::test]
 async fn prepare_cosign_rejects_non_vinculated_wallet() {
     let env = common::get_deployed().await;
     let server = server_returning(one_cooperative_payload()).await;
     let subgraph = SubgraphService::new(server.uri());
-    // The unapproved wallet has memberId == 0x00...00 on chain — the
-    // NotVinculated short-circuit fires before any gas estimation, so we
-    // don't need a real proposal on chain. Use proposal_id 0.
+
     let err = prepare_cosign_proposal_logic(
         &subgraph,
-        &env.blockchain, 
-        &env.coop_id_hex, 
-        0, 
-        from_alloy(env.unapproved_wallet)
+        &env.blockchain,
+        &env.coop_id_hex,
+        0,
+        from_alloy(env.unapproved_wallet),
     ).await.unwrap_err();
 
     assert!(matches!(err, AdminApprovalError::NotVinculated));
@@ -274,7 +221,7 @@ async fn prepare_cosign_rejects_invalid_coop_id() {
     let err = prepare_cosign_proposal_logic(
         &subgraph,
         &env.blockchain,
-        "not-bytes32",                       // ← the actual point of the test
+        "not-bytes32",
         0,
         from_alloy(env.approved_wallet),
     ).await.unwrap_err();

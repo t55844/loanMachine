@@ -1,77 +1,32 @@
-// loan_machine_core/tests/service_create_coop_integration_test.rs
-//
-// prepare_create_coop_logic signature (create_coop.rs line 22):
-//   identity:       &IdentityService
-//   deployment:     &CoopDeploymentService
-//   name:           String
-//   founder_wallet: WalletAddress
-//   admin_wallets:  Vec<WalletAddress>
-//   threshold:      u32
-//   doc_kind:       DocKind
-//   document:       String
-
 mod common;
+use crate::common::{
+    make_deployment_service, make_identity_from_env, parse_hex_u64, platform_admin_signer, wa,
+};
 
 use loan_machine_core::server_logic::create_coop::{
-    prepare_create_coop_logic,
-    register_deployed_coop_logic,
-    CreateCoopLogicError,
+    prepare_create_coop_logic, register_deployed_coop_logic, CreateCoopLogicError,
 };
-use loan_machine_core::services::coop_deployment::{CoopDeploymentService, CoopDeploymentError};
-use loan_machine_core::services::identity::IdentityService;
+use loan_machine_core::services::coop_deployment::CoopDeploymentError;
 use loan_machine_models::requests::DocKind;
-use crate::common::deploy::DeployedEnv;
-use crate::common::wa;
 
-/// A real CPF with valid check digits — safe for IdentityService validation.
 const TEST_DOCUMENT: &str = "11144477735";
 const TEST_DOC_KIND: DocKind = DocKind::Cpf;
-
-fn parse_hex_u64(s: &str) -> u64 {
-    u64::from_str_radix(s.trim_start_matches("0x"), 16)
-        .unwrap_or_else(|e| panic!("bad hex gas value {s:?}: {e}"))
-}
-
-async fn make_service(env: &DeployedEnv) -> CoopDeploymentService {
-    use secrecy::SecretString;
-    CoopDeploymentService::new(
-        SecretString::from(env.platform_admin_key_hex.clone()),
-        &env.coop_registry_address,
-        &env.rpc_url,
-        env.loan_machine_bytecode.clone(),
-        &env.usdt_address,
-    )
-    .expect("CoopDeploymentService::new")
-}
-
-/// IdentityService doesn't depend on the deployed env — it only needs the
-/// salt from the environment.  COOP_SALT must be set (same as prod).
-fn make_identity() -> IdentityService {
-    IdentityService::from_env()
-        .expect("COOP_SALT must be set — add it to .env or your test environment")
-}
 
 // ── Validation tests (no chain interaction) ──────────────────
 
 #[tokio::test]
 async fn prepare_rejects_empty_name() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let result = prepare_create_coop_logic(
-        &identity,
-        &svc,
+        &identity, &svc,
         "".into(),
         wa(env.approved_wallet),
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-            wa(env.third_admin),
-        ],
+        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND,
-        TEST_DOCUMENT.into(),
+        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
@@ -80,22 +35,16 @@ async fn prepare_rejects_empty_name() {
 #[tokio::test]
 async fn prepare_rejects_whitespace_only_name() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let result = prepare_create_coop_logic(
-        &identity,
-        &svc,
+        &identity, &svc,
         "   ".into(),
         wa(env.approved_wallet),
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-            wa(env.third_admin),
-        ],
+        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND,
-        TEST_DOCUMENT.into(),
+        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
@@ -104,22 +53,16 @@ async fn prepare_rejects_whitespace_only_name() {
 #[tokio::test]
 async fn prepare_rejects_too_long_name() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let result = prepare_create_coop_logic(
-        &identity,
-        &svc,
+        &identity, &svc,
         "a".repeat(101),
         wa(env.approved_wallet),
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-            wa(env.third_admin),
-        ],
+        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND,
-        TEST_DOCUMENT.into(),
+        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
@@ -128,21 +71,16 @@ async fn prepare_rejects_too_long_name() {
 #[tokio::test]
 async fn prepare_rejects_wrong_admin_count() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let result = prepare_create_coop_logic(
-        &identity,
-        &svc,
+        &identity, &svc,
         "Test Coop".into(),
         wa(env.approved_wallet),
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-        ], // 2 instead of 3
+        vec![wa(env.approved_wallet), wa(env.second_admin)], // 2 instead of 3
         2,
-        TEST_DOC_KIND,
-        TEST_DOCUMENT.into(),
+        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(
@@ -156,29 +94,21 @@ async fn prepare_rejects_wrong_admin_count() {
 #[tokio::test]
 async fn prepare_rejects_founder_not_in_admins() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let result = prepare_create_coop_logic(
-        &identity,
-        &svc,
+        &identity, &svc,
         "Test Coop".into(),
         wa(env.unapproved_wallet), // ← founder NOT in admin list
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-            wa(env.third_admin),
-        ],
+        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND,
-        TEST_DOCUMENT.into(),
+        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(
         result,
-        Err(CreateCoopLogicError::Deployment(
-            CoopDeploymentError::FounderNotInAdmins
-        ))
+        Err(CreateCoopLogicError::Deployment(CoopDeploymentError::FounderNotInAdmins))
     ));
 }
 
@@ -187,22 +117,16 @@ async fn prepare_rejects_founder_not_in_admins() {
 #[tokio::test]
 async fn prepare_happy_path_returns_bundle() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let bundle = prepare_create_coop_logic(
-        &identity,
-        &svc,
+        &identity, &svc,
         "Cooperativa Test".into(),
         wa(env.approved_wallet),
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-            wa(env.third_admin),
-        ],
+        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND,
-        TEST_DOCUMENT.into(),
+        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.expect("happy path");
 
     assert!(bundle.deploy_data.starts_with("0x"));
@@ -216,30 +140,22 @@ async fn prepare_happy_path_returns_bundle() {
 #[tokio::test]
 async fn access_codes_are_unique_across_calls() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
-    let admins = vec![
-        wa(env.approved_wallet),
-        wa(env.second_admin),
-        wa(env.third_admin),
-    ];
+    let admins = vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)];
 
     let b1 = prepare_create_coop_logic(
-        &identity, &svc,
-        "Coop A".into(),
+        &identity, &svc, "Coop A".into(),
         wa(env.approved_wallet),
-        admins.clone(),
-        2,
+        admins.clone(), 2,
         TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.unwrap();
 
     let b2 = prepare_create_coop_logic(
-        &identity, &svc,
-        "Coop B".into(),
+        &identity, &svc, "Coop B".into(),
         wa(env.approved_wallet),
-        admins,
-        2,
+        admins, 2,
         TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.unwrap();
 
@@ -249,18 +165,13 @@ async fn access_codes_are_unique_across_calls() {
 #[tokio::test]
 async fn initialize_data_starts_with_initialize_multisig_selector() {
     let env = common::get_deployed().await;
-    let identity = make_identity();
-    let svc = make_service(&env).await;
+    let identity = make_identity_from_env();
+    let svc = make_deployment_service(&env);
 
     let bundle = prepare_create_coop_logic(
-        &identity, &svc,
-        "Test".into(),
+        &identity, &svc, "Test".into(),
         wa(env.approved_wallet),
-        vec![
-            wa(env.approved_wallet),
-            wa(env.second_admin),
-            wa(env.third_admin),
-        ],
+        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
         TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.unwrap();
@@ -268,58 +179,47 @@ async fn initialize_data_starts_with_initialize_multisig_selector() {
     assert!(bundle.initialize_data.len() > 2 + 8, "must have selector + args");
 }
 
-// ── register_deployed_coop (no identity needed) ───────────────
+// ── register_deployed_coop ────────────────────────────────────
 
 #[tokio::test]
 async fn register_rejects_address_with_no_code() {
     let env = common::get_deployed().await;
-    let svc = make_service(&env).await;
+    let svc = make_deployment_service(&env);
 
     let result = register_deployed_coop_logic(
-        &svc,
-        "Test Coop".into(),
+        &svc, "Test Coop".into(),
         "0x0000000000000000000000000000000000000001".into(),
         wa(env.approved_wallet),
     ).await;
 
     assert!(matches!(
         result,
-        Err(CreateCoopLogicError::Deployment(
-            CoopDeploymentError::LoanMachineHasNoCode
-        ))
+        Err(CreateCoopLogicError::Deployment(CoopDeploymentError::LoanMachineHasNoCode))
     ));
 }
 
 #[tokio::test]
 async fn register_rejects_founder_not_admin() {
     let env = common::get_deployed().await;
-    let svc = make_service(&env).await;
+    let svc = make_deployment_service(&env);
 
     let result = register_deployed_coop_logic(
-        &svc,
-        "Test Coop".into(),
+        &svc, "Test Coop".into(),
         env.loan_machine_address.clone(),
         wa(env.unapproved_wallet),
     ).await;
 
     assert!(matches!(
         result,
-        Err(CreateCoopLogicError::Deployment(
-            CoopDeploymentError::FounderNotAdminOfDeployedContract
-        ))
+        Err(CreateCoopLogicError::Deployment(CoopDeploymentError::FounderNotAdminOfDeployedContract))
     ));
 }
 
 #[tokio::test]
 async fn register_happy_path() {
     let env = common::get_deployed().await;
-    let svc = make_service(&env).await;
-
-    use alloy::signers::local::PrivateKeySigner;
-    use std::str::FromStr;
-    let admin_signer = PrivateKeySigner::from_str(
-        env.platform_admin_key_hex.trim_start_matches("0x")
-    ).unwrap();
+    let svc = make_deployment_service(&env);
+    let admin_signer = platform_admin_signer(&env);
 
     let result = register_deployed_coop_logic(
         &svc,
@@ -340,7 +240,7 @@ async fn register_happy_path() {
 #[tokio::test]
 async fn register_rejects_empty_name() {
     let env = common::get_deployed().await;
-    let svc = make_service(&env).await;
+    let svc = make_deployment_service(&env);
 
     let result = register_deployed_coop_logic(
         &svc, "".into(),
@@ -350,5 +250,3 @@ async fn register_rejects_empty_name() {
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
 }
-
-
