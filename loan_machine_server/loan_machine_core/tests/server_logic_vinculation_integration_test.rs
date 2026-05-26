@@ -4,10 +4,21 @@ use crate::common::{member_events_empty, parse_hex_u64, server_returning};
 use loan_machine_core::server_logic::vinculation::{
     get_wallet_coop_logic, prepare_first_vinculation_logic, VinculationLogicError,
 };
+use loan_machine_core::services::blockchain::BlockchainError;
 use loan_machine_core::services::identity::IdentityService;
 use loan_machine_core::services::subgraph::SubgraphService;
 use loan_machine_models::requests::DocKind;
 use loan_machine_models::wallet_address::from_alloy;
+
+#[track_caller]
+fn expect_revert_msg(err: VinculationLogicError) -> String {
+    match err {
+        VinculationLogicError::ServerLogicBlockchain(
+            BlockchainError::ContractRevert { message, .. }
+        ) => message,
+        other => panic!("expected ContractRevert, got {other:?}"),
+    }
+}
 
 use serde_json::json;
 
@@ -233,4 +244,48 @@ async fn different_salts_produce_different_calldata() {
     ).await.unwrap();
 
     assert_ne!(bundle_a.join_calldata, bundle_b.join_calldata);
+}
+
+// ── estimate_join_coop_gas — contract revert paths ───────────────────
+
+#[tokio::test]
+async fn prepare_vinculation_rejects_already_linked_wallet() {
+    let env      = common::get_deployed().await;
+    let identity = IdentityService::with_salt([0x01u8; 32]);
+
+    // approved_wallet (founder) is approved AND already vinculated to
+    // founder_member_id. Any CPF produces a different member_id, so
+    // registerMemberWallet sees the wallet already tied to another member.
+    let err = prepare_first_vinculation_logic(
+        &identity, &env.blockchain, &env.coop_registry_address,
+        DocKind::Cpf, TEST_CPF.into(),
+        from_alloy(env.approved_wallet),
+        env.coop_id_hex.clone(), env.access_code.clone(),
+    ).await.unwrap_err();
+
+    assert_eq!(
+        expect_revert_msg(err),
+        "Esta carteira já está associada a outro membro."
+    );
+}
+
+#[tokio::test]
+async fn prepare_vinculation_rejects_wrong_access_code() {
+    let env      = common::get_deployed().await;
+    let identity = IdentityService::with_salt([0x01u8; 32]);
+
+    // second_admin is approved but not yet vinculated, so the approval gate
+    // passes. The wrong access code is forwarded to estimate_gas and
+    // joinCoop reverts with LoanMachine_InvalidAccessCode.
+    let err = prepare_first_vinculation_logic(
+        &identity, &env.blockchain, &env.coop_registry_address,
+        DocKind::Cpf, TEST_CPF.into(),
+        from_alloy(env.second_admin),
+        env.coop_id_hex.clone(), "wrong-access-code".into(),
+    ).await.unwrap_err();
+
+    assert_eq!(
+        expect_revert_msg(err),
+        "Código de acesso inválido."
+    );
 }

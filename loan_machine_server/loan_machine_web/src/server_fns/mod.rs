@@ -8,6 +8,3 @@ pub mod wallet_balance;
 pub mod coop_approval;
 pub mod user_profile;
 pub mod admin_approvals;
-
-#[cfg(test)]
-pub mod admin_approvals_test;

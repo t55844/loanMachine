@@ -1,17 +1,18 @@
 mod common;
-use crate::common::deploy::DeployedEnv;
-use crate::common::{mount_query, one_cooperative_payload, server_returning};
+use crate::common::{
+    confirm_as_second_admin, mount_query, one_cooperative_payload,
+    propose_add_admin, server_returning, propose_fresh_wallet_approval,
+};
 
-use alloy::network::EthereumWallet;
 use alloy::primitives::{keccak256, Address, U256};
 use alloy::providers::ProviderBuilder;
-use alloy::signers::local::PrivateKeySigner;
 
 use loan_machine_core::server_logic::admin_approvals::{
     list_pending_approvals_logic, prepare_confirm_proposal_logic,
     prepare_cosign_proposal_logic, AdminApprovalError,
 };
 use loan_machine_core::services::blockchain::deployable::LoanMachine;
+use loan_machine_core::services::blockchain::BlockchainError;
 use loan_machine_core::services::subgraph::SubgraphService;
 use loan_machine_models::wallet_address::from_alloy;
 
@@ -20,36 +21,24 @@ use wiremock::MockServer;
 
 const ZERO_ADDR: &str = "0x0000000000000000000000000000000000000000";
 
-/// One-off helper kept in this file (not promoted to common/). Broadcasts
-/// `proposeWalletApproval(target)` from the founder (admin1) and returns
-/// the new on-chain proposal id. Used only by the happy-path encoding
-/// test; every other test mocks the subgraph.
-async fn propose_wallet_approval_inline(env: &DeployedEnv, target: Address) -> u64 {
-    let _guard = env.platform_admin_lock.lock().await;
-
-    let bytes  = hex::decode(env.platform_admin_key_hex.trim_start_matches("0x")).unwrap();
-    let signer = PrivateKeySigner::from_slice(&bytes).unwrap();
-    let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
-        .wallet(EthereumWallet::from(signer))
-        .on_http(env.rpc_url.parse().unwrap());
-    let lm_addr: Address = env.loan_machine_address.parse().unwrap();
-    let lm = LoanMachine::new(lm_addr, provider);
-
-    let pid: U256 = lm.proposeWalletApproval(target).call().await
-        .expect("simulate proposeWalletApproval").proposalId;
-    lm.proposeWalletApproval(target).send().await
-        .expect("send proposeWalletApproval")
-        .watch().await
-        .expect("mine proposeWalletApproval");
-
-    pid.try_into().expect("proposalId fits u64")
-}
-
 fn confirm_selector() -> [u8; 4] {
     let h = keccak256(b"confirmProposal(uint256)");
     [h[0], h[1], h[2], h[3]]
 }
+
+
+/// Small local helper for the revert-path tests that need to destructure
+/// `ContractRevert` repeatedly. Panics if the error isn't a translated
+/// revert — every assertion in this file wants the Portuguese message.
+#[track_caller]
+fn expect_revert_msg(err: AdminApprovalError) -> String {
+    match err {
+        AdminApprovalError::Blockchain(BlockchainError::ContractRevert { message, .. }) => message,
+        other => panic!("expected ContractRevert, got {other:?}"),
+    }
+}
+
+
 
 // ── list_pending_approvals_logic ─────────────────────────────────────
 
@@ -67,9 +56,18 @@ async fn list_returns_threshold_and_admin_count_from_chain() {
         &subgraph, &env.blockchain, &env.coop_id_hex, from_alloy(env.approved_wallet)
     ).await.expect("list");
 
+    // The property under test is "values come from chain", not "values are 2 and 3".
+    // Other tests in this binary may have added admins or changed the threshold,
+    // so compare against a fresh on-chain read.
+    let provider = ProviderBuilder::new().on_http(env.rpc_url.parse().unwrap());
+    let lm_addr: Address = env.loan_machine_address.parse().unwrap();
+    let lm = LoanMachine::new(lm_addr, provider);
+    let on_chain_admins    = lm.getAdmins().call().await.unwrap()._0;
+    let on_chain_threshold = lm.adminThreshold().call().await.unwrap()._0;
+
     assert!(r.proposals.is_empty());
-    assert_eq!(r.threshold,    2, "threshold from chain");
-    assert_eq!(r.total_admins, 3, "admin count from chain");
+    assert_eq!(r.threshold    as u64,    on_chain_threshold.try_into().unwrap_or(u64::MAX));
+    assert_eq!(r.total_admins as usize,  on_chain_admins.len());
 }
 
 #[tokio::test]
@@ -165,7 +163,7 @@ async fn list_rejects_invalid_coop_id() {
 #[tokio::test]
 async fn prepare_confirm_encodes_proposal_id() {
     let env = common::get_deployed().await;
-    let pid = propose_wallet_approval_inline(&env, env.unapproved_wallet).await;
+    let (_, pid) = propose_fresh_wallet_approval(&env).await;
 
     let b = prepare_confirm_proposal_logic(
         &env.blockchain, &env.coop_id_hex, pid, from_alloy(env.second_admin)
@@ -227,4 +225,90 @@ async fn prepare_cosign_rejects_invalid_coop_id() {
     ).await.unwrap_err();
 
     assert!(matches!(err, AdminApprovalError::InvalidCoopId(_)));
+}
+
+
+// ── prepare_confirm_proposal_logic — contract revert paths ───────────
+
+#[tokio::test]
+async fn prepare_confirm_rejects_non_admin_wallet() {
+    let env = common::get_deployed().await;
+    let (_, pid) = propose_fresh_wallet_approval(&env).await;
+
+    // unapproved_wallet is anvil account 3 — not in the admin set.
+    let err = prepare_confirm_proposal_logic(
+        &env.blockchain, &env.coop_id_hex, pid, from_alloy(env.unapproved_wallet)
+    ).await.unwrap_err();
+
+    assert_eq!(
+        expect_revert_msg(err),
+        "Apenas administradores podem executar esta ação."
+    );
+}
+
+#[tokio::test]
+async fn prepare_confirm_rejects_nonexistent_proposal() {
+    let env = common::get_deployed().await;
+
+    let err = prepare_confirm_proposal_logic(
+        &env.blockchain, &env.coop_id_hex, u64::MAX, from_alloy(env.approved_wallet)
+    ).await.unwrap_err();
+
+    assert_eq!(expect_revert_msg(err), "Proposta não encontrada.");
+}
+
+#[tokio::test]
+async fn prepare_confirm_rejects_already_confirmed() {
+    let env = common::get_deployed().await;
+let (_, pid) = propose_fresh_wallet_approval(&env).await;
+    confirm_as_second_admin(&env, pid).await;
+
+    let err = prepare_confirm_proposal_logic(
+        &env.blockchain, &env.coop_id_hex, pid, from_alloy(env.second_admin)
+    ).await.unwrap_err();
+
+    assert_eq!(expect_revert_msg(err), "Você já confirmou esta proposta.");
+}
+
+#[tokio::test]
+async fn prepare_confirm_rejects_already_executed() {
+    let env = common::get_deployed().await;
+
+    // AddAdmin executes without moderator cosign: admin1 auto-confirms on
+    // propose, admin2 confirms → threshold (2) reached → executes.
+    // admin3 then trying to confirm hits LoanMachine_ProposalAlreadyExecuted
+    // (the contract checks `executed` before `hasConfirmedProposal`).
+    //
+    // NOTE: this mutates chain state — scratch_admin_address joins the
+    // multisig. That's why the from-chain test compares against
+    // `getAdmins()` instead of hardcoding 3.
+    let pid = propose_add_admin(&env, env.scratch_admin_address).await;
+    confirm_as_second_admin(&env, pid).await;
+
+    let err = prepare_confirm_proposal_logic(
+        &env.blockchain, &env.coop_id_hex, pid, from_alloy(env.third_admin)
+    ).await.unwrap_err();
+
+    assert_eq!(expect_revert_msg(err), "Esta proposta já foi executada.");
+}
+
+// ── prepare_cosign_proposal_logic — contract revert path ─────────────
+
+#[tokio::test]
+async fn prepare_cosign_rejects_vinculated_non_moderator() {
+    let env = common::get_deployed().await;
+    let server = server_returning(one_cooperative_payload()).await;
+    let subgraph = SubgraphService::new(server.uri());
+
+    let (_, pid) = propose_fresh_wallet_approval(&env).await;
+
+    let err = prepare_cosign_proposal_logic(
+        &subgraph, &env.blockchain, &env.coop_id_hex, pid,
+        from_alloy(env.approved_wallet),
+    ).await.unwrap_err();
+
+    assert_eq!(
+        expect_revert_msg(err),
+        "Apenas o moderador eleito pode executar esta ação."
+    );
 }

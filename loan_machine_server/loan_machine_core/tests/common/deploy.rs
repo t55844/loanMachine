@@ -40,6 +40,11 @@ struct Deployed {
     founder_member_id:      FixedBytes<32>,
     _anvil:                 AnvilInstance,
     platform_admin_lock:    Arc<tokio::sync::Mutex<()>>,
+    second_admin_key_hex:    String,
+    third_admin_key_hex:     String,
+    second_admin_lock:       Arc<tokio::sync::Mutex<()>>,
+    third_admin_lock:        Arc<tokio::sync::Mutex<()>>,
+    scratch_admin_address:   Address,
 }
 
 pub struct DeployedEnv {
@@ -58,6 +63,11 @@ pub struct DeployedEnv {
     pub founder_member_id:      FixedBytes<32>,
     pub blockchain:             Arc<BlockchainService>,
     pub platform_admin_lock:    Arc<tokio::sync::Mutex<()>>,
+    pub second_admin_key_hex:    String,
+    pub third_admin_key_hex:     String,
+    pub second_admin_lock:       Arc<tokio::sync::Mutex<()>>,
+    pub third_admin_lock:        Arc<tokio::sync::Mutex<()>>,
+    pub scratch_admin_address:   Address,
 }
 
 static DEPLOYED: OnceCell<Deployed> = OnceCell::const_new();
@@ -86,6 +96,11 @@ pub async fn get_deployed() -> DeployedEnv {
         founder_member_id:      d.founder_member_id,
         blockchain:             Arc::new(blockchain),
         platform_admin_lock:    d.platform_admin_lock.clone(),
+        second_admin_key_hex:    d.second_admin_key_hex.clone(),
+        third_admin_key_hex:     d.third_admin_key_hex.clone(),
+        second_admin_lock:       d.second_admin_lock.clone(),
+        third_admin_lock:        d.third_admin_lock.clone(),
+        scratch_admin_address:   d.scratch_admin_address,
     }
 }
 
@@ -153,6 +168,10 @@ async fn deploy() -> Deployed {
     let platform_admin_key_hex = format!("0x{}", hex::encode(admin1.to_bytes()));
     let loan_machine_bytecode = LoanMachine::BYTECODE.to_vec();
 
+    let second_admin_key_hex  = format!("0x{}", hex::encode(admin2.to_bytes()));
+    let third_admin_key_hex   = format!("0x{}", hex::encode(admin3.to_bytes()));
+    let scratch_admin_address = anvil.addresses()[5];
+
     Deployed {
         rpc_url:                rpc_url.clone(),
         coop_registry_address:  registry_address.to_string(),
@@ -169,5 +188,10 @@ async fn deploy() -> Deployed {
         loan_machine_bytecode,
         founder_member_id,
         platform_admin_lock:    Arc::new(tokio::sync::Mutex::new(())),
+        second_admin_key_hex,
+        third_admin_key_hex,
+        second_admin_lock:       Arc::new(tokio::sync::Mutex::new(())),
+        third_admin_lock:        Arc::new(tokio::sync::Mutex::new(())),
+        scratch_admin_address,
     }
 }

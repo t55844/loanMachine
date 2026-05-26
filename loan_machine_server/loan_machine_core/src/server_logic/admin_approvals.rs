@@ -90,9 +90,8 @@ pub async fn prepare_cosign_proposal_logic(
     let contract = LoanMachine::new(lm_addr, provider.clone());
     let wallet_addr = wallet_address::to_alloy(&wallet);
 
-    // Fetch viewer's memberId from chain — don't trust the client.
     let member_id_b32 = resolve_member_id( 
-            &subgraph, &provider, lm_addr, &wallet
+            subgraph, provider, lm_addr, &wallet
             ).await?
             .unwrap_or(B256::ZERO);
     let is_member = member_id_b32 != B256::ZERO;
