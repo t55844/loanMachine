@@ -8,3 +8,4 @@ pub mod helpers;
 pub mod coop_approval;
 pub mod user_profile;
 pub mod admin_approvals;
+pub mod member_financials;

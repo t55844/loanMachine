@@ -207,8 +207,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
 
                                 let name_ok     = !n.trim().is_empty();
                                 let document_ok = !doc.trim().is_empty()
-                                    && doc.chars().filter(|c| c.is_ascii_digit()).count()
-                                        == dk.max_digits(); // assumes DocKind::max_digits() — see note below
+                                    && dk.bare_char_count(&doc) == dk.max_digits();
                                 let admin2_ok   = a2_parsed.is_ok();
                                 let admin3_ok   = a3_parsed.is_ok();
 
@@ -222,7 +221,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                 } else {
                                     match dk {
                                         DocKind::Cpf  => "CPF deve ter 11 dígitos".into(),
-                                        DocKind::Cnpj => "CNPJ deve ter 14 dígitos".into(),
+                                        DocKind::Cnpj => "CNPJ deve ter 14 caracteres".into(),
                                     }
                                 });
                                 set_admin2_err.set(if admin2_ok {

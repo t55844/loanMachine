@@ -76,7 +76,21 @@ fn cpf_mode_renders_cpf_hint() {
 
 #[test]
 fn cnpj_mode_renders_cnpj_hint() {
-    assert!(render_cnpj().contains("14 dígitos"));
+    assert!(render_cnpj().contains("14 caracteres"));
+}
+
+#[test]
+fn cnpj_mode_uses_text_inputmode() {
+    let html = render_cnpj();
+    assert!(html.contains(r#"inputmode="text""#),
+        "CNPJ should use text inputmode:\n{html}");
+}
+
+#[test]
+fn cpf_mode_uses_numeric_inputmode() {
+    let html = render_cpf();
+    assert!(html.contains(r#"inputmode="numeric""#),
+        "CPF should use numeric inputmode:\n{html}");
 }
 
 #[test]

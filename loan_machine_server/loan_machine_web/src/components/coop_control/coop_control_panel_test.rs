@@ -131,24 +131,27 @@ fn approved_role_shows_first_vinculation_form() {
 }
 
 #[test]
-fn member_role_shows_member_placeholder() {
-    assert!(render_role(ViewerRole::Member).contains("MEMBER PANEL"));
+fn member_role_shows_member_status_panel() {
+    assert!(render_role(ViewerRole::Member).contains("member-status-panel"),
+        "expected MemberStatusPanel wrapper in member role");
 }
 
 // Legacy: `ViewerRole::Admin` and `ViewerRole::Moderator` are no longer
 // ladder positions — admin/moderator status is carried by the `is_admin`
 // and `is_moderator` flags instead. The match arm currently routes these
-// variants through the Member placeholder. Delete these two tests when
+// variants through the MemberStatusPanel. Delete these two tests when
 // the variants are removed from `ViewerRole`.
 
 #[test]
-fn legacy_admin_variant_falls_through_to_member_placeholder() {
-    assert!(render_role(ViewerRole::Admin).contains("MEMBER PANEL"));
+fn legacy_admin_variant_falls_through_to_member_status_panel() {
+    assert!(render_role(ViewerRole::Admin).contains("member-status-panel"),
+        "expected MemberStatusPanel wrapper for Admin ladder variant");
 }
 
 #[test]
-fn legacy_moderator_variant_falls_through_to_member_placeholder() {
-    assert!(render_role(ViewerRole::Moderator).contains("MEMBER PANEL"));
+fn legacy_moderator_variant_falls_through_to_member_status_panel() {
+    assert!(render_role(ViewerRole::Moderator).contains("member-status-panel"),
+        "expected MemberStatusPanel wrapper for Moderator ladder variant");
 }
 
 // ── Capability tests ──────────────────────────────────────
@@ -179,8 +182,8 @@ fn no_capability_flags_means_only_ladder_renders() {
     // Sanity check that the additive panels really are gated. The Member
     // placeholder still shows; the admin/mod panels must not.
     let html = render_role_with_caps(ViewerRole::Member, false, false);
-    assert!(html.contains("MEMBER PANEL"),
-        "expected member ladder rung to render, got:\n{html}");
+    assert!(html.contains("member-status-panel"),
+        "expected MemberStatusPanel to render, got:\n{html}");
     // These negative assertions are only meaningful once AdminPanel /
     // ModeratorPanel actually emit a distinctive marker — pick one and
     // tighten this if the substrings above get more specific.

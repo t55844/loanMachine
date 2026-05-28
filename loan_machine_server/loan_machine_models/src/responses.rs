@@ -203,3 +203,24 @@ pub struct CoopRegistrationResult {
     pub loan_machine_address: String,
     pub registration_tx_hash: String,
 }
+
+/// All per-member financial data for a single cooperative, as seen by that member.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemberFinancials {
+    pub wallet:            String,   // display address
+    pub member_id:         String,   // bytes32 hex
+    pub reputation:        i32,
+    /// Current donation balance (raw token units as decimal string).
+    pub donation:          String,
+    /// Outstanding borrowed amount.
+    pub borrowing:         String,
+    /// Unix timestamp of the last borrow; 0 if the member has never borrowed.
+    pub last_borrow_time:  u64,
+    /// Portion of donation locked in active loan coverage.
+    pub in_coverage:       String,
+    /// donation − in_coverage (free to withdraw).
+    pub withdrawable:      String,
+    /// USDT allowance granted to the LoanMachine contract.
+    pub allowance:         String,
+    pub loan_machine_address: String,
+}

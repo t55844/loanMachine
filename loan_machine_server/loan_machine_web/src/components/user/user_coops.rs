@@ -3,6 +3,7 @@ use leptos::prelude::*;
 use loan_machine_models::responses::{UserProfileCoop};
 
 use crate::components::ui::*;
+use crate::components::user::member_status::MemberStatusPanel;
 use crate::server_fns::user_profile::get_user_profile;
 
 #[component]
@@ -152,6 +153,10 @@ fn CoopRow(coop: UserProfileCoop) -> impl IntoView {
                         })}
                     </div>
                 </div>
+
+                {is_member.then(|| view! {
+                    <MemberStatusPanel coop_id=coop.coop_id.clone() />
+                })}
             </div>
         </Card>
     }

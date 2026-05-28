@@ -144,6 +144,7 @@ use crate::components::vinculation::FirstVinculationForm;
 use crate::components::coop_control::approval_pending::ApprovalPending;
 use crate::components::coop_control::coop_approval::RequestApproval;
 use crate::components::coop_control::admin_panel::{AdminPanel, ModeratorPanel};
+use crate::components::user::member_status::MemberStatusPanel;
 #[component]
 pub(crate) fn RoleSection(
     role: ViewerRole,
@@ -170,13 +171,8 @@ pub(crate) fn RoleSection(
             <FirstVinculationForm on_success=move || on_state_changed.run(()) />
         }.into_any(),
 
-        ViewerRole::Member => view! {
-            <TodoPlaceholder label="MEMBER PANEL" />
-        }.into_any(),
-
-        // Legacy variants — kept only if you haven't deleted them yet.
-        ViewerRole::Admin | ViewerRole::Moderator => view! {
-            <TodoPlaceholder label="MEMBER PANEL" />
+        ViewerRole::Member | ViewerRole::Admin | ViewerRole::Moderator => view! {
+            <MemberStatusPanel coop_id=coop_id.clone() />
         }.into_any(),
     };
 
@@ -196,16 +192,3 @@ pub(crate) fn RoleSection(
     }
 }
 
-/// Honest "this isn't built yet" placeholder.  Every role gets one
-/// until its real sub-component lands.  Visible in dev, easy to grep.
-#[component]
-fn TodoPlaceholder(label: &'static str) -> impl IntoView {
-    view! {
-        <Card variant=CardVariant::Default hover=false>
-            <Badge color=BadgeColor::Gold>"TODO"</Badge>
-            <p class="t-mono-sm t-muted" style="margin-top: var(--sp-4)">
-                {format!("Sub-component pending: {label}")}
-            </p>
-        </Card>
-    }
-}

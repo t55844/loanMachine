@@ -153,6 +153,48 @@ async fn cpf_and_cnpj_produce_different_calldata() {
 }
 
 #[tokio::test]
+async fn alphanumeric_cnpj_produces_valid_calldata() {
+    let env      = common::get_deployed().await;
+    let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet   = from_alloy(env.second_admin);
+
+    // 12.ABC.345/0001-88 is a valid RF 2026 alphanumeric CNPJ.
+    let result = prepare_first_vinculation_logic(
+        &identity, &env.blockchain, &env.coop_registry_address,
+        DocKind::Cnpj, "12.ABC.345/0001-88".into(),
+        wallet,
+        env.coop_id_hex.clone(), env.access_code.clone(),
+    ).await.unwrap();
+
+    assert!(result.join_calldata.starts_with("0x"));
+    assert!(result.join_calldata.len() > 2 + 8, "must have selector + args");
+}
+
+#[tokio::test]
+async fn numeric_and_alphanumeric_cnpj_produce_different_calldata() {
+    let env      = common::get_deployed().await;
+    let identity = IdentityService::with_salt([0x01u8; 32]);
+    let wallet   = from_alloy(env.second_admin);
+
+    let numeric = prepare_first_vinculation_logic(
+        &identity, &env.blockchain, &env.coop_registry_address,
+        DocKind::Cnpj, "11.222.333/0001-81".into(),
+        wallet.clone(),
+        env.coop_id_hex.clone(), env.access_code.clone(),
+    ).await.unwrap();
+
+    let alpha = prepare_first_vinculation_logic(
+        &identity, &env.blockchain, &env.coop_registry_address,
+        DocKind::Cnpj, "12.ABC.345/0001-88".into(),
+        wallet,
+        env.coop_id_hex.clone(), env.access_code.clone(),
+    ).await.unwrap();
+
+    assert_ne!(numeric.join_calldata, alpha.join_calldata,
+        "different CNPJ values must hash to different member_ids");
+}
+
+#[tokio::test]
 async fn invalid_coop_id_is_rejected() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);

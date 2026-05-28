@@ -39,11 +39,18 @@ pub fn DocumentInput(
         };
         let raw     = input.value();
         let max_len = doc_kind.get().max_input_len();
-        let cleaned: String = raw
-            .chars()
-            .filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '/'))
-            .take(max_len)
-            .collect();
+        let cleaned: String = if doc_kind.get() == DocKind::Cpf {
+            raw.chars()
+                .filter(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '/'))
+                .take(max_len)
+                .collect()
+        } else {
+            raw.chars()
+                .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '/'))
+                .map(|c| c.to_ascii_uppercase())
+                .take(max_len)
+                .collect()
+        };
         if cleaned != raw {
             input.set_value(&cleaned);
         }
@@ -91,7 +98,7 @@ pub fn DocumentInput(
                         ""
                     }
                     type="text"
-                    inputmode="numeric"
+                    inputmode=move || if doc_kind.get() == DocKind::Cpf { "numeric" } else { "text" }
                     autocomplete="off"
                     prop:value=document
                     placeholder=move || doc_kind.get().placeholder()
@@ -101,7 +108,7 @@ pub fn DocumentInput(
                 <span class="form-hint">
                     {move || match doc_kind.get() {
                         DocKind::Cpf  => "11 dígitos — formatação opcional",
-                        DocKind::Cnpj => "14 dígitos — formatação opcional",
+                        DocKind::Cnpj => "14 caracteres — letras e dígitos",
                     }}
                 </span>
                 {move || {

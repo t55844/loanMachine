@@ -114,35 +114,57 @@ pub fn validate_cpf(raw: &str) -> Result<String, IdentityError>{
 
 
 pub fn validate_cnpj(raw: &str) -> Result<String, IdentityError> {
-    let digits = strip_non_digits(raw);
+    // Strip separators and uppercase — base chars can be A-Z or 0-9 (RF 2026 format).
+    let chars = strip_cnpj_formatting(raw);
 
-    if digits.len() != 14 {
+    if chars.len() != 14 {
         return Err(IdentityError::CnpjLength);
     }
 
-    if digits.chars().all(|c| c == digits.chars().next().unwrap()) {
+    if chars.chars().all(|c| c == chars.chars().next().unwrap()) {
         return Err(IdentityError::CnpjAllSame);
     }
 
-    let d: Vec<u32> = digits.chars().map(|c| c.to_digit(10).unwrap()).collect();
+    // Check digits (positions 13-14) are always numeric.
+    if !chars[12..].chars().all(|c| c.is_ascii_digit()) {
+        return Err(IdentityError::CnpjCheckDigits);
+    }
+
+    let vals: Vec<u32> = chars.chars().map(cnpj_char_val).collect();
 
     const W1: [u32; 12] = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    let sum1: u32 = (0..12).map(|i| d[i] * W1[i]).sum();
+    let sum1: u32 = (0..12).map(|i| vals[i] * W1[i]).sum();
     let rem1 = sum1 % 11;
     let check1 = if rem1 < 2 { 0 } else { 11 - rem1 };
-    if d[12] != check1 {
+    if vals[12] != check1 {
         return Err(IdentityError::CnpjCheckDigits);
     }
 
     const W2: [u32; 13] = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    let sum2: u32 = (0..13).map(|i| d[i] * W2[i]).sum();
+    let sum2: u32 = (0..13).map(|i| vals[i] * W2[i]).sum();
     let rem2 = sum2 % 11;
     let check2 = if rem2 < 2 { 0 } else { 11 - rem2 };
-    if d[13] != check2 {
+    if vals[13] != check2 {
         return Err(IdentityError::CnpjCheckDigits);
     }
 
-    Ok(digits)
+    Ok(chars)
+}
+
+/// Strip CNPJ visual separators (`.`, `/`, `-`) and uppercase the result.
+/// Only alphanumeric ASCII characters survive — anything else is removed.
+fn strip_cnpj_formatting(raw: &str) -> String {
+    raw.chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_uppercase())
+        .collect()
+}
+
+/// Map a CNPJ character to its numeric weight value.
+/// Per SERPRO/RF spec: value = ASCII decimal - 48.
+/// Digits 0-9 → 0-9. Letters A-Z → 17-42 ('A'=65-48=17, 'Z'=90-48=42).
+fn cnpj_char_val(c: char) -> u32 {
+    c as u32 - 48
 }
 
 // ── HASHING ──────────────────────────────────────────────────
@@ -274,16 +296,57 @@ mod tests {
         assert_ne!(h1, h2);
     }
 
-    // CNPJ — 11.222.333/0001-81 is a well-known test CNPJ
+    // CNPJ — 11.222.333/0001-81 is a well-known test CNPJ (pure-numeric, old format)
     #[test]
     fn cnpj_formatted_passes() {
         assert!(validate_cnpj("11.222.333/0001-81").is_ok());
     }
 
     #[test]
+    fn cnpj_bare_digits_passes() {
+        assert!(validate_cnpj("11222333000181").is_ok());
+    }
+
+    #[test]
     fn cnpj_bad_check_digit_fails() {
         assert!(matches!(
             validate_cnpj("11.222.333/0001-82"),
+            Err(IdentityError::CnpjCheckDigits)
+        ));
+    }
+
+    // CNPJ — RF 2026 alphanumeric format; check digits for 12.ABC.345/0001 are 88
+    // (per SERPRO spec: letter value = ASCII - 48, so A=17, B=18, C=19, …)
+    #[test]
+    fn cnpj_alphanumeric_formatted_passes() {
+        assert!(validate_cnpj("12.ABC.345/0001-88").is_ok(),
+            "RF 2026 alphanumeric CNPJ must be accepted");
+    }
+
+    #[test]
+    fn cnpj_alphanumeric_bare_passes() {
+        assert!(validate_cnpj("12ABC345000188").is_ok());
+    }
+
+    #[test]
+    fn cnpj_alphanumeric_strips_formatting() {
+        let result = validate_cnpj("12.ABC.345/0001-88").unwrap();
+        assert_eq!(result, "12ABC345000188");
+    }
+
+    #[test]
+    fn cnpj_alphanumeric_bad_check_digit_fails() {
+        assert!(matches!(
+            validate_cnpj("12.ABC.345/0001-89"),
+            Err(IdentityError::CnpjCheckDigits)
+        ));
+    }
+
+    #[test]
+    fn cnpj_non_digit_check_positions_fail() {
+        // Check digit positions (13-14) must always be numeric per the spec.
+        assert!(matches!(
+            validate_cnpj("12.ABC.345/0001-VV"),
             Err(IdentityError::CnpjCheckDigits)
         ));
     }
