@@ -2,19 +2,10 @@
 //
 // Six-step flow that chains two server calls and two on-chain txs.
 // See create_coop_steps.rs for the per-step rendering.
-//
-// CHANGES vs prior version:
-//   • The single `cpf_cnpj` String signal is replaced by the pair
-//     (doc_kind, document) — same shape vinculation uses.
-//   • `CreateCoopRequest` now carries `doc_kind: DocKind` and
-//     `document: String` instead of a single `member_id: String`.
-//     See loan_machine_models/src/requests.rs — you'll need to update
-//     that struct accordingly.  Note at the bottom of this turn lists
-//     every downstream change.
 
 use leptos::prelude::*;
 use loan_machine_models::{
-    requests::{CreateCoopRequest, DocKind, RegisterDeployedCoopRequest},
+    requests::{CreateCoopRequest, RegisterDeployedCoopRequest},
     responses::CoopRegistrationResult,
 };
 use loan_machine_models::wallet_address::WalletAddress;
@@ -59,16 +50,13 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
     // ── Step + form-field signals ───────────────────────────
     let (step, set_step) = signal(CoopStep::Form);
 
-    let (name,     set_name)     = signal(String::new());
-    let (doc_kind, set_doc_kind) = signal(DocKind::Cnpj);
-    let (document, set_document) = signal(String::new());
-    let (admin2,   set_admin2)   = signal(String::new());
-    let (admin3,   set_admin3)   = signal(String::new());
+    let (name,   set_name)   = signal(String::new());
+    let (admin2, set_admin2) = signal(String::new());
+    let (admin3, set_admin3) = signal(String::new());
 
-    let (name_err,     set_name_err)     = signal(String::new());
-    let (document_err, set_document_err) = signal(String::new());
-    let (admin2_err,   set_admin2_err)   = signal(String::new());
-    let (admin3_err,   set_admin3_err)   = signal(String::new());
+    let (name_err,   set_name_err)   = signal(String::new());
+    let (admin2_err, set_admin2_err) = signal(String::new());
+    let (admin3_err, set_admin3_err) = signal(String::new());
 
     // Single top-of-page error display.
     let (error, set_error) = signal(String::new());
@@ -188,41 +176,27 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                     CoopStep::Form => view! {
                         <FormStep
                             name set_name
-                            doc_kind set_doc_kind
-                            document set_document
                             admin2 set_admin2
                             admin3 set_admin3
-                            name_err document_err admin2_err admin3_err
+                            name_err admin2_err admin3_err
                             loading
                             founder_wallet=founder_wallet
                             on_submit=Box::new(move || {
-                                let n        = name.get_untracked();
-                                let dk       = doc_kind.get_untracked();
-                                let doc      = document.get_untracked();
-                                let a2       = admin2.get_untracked();
-                                let a3       = admin3.get_untracked();
+                                let n  = name.get_untracked();
+                                let a2 = admin2.get_untracked();
+                                let a3 = admin3.get_untracked();
 
                                 let a2_parsed: Result<WalletAddress, _> = a2.parse();
                                 let a3_parsed: Result<WalletAddress, _> = a3.parse();
 
-                                let name_ok     = !n.trim().is_empty();
-                                let document_ok = !doc.trim().is_empty()
-                                    && dk.bare_char_count(&doc) == dk.max_digits();
-                                let admin2_ok   = a2_parsed.is_ok();
-                                let admin3_ok   = a3_parsed.is_ok();
+                                let name_ok   = !n.trim().is_empty();
+                                let admin2_ok = a2_parsed.is_ok();
+                                let admin3_ok = a3_parsed.is_ok();
 
                                 set_name_err.set(if name_ok {
                                     String::new()
                                 } else {
                                     "Name is required".into()
-                                });
-                                set_document_err.set(if document_ok {
-                                    String::new()
-                                } else {
-                                    match dk {
-                                        DocKind::Cpf  => "CPF must have 11 digits".into(),
-                                        DocKind::Cnpj => "CNPJ must have 14 characters".into(),
-                                    }
                                 });
                                 set_admin2_err.set(if admin2_ok {
                                     String::new()
@@ -235,16 +209,14 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                     "Invalid address (0x + 40 hex)".into()
                                 });
 
-                                if let (true, true, Ok(a2_addr), Ok(a3_addr))
-                                    = (name_ok, document_ok, a2_parsed, a3_parsed)
+                                if let (true, Ok(a2_addr), Ok(a3_addr))
+                                    = (name_ok, a2_parsed, a3_parsed)
                                 {
                                     prepare.dispatch(CreateCoopRequest {
                                         name:          n,
                                         founder_wallet,
                                         admin_wallets: vec![founder_wallet, a2_addr, a3_addr],
                                         threshold:     2,
-                                        doc_kind:      dk,
-                                        document:      doc,
                                     });
                                 }
                             })

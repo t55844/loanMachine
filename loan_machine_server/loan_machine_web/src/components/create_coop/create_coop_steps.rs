@@ -2,21 +2,10 @@
 //
 // Presentational step panels for the create-coop flow.
 // No signals, no effects, no server calls — only props in, view out.
-// All callbacks arrive as Box<dyn Fn() + Send + Sync> from CreateCoopPage.
-//
-// CHANGES vs prior version:
-//   • FormStep now takes the (doc_kind, document) signal pair instead
-//     of a single cpf_cnpj String.
-//   • The hand-rolled CPF/CNPJ input block (the part you tried and
-//     failed) is replaced by <DocumentInput .../>.  All toggle and
-//     filter logic lives inside that component now.
-//   • New prop: document_err (mirrors the other *_err signals).
 
 use leptos::prelude::*;
-use loan_machine_models::requests::DocKind;
 use loan_machine_models::responses::CoopRegistrationResult;
 use loan_machine_models::wallet_address::WalletAddress;
-use crate::components::cpf_cnpj::doc_input_snipet::{DocumentInput};
 
 use crate::components::ui::*;
 use crate::components::create_coop::create_coop::CoopStep;
@@ -26,20 +15,15 @@ use leptos_router::components::A;
 
 #[component]
 pub fn FormStep(
-    name:         ReadSignal<String>,
-    set_name:     WriteSignal<String>,
-    doc_kind:     ReadSignal<DocKind>,
-    set_doc_kind: WriteSignal<DocKind>,
-    document:     ReadSignal<String>,
-    set_document: WriteSignal<String>,
-    admin2:       ReadSignal<String>,
-    set_admin2:   WriteSignal<String>,
-    admin3:       ReadSignal<String>,
-    set_admin3:   WriteSignal<String>,
-    name_err:     ReadSignal<String>,
-    document_err: ReadSignal<String>,
-    admin2_err:   ReadSignal<String>,
-    admin3_err:   ReadSignal<String>,
+    name:       ReadSignal<String>,
+    set_name:   WriteSignal<String>,
+    admin2:     ReadSignal<String>,
+    set_admin2: WriteSignal<String>,
+    admin3:     ReadSignal<String>,
+    set_admin3: WriteSignal<String>,
+    name_err:   ReadSignal<String>,
+    admin2_err: ReadSignal<String>,
+    admin3_err: ReadSignal<String>,
     #[prop(into)] loading: Signal<bool>,
     founder_wallet: WalletAddress,
     on_submit: Box<dyn Fn() + Send + Sync>,
@@ -54,16 +38,6 @@ pub fn FormStep(
                     placeholder="E.g.: Northeast Solidarity Coop"
                     value=name set_value=set_name
                     error=Signal::derive(move || name_err.get())
-                />
-
-                // Founder document — same reusable component as vinculation.
-                // Used to derive the founder's memberId server-side, which
-                // is then baked into the initializeMultisig calldata so the
-                // founder is a full member the moment the contract is live.
-                <DocumentInput
-                    doc_kind set_doc_kind
-                    document set_document
-                    error=Signal::derive(move || document_err.get())
                 />
 
                 <div class="form-group">

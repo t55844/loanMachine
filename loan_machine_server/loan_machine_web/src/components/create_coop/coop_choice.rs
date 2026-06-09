@@ -26,12 +26,12 @@ pub fn CoopChoicePage() -> impl IntoView {
                                 <span class="t-yellow">"COOPERATIVE"</span>
                             </h2>
                             <p class="t-mono-sm t-muted" style="margin-top: var(--sp-4)">
-                                "Have an access code? Link your CPF/CNPJ and join an
+                                "Have an access code? Link your wallet and join an
                                 existing cooperative."
                             </p>
                             <div style="margin-top: var(--sp-6)">
                                 <Button variant=BtnVariant::Ghost full_width=true>
-                                    "LINK DOCUMENT →"
+                                    "LINK WALLET →"
                                 </Button>
                             </div>
                         </Card>

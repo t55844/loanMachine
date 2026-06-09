@@ -93,7 +93,7 @@ pub fn RequestApproval(
                         <Badge color=BadgeColor::Gold>"4"</Badge>
                         <p class="t-mono-xs">
                             "With confirmations + co-signature, your wallet is approved.
-                            You can then link your CPF/CNPJ to the wallet and become a
+                            You can then link your wallet to the cooperative and become a
                             full member."
                         </p>
                     </div>

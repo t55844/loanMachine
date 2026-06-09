@@ -20,56 +20,10 @@ pub struct VinculateMemberRequest {
 }
 
 
-
-#[derive(Serialize, Deserialize,Clone, Copy, PartialEq, Eq, Debug)]
-pub enum DocKind{
-    Cpf,
-    Cnpj,
-}
-
-impl DocKind{
-    pub fn max_input_len(self) -> usize{
-        match self{
-            DocKind::Cpf => 14,   // "123.456.789-09"
-            DocKind::Cnpj => 18,  // "12.345.678/0001-90"
-        }
-    }
-
-    pub fn placeholder(self) -> &'static str{
-        match self{
-            DocKind::Cpf => "000.000.000-00",
-            DocKind::Cnpj => "12.ABC.345/0001-77",
-        }
-    }
-
-    pub fn bare_char_count(&self, doc: &str) -> usize {
-        match self {
-            DocKind::Cpf  => doc.chars().filter(|c| c.is_ascii_digit()).count(),
-            DocKind::Cnpj => doc.chars().filter(|c| c.is_ascii_alphanumeric()).count(),
-        }
-    }
-
-    pub fn label(self) -> &'static str{
-        match self{
-            DocKind::Cpf => "CPF",
-            DocKind::Cnpj => "CNPJ",
-        }
-    }
-
-    pub fn max_digits(&self) -> usize {
-        match self {
-            DocKind::Cpf  => 11,
-            DocKind::Cnpj => 14,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateCoopRequest {
-    pub name:           String,         
-    pub founder_wallet: WalletAddress,         
+    pub name:           String,
+    pub founder_wallet: WalletAddress,
     pub admin_wallets:  Vec<WalletAddress>,
-    pub threshold:      u32,   
-    pub doc_kind:    DocKind,
-    pub document:    String,         
+    pub threshold:      u32,
 }

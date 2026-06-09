@@ -10,7 +10,6 @@ pub mod gates;
 pub mod coop_control;
 pub mod elections;
 pub mod user;
-pub mod cpf_cnpj;
 pub mod helpers;
 
 // test of components

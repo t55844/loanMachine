@@ -7,15 +7,6 @@ use loan_machine_core::server_logic::create_coop::{
     prepare_create_coop_logic, register_deployed_coop_logic, CreateCoopLogicError,
 };
 use loan_machine_core::services::coop_deployment::CoopDeploymentError;
-use loan_machine_models::requests::DocKind;
-
-const TEST_DOCUMENT: &str = "11144477735";
-const TEST_DOC_KIND: DocKind = DocKind::Cpf;
-
-// Numeric CNPJ test value (11.222.333/0001-81 is a well-known test CNPJ).
-const TEST_CNPJ_NUMERIC: &str = "11.222.333/0001-81";
-// Alphanumeric CNPJ (RF 2026 format); check digits per SERPRO spec (ASCII-48): 88.
-const TEST_CNPJ_ALPHA: &str = "12.ABC.345/0001-88";
 
 // ── Validation tests (no chain interaction) ──────────────────
 
@@ -31,7 +22,6 @@ async fn prepare_rejects_empty_name() {
         wa(env.approved_wallet),
         vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
@@ -49,7 +39,6 @@ async fn prepare_rejects_whitespace_only_name() {
         wa(env.approved_wallet),
         vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
@@ -67,7 +56,6 @@ async fn prepare_rejects_too_long_name() {
         wa(env.approved_wallet),
         vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
@@ -85,7 +73,6 @@ async fn prepare_rejects_wrong_admin_count() {
         wa(env.approved_wallet),
         vec![wa(env.approved_wallet), wa(env.second_admin)], // 2 instead of 3
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(
@@ -108,7 +95,6 @@ async fn prepare_rejects_founder_not_in_admins() {
         wa(env.unapproved_wallet), // ← founder NOT in admin list
         vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await;
 
     assert!(matches!(
@@ -131,7 +117,6 @@ async fn prepare_happy_path_returns_bundle() {
         wa(env.approved_wallet),
         vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.expect("happy path");
 
     assert!(bundle.deploy_data.starts_with("0x"));
@@ -154,14 +139,12 @@ async fn access_codes_are_unique_across_calls() {
         &identity, &svc, "Coop A".into(),
         wa(env.approved_wallet),
         admins.clone(), 2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.unwrap();
 
     let b2 = prepare_create_coop_logic(
         &identity, &svc, "Coop B".into(),
         wa(env.approved_wallet),
         admins, 2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.unwrap();
 
     assert_ne!(b1.access_code, b2.access_code);
@@ -178,7 +161,6 @@ async fn initialize_data_starts_with_initialize_multisig_selector() {
         wa(env.approved_wallet),
         vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
         2,
-        TEST_DOC_KIND, TEST_DOCUMENT.into(),
     ).await.unwrap();
 
     assert!(bundle.initialize_data.len() > 2 + 8, "must have selector + args");
@@ -254,94 +236,4 @@ async fn register_rejects_empty_name() {
     ).await;
 
     assert!(matches!(result, Err(CreateCoopLogicError::InvalidName)));
-}
-
-// ── CNPJ document coverage ─────────────────────────────────────────────────
-//
-// These mirror the CPF happy-path tests but use CNPJ.  They ensure
-// `prepare_create_coop_logic` accepts both the old pure-numeric format
-// and the new RF-2026 alphanumeric format.
-
-#[tokio::test]
-async fn prepare_happy_path_with_numeric_cnpj() {
-    let env = common::get_deployed().await;
-    let identity = make_identity_from_env();
-    let svc = make_deployment_service(&env);
-
-    let bundle = prepare_create_coop_logic(
-        &identity, &svc,
-        "Coop CNPJ Numeric".into(),
-        wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
-        2,
-        DocKind::Cnpj, TEST_CNPJ_NUMERIC.into(),
-    ).await.expect("numeric CNPJ should produce a valid deploy bundle");
-
-    assert!(bundle.deploy_data.starts_with("0x"));
-    assert!(parse_hex_u64(&bundle.gas_deploy) > 0);
-}
-
-#[tokio::test]
-async fn prepare_happy_path_with_alphanumeric_cnpj() {
-    let env = common::get_deployed().await;
-    let identity = make_identity_from_env();
-    let svc = make_deployment_service(&env);
-
-    let bundle = prepare_create_coop_logic(
-        &identity, &svc,
-        "Coop CNPJ Alpha".into(),
-        wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
-        2,
-        DocKind::Cnpj, TEST_CNPJ_ALPHA.into(),
-    ).await.expect("alphanumeric CNPJ (RF 2026) should produce a valid deploy bundle");
-
-    assert!(bundle.deploy_data.starts_with("0x"));
-    assert!(parse_hex_u64(&bundle.gas_deploy) > 0);
-}
-
-#[tokio::test]
-async fn numeric_and_alphanumeric_cnpj_produce_different_member_ids() {
-    let env = common::get_deployed().await;
-    let identity = make_identity_from_env();
-    let svc = make_deployment_service(&env);
-
-    let admins = vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)];
-
-    let b_num = prepare_create_coop_logic(
-        &identity, &svc, "Coop N".into(),
-        wa(env.approved_wallet), admins.clone(), 2,
-        DocKind::Cnpj, TEST_CNPJ_NUMERIC.into(),
-    ).await.unwrap();
-
-    let b_alpha = prepare_create_coop_logic(
-        &identity, &svc, "Coop A".into(),
-        wa(env.approved_wallet), admins, 2,
-        DocKind::Cnpj, TEST_CNPJ_ALPHA.into(),
-    ).await.unwrap();
-
-    // Different documents → different member_ids → different initialize_data calldata.
-    assert_ne!(b_num.initialize_data, b_alpha.initialize_data,
-        "different CNPJ values must hash to different member_ids");
-}
-
-#[tokio::test]
-async fn prepare_rejects_invalid_cnpj_check_digits() {
-    let env = common::get_deployed().await;
-    let identity = make_identity_from_env();
-    let svc = make_deployment_service(&env);
-
-    let result = prepare_create_coop_logic(
-        &identity, &svc,
-        "Coop Bad CNPJ".into(),
-        wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
-        2,
-        DocKind::Cnpj, "11.222.333/0001-82".into(), // last digit off by 1
-    ).await;
-
-    assert!(
-        matches!(result, Err(CreateCoopLogicError::ServerLogicIdentity(_))),
-        "invalid CNPJ check digits must be rejected; got {:?}", result,
-    );
 }

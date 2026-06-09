@@ -47,22 +47,14 @@ fn form_shows_title() {
 }
 
 #[test]
-fn form_shows_updated_subtitle() {
-    // Text was changed from "ID de membro" to "documento"
-    assert!(form_html().contains("Connect your document"));
+fn form_shows_subtitle() {
+    assert!(form_html().contains("Link your wallet to the cooperative on-chain."));
 }
 
-// Card 1 — identification
+// Card 1 — link
 #[test]
-fn form_shows_step_01_card() {
-    assert!(form_html().contains("STEP 01"));
-}
-
-#[test]
-fn form_shows_both_doc_kind_toggles() {
-    let html = form_html();
-    assert!(html.contains(">CPF<"),  "CPF toggle button missing");
-    assert!(html.contains(">CNPJ<"), "CNPJ toggle button missing");
+fn form_shows_step_01_link_card() {
+    assert!(form_html().contains("STEP 01 — LINK"));
 }
 
 #[test]

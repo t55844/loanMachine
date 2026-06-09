@@ -23,9 +23,6 @@ pub async fn prepare_create_coop(req: CreateCoopRequest) -> Result<CoopDeployBun
         req.founder_wallet,
         req.admin_wallets,
         req.threshold,
-        req.doc_kind,
-        req.document,
-        
     )
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;

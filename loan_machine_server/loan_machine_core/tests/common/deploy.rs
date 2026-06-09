@@ -18,7 +18,7 @@ use tokio::sync::OnceCell;
 pub const TEST_ACCESS_CODE: &str = "test-access-code";
 
 /// Deterministic test memberId for the founder.  Real flows derive this
-/// from `IdentityService::cpf_to_member_id(cpf)`; for deploy tests we
+/// from `IdentityService::wallet_to_member_id`; for deploy tests we
 /// just need any non-zero bytes32 so initializeMultisig accepts it.
 fn test_founder_member_id() -> FixedBytes<32> {
     keccak256(b"test-founder-member-id")

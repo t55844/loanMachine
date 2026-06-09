@@ -7,7 +7,6 @@ use loan_machine_core::server_logic::vinculation::{
 use loan_machine_core::services::blockchain::BlockchainError;
 use loan_machine_core::services::identity::IdentityService;
 use loan_machine_core::services::subgraph::SubgraphService;
-use loan_machine_models::requests::DocKind;
 use loan_machine_models::wallet_address::from_alloy;
 
 #[track_caller]
@@ -22,16 +21,11 @@ fn expect_revert_msg(err: VinculationLogicError) -> String {
 
 use serde_json::json;
 
-// Known-valid CPF for tests
-const TEST_CPF: &str = "529.982.247-25";
-
 #[tokio::test]
 async fn get_wallet_coop_returns_none_for_unapproved_wallet() {
     let env = common::get_deployed().await;
     let wallet = from_alloy(env.unapproved_wallet);
 
-    // Subgraph returns no events → helper falls through to on-chain
-    // scan, which also finds nothing for this never-vinculated wallet.
     let server = server_returning(member_events_empty()).await;
     let subgraph = SubgraphService::new(server.uri());
 
@@ -81,7 +75,6 @@ async fn prepare_vinculation_rejects_unapproved_wallet() {
 
     let result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await;
@@ -100,7 +93,6 @@ async fn prepare_vinculation_happy_path_returns_bundle() {
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.expect("happy path should succeed");
@@ -114,87 +106,6 @@ async fn prepare_vinculation_happy_path_returns_bundle() {
 }
 
 #[tokio::test]
-async fn prepare_vinculation_rejects_invalid_cpf() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet   = from_alloy(env.approved_wallet);
-
-    let result = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, "111.111.111-11".into(),
-        wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await;
-
-    assert!(matches!(result, Err(VinculationLogicError::ServerLogicIdentity(_))));
-}
-
-#[tokio::test]
-async fn cpf_and_cnpj_produce_different_calldata() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet   = from_alloy(env.second_admin);
-
-    let cpf_result = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
-        wallet.clone(),
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await.unwrap();
-
-    let cnpj_result = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cnpj, "11.222.333/0001-81".into(),
-        wallet.clone(),
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await.unwrap();
-
-    assert_ne!(cpf_result.join_calldata, cnpj_result.join_calldata);
-}
-
-#[tokio::test]
-async fn alphanumeric_cnpj_produces_valid_calldata() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet   = from_alloy(env.second_admin);
-
-    // 12.ABC.345/0001-88 is a valid RF 2026 alphanumeric CNPJ.
-    let result = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cnpj, "12.ABC.345/0001-88".into(),
-        wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await.unwrap();
-
-    assert!(result.join_calldata.starts_with("0x"));
-    assert!(result.join_calldata.len() > 2 + 8, "must have selector + args");
-}
-
-#[tokio::test]
-async fn numeric_and_alphanumeric_cnpj_produce_different_calldata() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet   = from_alloy(env.second_admin);
-
-    let numeric = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cnpj, "11.222.333/0001-81".into(),
-        wallet.clone(),
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await.unwrap();
-
-    let alpha = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cnpj, "12.ABC.345/0001-88".into(),
-        wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await.unwrap();
-
-    assert_ne!(numeric.join_calldata, alpha.join_calldata,
-        "different CNPJ values must hash to different member_ids");
-}
-
-#[tokio::test]
 async fn invalid_coop_id_is_rejected() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
@@ -202,29 +113,12 @@ async fn invalid_coop_id_is_rejected() {
 
     let result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet,
         "not-bytes32".into(),
         env.access_code.clone(),
     ).await;
 
     assert!(matches!(result, Err(VinculationLogicError::ServerLogicInvalidCoopId)));
-}
-
-#[tokio::test]
-async fn prepare_vinculation_rejects_invalid_cnpj() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
-    let wallet   = from_alloy(env.approved_wallet);
-
-    let result = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cnpj, "00.000.000/0000-00".into(),
-        wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
-    ).await;
-
-    assert!(matches!(result, Err(VinculationLogicError::ServerLogicIdentity(_))));
 }
 
 #[tokio::test]
@@ -235,7 +129,6 @@ async fn bundle_contains_coop_registry_address() {
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
@@ -254,7 +147,6 @@ async fn bundle_calldata_starts_with_join_coop_selector() {
 
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet,
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
@@ -273,14 +165,12 @@ async fn different_salts_produce_different_calldata() {
 
     let bundle_a = prepare_first_vinculation_logic(
         &id_a, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet.clone(),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
 
     let bundle_b = prepare_first_vinculation_logic(
         &id_b, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         wallet.clone(),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap();
@@ -288,19 +178,18 @@ async fn different_salts_produce_different_calldata() {
     assert_ne!(bundle_a.join_calldata, bundle_b.join_calldata);
 }
 
-// ── estimate_join_coop_gas — contract revert paths ───────────────────
+// ── contract revert paths ───────────────────────────────────────
 
 #[tokio::test]
 async fn prepare_vinculation_rejects_already_linked_wallet() {
     let env      = common::get_deployed().await;
+    // Use a salt that differs from the one used at deploy time so the
+    // derived member_id is different from what the chain already holds
+    // for this wallet — triggering "wallet already associated with another member".
     let identity = IdentityService::with_salt([0x01u8; 32]);
 
-    // approved_wallet (founder) is approved AND already vinculated to
-    // founder_member_id. Any CPF produces a different member_id, so
-    // registerMemberWallet sees the wallet already tied to another member.
     let err = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         from_alloy(env.approved_wallet),
         env.coop_id_hex.clone(), env.access_code.clone(),
     ).await.unwrap_err();
@@ -316,12 +205,8 @@ async fn prepare_vinculation_rejects_wrong_access_code() {
     let env      = common::get_deployed().await;
     let identity = IdentityService::with_salt([0x01u8; 32]);
 
-    // second_admin is approved but not yet vinculated, so the approval gate
-    // passes. The wrong access code is forwarded to estimate_gas and
-    // joinCoop reverts with LoanMachine_InvalidAccessCode.
     let err = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
-        DocKind::Cpf, TEST_CPF.into(),
         from_alloy(env.second_admin),
         env.coop_id_hex.clone(), "wrong-access-code".into(),
     ).await.unwrap_err();

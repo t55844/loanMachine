@@ -73,7 +73,7 @@ fn choice_create_coop_link_is_correct() {
 
 #[test]
 fn choice_shows_vinculate_cta_button() {
-    assert!(choice_html().contains("LINK DOCUMENT"));
+    assert!(choice_html().contains("LINK WALLET"));
 }
 
 #[test]

@@ -1,9 +1,8 @@
-use alloy::primitives::{ FixedBytes};
-use loan_machine_models::responses::{CoopInfo, VinculationBundle,};
-use loan_machine_models::requests::DocKind;
-use loan_machine_models::wallet_address::{WalletAddress,to_alloy};
+use alloy::primitives::FixedBytes;
+use loan_machine_models::responses::{CoopInfo, VinculationBundle};
+use loan_machine_models::wallet_address::{WalletAddress, to_alloy};
 use crate::services::blockchain::{BlockchainService, BlockchainError};
-use crate::services::identity::{IdentityService, IdentityError}; // ← swap IdentityError for the real name
+use crate::services::identity::IdentityService;
 use crate::services::blockchain::loan_machine_fns_helpers::{is_wallet_approved, encode_join_coop, estimate_join_coop_gas};
 use crate::services::subgraph::SubgraphService;
 use crate::server_logic::helpers::resolve_wallet_coop;
@@ -20,13 +19,9 @@ pub enum VinculationLogicError {
     ServerLogicWalletNotApproved,
 
     #[error(transparent)]
-    ServerLogicIdentity(#[from] IdentityError),
-
-    #[error(transparent)]
     ServerLogicBlockchain(#[from] BlockchainError),
-
-
 }
+
 pub async fn get_wallet_coop_logic(
     subgraph: &SubgraphService,
     blockchain: &BlockchainService,
@@ -39,18 +34,13 @@ pub async fn prepare_first_vinculation_logic(
     identity: &IdentityService,
     blockchain: &BlockchainService,
     coop_registry_address: &str,
-    doc_kind: DocKind,
-    document: String,
     smart_wallet: WalletAddress,
     coop_id: String,
     access_code: String,
 ) -> Result<VinculationBundle, VinculationLogicError> {
-    let member_id = match doc_kind {
-        DocKind::Cpf  => identity.cpf_to_member_id(&document),
-        DocKind::Cnpj => identity.cnpj_to_member_id(&document),
-    }?;
+    let member_id = identity.wallet_to_member_id(smart_wallet.as_bytes());
 
-    let wallet_addr  = to_alloy(&smart_wallet);   // boundary
+    let wallet_addr = to_alloy(&smart_wallet);
     let coop_id_bytes: FixedBytes<32> = coop_id.parse()
         .map_err(|_| VinculationLogicError::ServerLogicInvalidCoopId)?;
 
@@ -62,8 +52,7 @@ pub async fn prepare_first_vinculation_logic(
         return Err(VinculationLogicError::ServerLogicWalletNotApproved);
     }
 
-
-    let join_calldata = encode_join_coop( member_id, wallet_addr, &access_code);
+    let join_calldata = encode_join_coop(member_id, wallet_addr, &access_code);
 
     let gas = estimate_join_coop_gas(
         &coop_registry.provider,
@@ -78,5 +67,3 @@ pub async fn prepare_first_vinculation_logic(
         gas_join: format!("0x{:x}", gas),
     })
 }
-
-

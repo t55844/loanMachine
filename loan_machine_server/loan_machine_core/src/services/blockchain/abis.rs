@@ -7,7 +7,7 @@
 // Rule: one sol! block per contract. No business logic here.
 //
 // v3 CHANGES:
-// - memberId: uint32 → bytes32 (hashed CPF/CNPJ)
+// - memberId: uint32 → bytes32 (keccak256(COOP_SALT ++ wallet_bytes))
 // - Single admin → multisig (proposeAction/confirmProposal)
 // - Wallet approval: admin + moderator co-signature
 // - Withdrawal: 48h delay (request → wait → execute)
@@ -258,7 +258,7 @@ sol! {
 
 // ── COOP ACCOUNT ─────────────────────────────────────────────
 // Smart wallet per member, target-locked to LoanMachine.
-// memberId is bytes32 (hashed CPF/CNPJ).
+// memberId is bytes32 (keccak256(COOP_SALT ++ wallet_bytes)).
 
 sol! {
     #[sol(rpc)]
