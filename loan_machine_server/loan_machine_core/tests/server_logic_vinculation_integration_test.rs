@@ -307,7 +307,7 @@ async fn prepare_vinculation_rejects_already_linked_wallet() {
 
     assert_eq!(
         expect_revert_msg(err),
-        "Esta carteira já está associada a outro membro."
+        "This wallet is already associated with another member."
     );
 }
 
@@ -328,6 +328,6 @@ async fn prepare_vinculation_rejects_wrong_access_code() {
 
     assert_eq!(
         expect_revert_msg(err),
-        "Código de acesso inválido."
+        "Invalid access code."
     );
 }

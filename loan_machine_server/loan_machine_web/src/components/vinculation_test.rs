@@ -43,19 +43,19 @@ fn form_html() -> String {
 // Title + subtitle
 #[test]
 fn form_shows_title() {
-    assert!(form_html().contains("VINCULE SUA CARTEIRA"));
+    assert!(form_html().contains("LINK YOUR WALLET"));
 }
 
 #[test]
 fn form_shows_updated_subtitle() {
     // Text was changed from "ID de membro" to "documento"
-    assert!(form_html().contains("Conecte seu documento"));
+    assert!(form_html().contains("Connect your document"));
 }
 
 // Card 1 — identification
 #[test]
 fn form_shows_step_01_card() {
-    assert!(form_html().contains("PASSO 01"));
+    assert!(form_html().contains("STEP 01"));
 }
 
 #[test]
@@ -67,24 +67,24 @@ fn form_shows_both_doc_kind_toggles() {
 
 #[test]
 fn form_shows_coop_id_input() {
-    assert!(form_html().contains("ID da Cooperativa"));
+    assert!(form_html().contains("Cooperative ID"));
 }
 
 #[test]
 fn form_shows_access_code_input() {
-    assert!(form_html().contains("Código de Acesso"));
+    assert!(form_html().contains("Access Code"));
 }
 
 #[test]
 fn form_shows_prepare_button() {
-    assert!(form_html().contains("PREPARAR VINCULAÇÃO"));
+    assert!(form_html().contains("PREPARE LINKING"));
 }
 
 #[test]
 fn form_hides_tx_status_initially() {
     let html = form_html();
-    assert!(!html.contains("Aguardando assinatura"),     "pending state leaked");
-    assert!(!html.contains("VINCULAÇÃO ENVIADA"),        "complete state leaked");
-    assert!(!html.contains("Falha ao enviar transação"), "failed state leaked");
+    assert!(!html.contains("Waiting for signature"),     "pending state leaked");
+    assert!(!html.contains("LINKING SUBMITTED"),         "complete state leaked");
+    assert!(!html.contains("Failed to submit"),          "failed state leaked");
 }
 

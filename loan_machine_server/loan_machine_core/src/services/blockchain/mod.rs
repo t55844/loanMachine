@@ -66,7 +66,7 @@ pub enum BlockchainError {
     #[error("provider call failed: {0}")]
     Provider(String),
 
-    #[error("carteira não vinculada a nenhum membro: {0}")]
+    #[error("wallet not linked to any member: {0}")]
     WalletNotVinculated(WalletAddress),
 
     #[error(transparent)]

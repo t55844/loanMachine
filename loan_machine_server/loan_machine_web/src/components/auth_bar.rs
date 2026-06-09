@@ -36,7 +36,7 @@ pub fn AuthBar() -> impl IntoView {
                     WalletSession::Restoring => view! {
                         <div class="auth-bar-info">
                             <span class="auth-bar-btn-dot auth-bar-btn-dot-pending"></span>
-                            <span class="auth-bar-label">"RESTAURANDO…"</span>
+                            <span class="auth-bar-label">"RESTORING…"</span>
                         </div>
                     }.into_any(),
                 }}
@@ -68,7 +68,7 @@ fn ConnectedBar(wallet: WalletAddress) -> impl IntoView {
     view! {
         <div class="auth-bar-info">
             <span class="auth-bar-btn-dot auth-bar-btn-dot-on"></span>
-            <span class="auth-bar-label">"CARTEIRA CONECTADA"</span>
+            <span class="auth-bar-label">"WALLET CONNECTED"</span>
             <WalletWithCopy short=short.clone() full=wallet_str.clone() />
             <BalanceRow balance=balance />
         </div>
@@ -79,7 +79,7 @@ fn ConnectedBar(wallet: WalletAddress) -> impl IntoView {
                 crate::wallet_auth::privy_bridge::logout();
             }
         >
-            "DESCONECTAR"
+            "DISCONNECT"
         </button>
     }
 }
@@ -89,7 +89,7 @@ use crate::components::ui::{CopyButton, Money, MoneyCurrency};
 fn WalletWithCopy(short: String, full: String) -> impl IntoView {
     view! {
         <span class="auth-bar-address">{short}</span>
-        <CopyButton value=full title="Copiar endereço completo" />
+        <CopyButton value=full title="Copy full address" />
     }
 }
 
@@ -100,7 +100,7 @@ fn BalanceRow(balance: LocalResource<Option<String>>) -> impl IntoView {
     let view_fn = move || {
         let Some(wei_str) = balance.get().flatten() else {
             return view! {
-                <span class="auth-bar-balance t-muted">"saldo…"</span>
+                <span class="auth-bar-balance t-muted">"balance…"</span>
             }.into_any();
         };
 
@@ -130,11 +130,11 @@ fn DisconnectedBar() -> impl IntoView {
         <div class="auth-bar-info">
             <span class="auth-bar-btn-dot auth-bar-btn-dot-off"></span>
             <span class="auth-bar-icon">"◈"</span>
-            <span class="auth-bar-label">"CARTEIRA DIGITAL"</span>
+            <span class="auth-bar-label">"DIGITAL WALLET"</span>
             <span class="auth-bar-desc">
-                "Privy cria uma carteira blockchain para você via e-mail ou Google. "
-                "Sem extensão, sem seed phrase. "
-                "Sua chave fica protegida no enclave seguro deles."
+                "Privy creates a blockchain wallet for you via email or Google. "
+                "No extension, no seed phrase. "
+                "Your key is protected in their secure enclave."
             </span>
         </div>
         <button
@@ -144,7 +144,7 @@ fn DisconnectedBar() -> impl IntoView {
                 crate::wallet_auth::privy_bridge::login();
             }
         >
-            "CONECTAR"
+            "CONNECT"
         </button>
     }
 }

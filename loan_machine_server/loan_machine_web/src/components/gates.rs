@@ -64,9 +64,9 @@ pub enum LoginRequiredKind {
 impl LoginRequiredKind {
     pub fn body_text(self) -> &'static str {
         match self {
-            Self::Cooperatives => "Conecte sua carteira para ver as cooperativas.",
-            Self::Vinculation  => "Use o botão CONECTAR acima para criar ou acessar sua carteira Privy.",
-            Self::CreateCoop   => "Conecte sua carteira para criar uma cooperativa.",
+            Self::Cooperatives => "Connect your wallet to see cooperatives.",
+            Self::Vinculation  => "Use the CONNECT button above to create or access your Privy wallet.",
+            Self::CreateCoop   => "Connect your wallet to create a cooperative.",
         }
     }
 }
@@ -78,7 +78,7 @@ pub fn LoginRequiredCard(kind: LoginRequiredKind) -> impl IntoView {
         <section class="section">
             <div class="container-sm">
                 <Card variant=CardVariant::Yellow hover=false>
-                    <h2 class="t-display-md t-yellow">"LOGIN NECESSÁRIO"</h2>
+                    <h2 class="t-display-md t-yellow">"LOGIN REQUIRED"</h2>
                     <p class="t-mono-sm t-muted" style="margin-top: var(--sp-4)">{body}</p>
                 </Card>
             </div>
@@ -96,7 +96,7 @@ pub fn HomeSkeleton() -> impl IntoView {
                 <Card variant=CardVariant::Default hover=false>
                     <div class="flex-col gap-6" style="opacity: 0.4">
                         <div class="t-display-md">"…"</div>
-                        <p class="t-mono-sm t-muted">"Carregando sessão…"</p>
+                        <p class="t-mono-sm t-muted">"Loading session…"</p>
                     </div>
                 </Card>
             </div>
@@ -109,7 +109,7 @@ pub fn NotFound() -> impl IntoView {
     view! {
         <section class="section">
             <div class="container-sm">
-                <Alert kind=AlertKind::Error>"Página não encontrada."</Alert>
+                <Alert kind=AlertKind::Error>"Page not found."</Alert>
             </div>
         </section>
     }

@@ -23,9 +23,9 @@ pub(crate) fn viewer_has_acted(row: &ApproveWalletProposalRow, action: ApprovalA
 
 pub(crate) fn action_button_label(action: ApprovalAction, is_sending: bool) -> &'static str {
     match (action, is_sending) {
-        (_,                              true)  => "Enviando…",
-        (ApprovalAction::AdminConfirm,    false) => "Confirmar",
-        (ApprovalAction::ModeratorCosign, false) => "Cossignar",
+        (_,                              true)  => "Sending…",
+        (ApprovalAction::AdminConfirm,    false) => "Confirm",
+        (ApprovalAction::ModeratorCosign, false) => "Co-sign",
     }
 }
 
@@ -34,9 +34,9 @@ pub(crate) fn action_button_label(action: ApprovalAction, is_sending: bool) -> &
 pub fn AdminPanel(coop_id: String, on_tx_success: Callback<()>) -> impl IntoView {
     view! {
         <Card variant=CardVariant::Default hover=false>
-            <Badge color=BadgeColor::Gold>"PAINEL DO ADMIN"</Badge>
+            <Badge color=BadgeColor::Gold>"ADMIN PANEL"</Badge>
             <h3 class="t-display-sm" style="margin-top: var(--sp-4); margin-bottom: var(--sp-6)">
-                "Aprovações de carteira pendentes"
+                "Pending wallet approvals"
             </h3>
             <ApprovalsList
                 coop_id=coop_id
@@ -51,9 +51,9 @@ pub fn AdminPanel(coop_id: String, on_tx_success: Callback<()>) -> impl IntoView
 pub fn ModeratorPanel(coop_id: String, on_tx_success: Callback<()>) -> impl IntoView {
     view! {
         <Card variant=CardVariant::Default hover=false>
-            <Badge color=BadgeColor::Yellow>"PAINEL DO MODERADOR"</Badge>
+            <Badge color=BadgeColor::Yellow>"MODERATOR PANEL"</Badge>
             <h3 class="t-display-sm" style="margin-top: var(--sp-4); margin-bottom: var(--sp-6)">
-                "Cossignaturas de aprovação pendentes"
+                "Pending approval co-signatures"
             </h3>
             <ApprovalsList
                 coop_id=coop_id
@@ -122,7 +122,7 @@ fn ApprovalsList(
             {move || pending.get().map(|res| match res {
                 Err(e) => view! { <Alert kind=AlertKind::Error>{e.to_string()}</Alert> }.into_any(),
                 Ok(p) if p.proposals.is_empty() => view! {
-                    <p class="t-mono-sm t-muted">"Nenhuma pendência."</p>
+                    <p class="t-mono-sm t-muted">"No pending items."</p>
                 }.into_any(),
                 Ok(p) => render_list(p, action, submit, active_id, error),
             })}
@@ -141,7 +141,7 @@ fn render_list(
     let total_admins = p.total_admins;
     view! {
         <p class="t-mono-xs t-muted" style="margin-bottom: var(--sp-4)">
-            {format!("Limiar: {threshold}/{total_admins} admins")}
+            {format!("Threshold: {threshold}/{total_admins} admins")}
         </p>
         {move || error.get().map(|e| view! {
             <div style="margin-bottom: var(--sp-4)">
@@ -185,25 +185,25 @@ fn ProposalRow(
     view! {
         <div class="stat-block">
             <div class="flex-between mb-2">
-                <DataLabel>{format!("Proposta #{}", proposal_id)}</DataLabel>
+                <DataLabel>{format!("Proposal #{}", proposal_id)}</DataLabel>
                 <span class="t-mono-xs t-muted">{format!("ts {created_at}")}</span>
             </div>
 
             <div class="form-group">
-                <label class="form-label">"Carteira a aprovar"</label>
+                <label class="form-label">"Wallet to approve"</label>
                 <HashDisplay value=proposer />
             </div>
 
             <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-3)">
                 <Badge color=BadgeColor::Yellow>
-                    {format!("{confirmations}/{threshold} confirmações")}
+                    {format!("{confirmations}/{threshold} confirmations")}
                 </Badge>
                 {if mod_cosigned {
-                    view! { <Badge color=BadgeColor::Green filled=true>"COSSIGNADO"</Badge> }.into_any()
+                    view! { <Badge color=BadgeColor::Green filled=true>"CO-SIGNED"</Badge> }.into_any()
                 } else {
-                    view! { <Badge color=BadgeColor::Red>"AGUARDA COSSIGN."</Badge> }.into_any()
+                    view! { <Badge color=BadgeColor::Red>"AWAITING CO-SIGN."</Badge> }.into_any()
                 }}
-                {viewer_acted.then(|| view! { <Badge color=BadgeColor::Green>"VOCÊ JÁ AGIU"</Badge> })}
+                {viewer_acted.then(|| view! { <Badge color=BadgeColor::Green>"YOU ALREADY ACTED"</Badge> })}
             </div>
 
             {move || (!viewer_acted).then(|| view! {

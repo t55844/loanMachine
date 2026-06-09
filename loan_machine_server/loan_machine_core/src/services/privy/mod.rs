@@ -13,7 +13,7 @@
 
 #[derive(Debug, thiserror::Error)]
 pub enum PrivyError{
-    #[error("PRIVY_APP_ID não configurado")]
+    #[error("PRIVY_APP_ID not configured")]
     MissingPrivyAppId,
 }
 

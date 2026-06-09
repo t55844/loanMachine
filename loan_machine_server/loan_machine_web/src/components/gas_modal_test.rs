@@ -110,7 +110,7 @@ fn closed_modal_omits_request_driven_content() {
     // The card-tag (title), alert, and estimate blocks only render
     // when req.get() is Some(_). None of them should appear when closed.
     assert!(!html.contains("card-tag"));
-    assert!(!html.contains("Revise o custo estimado"));
+    assert!(!html.contains("Review the estimated gas cost"));
     assert!(!html.contains("gas-estimate-block"));
 }
 
@@ -136,7 +136,7 @@ fn open_html() -> String {
         setter.set(Some(GasModalRequest {
             title:     "TESTE GAS MODAL".into(),
             estimates: vec![GasEstimate {
-                label:   "Operação Teste".into(),
+                label:   "Test Operation".into(),
                 gas_hex: "0x5208".into(),  // 21_000
             }],
             on_confirm: Callback::new(|_| {}),
@@ -167,12 +167,12 @@ fn open_modal_shows_card_tag_class() {
 
 #[test]
 fn open_modal_shows_info_alert_text() {
-    assert!(open_html().contains("Revise o custo estimado"));
+    assert!(open_html().contains("Review the estimated gas cost"));
 }
 
 #[test]
 fn open_modal_shows_estimate_label() {
-    assert!(open_html().contains("Operação Teste"));
+    assert!(open_html().contains("Test Operation"));
 }
 
 #[test]
@@ -187,12 +187,12 @@ fn open_modal_shows_raw_gas_hex() {
 
 #[test]
 fn open_modal_shows_confirm_button() {
-    assert!(open_html().contains("CONFIRMAR E ASSINAR"));
+    assert!(open_html().contains("CONFIRM AND SIGN"));
 }
 
 #[test]
 fn open_modal_shows_cancel_button() {
-    assert!(open_html().contains("CANCELAR"));
+    assert!(open_html().contains("CANCEL"));
 }
 
 // ── Price breakdown — SSR loading / unavailable state ──────
@@ -206,11 +206,9 @@ fn open_modal_shows_cancel_button() {
 #[test]
 fn open_modal_shows_loading_or_unavailable_state() {
     let html = open_html();
-    let loading     = html.contains("buscando cotações");
-    let unavailable = html.contains("cotação indisponível");
     assert!(
-        loading || unavailable,
-        "expected loading fallback or unavailable message in SSR, got:\n{html}",
+        html.contains("price unavailable"),
+        "expected unavailable message in SSR, got:\n{html}",
     );
 }
 
@@ -233,10 +231,10 @@ fn open_html_two_estimates() -> String {
         provide_gas_modal();
         let setter = expect_context::<WriteSignal<Option<GasModalRequest>>>();
         setter.set(Some(GasModalRequest {
-            title:     "DUAS OPERAÇÕES".into(),
+            title:     "TWO OPERATIONS".into(),
             estimates: vec![
-                GasEstimate { label: "Deploy do Contrato".into(),  gas_hex: "0x2dc6c0".into() }, // 3_000_000
-                GasEstimate { label: "Inicializar Multisig".into(), gas_hex: "0x927c0".into()  }, // 600_000
+                GasEstimate { label: "Contract Deploy".into(),    gas_hex: "0x2dc6c0".into() }, // 3_000_000
+                GasEstimate { label: "Initialize Multisig".into(), gas_hex: "0x927c0".into()  }, // 600_000
             ],
             on_confirm: Callback::new(|_| {}),
         }));
@@ -247,8 +245,8 @@ fn open_html_two_estimates() -> String {
 #[test]
 fn modal_renders_both_estimate_labels() {
     let html = open_html_two_estimates();
-    assert!(html.contains("Deploy do Contrato"));
-    assert!(html.contains("Inicializar Multisig"));
+    assert!(html.contains("Contract Deploy"));
+    assert!(html.contains("Initialize Multisig"));
 }
 
 #[test]

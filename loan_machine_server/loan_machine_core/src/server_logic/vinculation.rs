@@ -10,13 +10,13 @@ use crate::server_logic::helpers::resolve_wallet_coop;
 
 #[derive(Debug, thiserror::Error)]
 pub enum VinculationLogicError {
-    #[error("Endereço de carteira inválido")]
+    #[error("Invalid wallet address")]
     ServerLogicInvalidWalletAddress,
 
-    #[error("ID de cooperativa inválido")]
+    #[error("Invalid cooperative ID")]
     ServerLogicInvalidCoopId,
 
-    #[error("carteira não aprovada")]
+    #[error("wallet not approved")]
     ServerLogicWalletNotApproved,
 
     #[error(transparent)]

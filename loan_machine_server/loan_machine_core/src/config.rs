@@ -48,7 +48,7 @@ impl AppState {
 
     
         let coop_registry_address = std::env::var("COOP_REGISTRY_ADDRESS")
-            .expect("COOP_REGISTRY_ADDRESS must be set in .env");
+             .expect("COOP_REGISTRY_ADDRESS must be set in .env");
 
         let blockchain_service : BlockchainService = BlockchainService::init(&rpc_url, &coop_registry_address)
             .await

@@ -108,9 +108,9 @@ pub fn FirstVinculationForm(
 
         let bundle_for_confirm = b.clone();
         set_gas_modal.set(Some(GasModalRequest {
-            title: "ASSINAR VINCULAÇÃO".into(),
+            title: "SIGN LINKING".into(),
             estimates: vec![GasEstimate {
-                label: "Vincular carteira ao contrato".into(),
+                label: "Link wallet to contract".into(),
                 gas_hex: b.gas_join.clone(),
             }],
             on_confirm: Callback::new(move |()| {
@@ -169,13 +169,13 @@ fn IdentifyCard(
 
     view! {
         <div class="t-center">
-            <h1 class="t-display-lg t-yellow">"VINCULE SUA CARTEIRA"</h1>
+            <h1 class="t-display-lg t-yellow">"LINK YOUR WALLET"</h1>
             <p class="t-mono-sm t-muted mt-4">
-                "Conecte seu documento ao seu endereço blockchain."
+                "Connect your document to your blockchain address."
             </p>
         </div>
 
-        <Card variant=CardVariant::Yellow tag="PASSO 01 — IDENTIFICAÇÃO" hover=false>
+        <Card variant=CardVariant::Yellow tag="STEP 01 — IDENTIFICATION" hover=false>
             <form
                 on:submit=on_prepare
                 style="display:flex; flex-direction:column; gap:var(--sp-6); margin-top:var(--sp-4)"
@@ -186,16 +186,16 @@ fn IdentifyCard(
                 />
 
                 <TextInput
-                    label="ID da Cooperativa"
+                    label="Cooperative ID"
                     placeholder="0xabc123..."
-                    hint="O identificador bytes32 da sua cooperativa"
+                    hint="The bytes32 identifier of your cooperative"
                     value=coop_id
                     set_value=set_coop_id
                 />
 
                 <TextInput
-                    label="Código de Acesso"
-                    placeholder="Fornecido pelo administrador"
+                    label="Access Code"
+                    placeholder="Provided by the administrator"
                     value=access_code
                     set_value=set_access_code
                     error=error
@@ -207,7 +207,7 @@ fn IdentifyCard(
                     full_width=true
                     loading=loading
                 >
-                    "PREPARAR VINCULAÇÃO"
+                    "PREPARE LINKING"
                 </Button>
             </form>
         </Card>
@@ -227,7 +227,7 @@ fn TxStatusCard(
                 <div class="flex-center gap-4" style="padding: var(--sp-8) 0">
                     <span class="spinner"></span>
                     <span class="t-mono-sm t-muted">
-                        "Aguardando assinatura e confirmação..."
+                        "Waiting for signature and confirmation..."
                     </span>
                 </div>
             </Card>
@@ -235,18 +235,18 @@ fn TxStatusCard(
         .into_any(),
 
         TxStatus::Complete(hash) => view! {
-            <Card variant=CardVariant::Gold tag="VINCULAÇÃO ENVIADA" hover=false>
+            <Card variant=CardVariant::Gold tag="LINKING SUBMITTED" hover=false>
                 <div class="flex-col gap-4 mt-4">
                     <Alert kind=AlertKind::Success>
-                        "Transação enviada com sucesso!"
+                        "Transaction submitted successfully!"
                     </Alert>
                     <div class="stat-block">
                         <span class="stat-label">"Transaction Hash"</span>
                         <HashDisplay value=hash />
                     </div>
                     <p class="t-mono-xs t-muted">
-                        "Aguarde a confirmação na blockchain. \
-                         Isso pode levar 10–30 segundos."
+                        "Wait for confirmation on the blockchain. \
+                         This may take 10–30 seconds."
                     </p>
                 </div>
             </Card>
@@ -257,14 +257,14 @@ fn TxStatusCard(
             <Card hover=false>
                 <div class="flex-col gap-4 mt-4">
                     <Alert kind=AlertKind::Error>
-                        "Falha ao enviar transação."
+                        "Failed to submit transaction."
                     </Alert>
                     <p class="t-mono-sm t-muted">{err}</p>
                     <Button
                         variant=BtnVariant::Ghost
                         on_click=Box::new(move || on_retry.run(()))
                     >
-                        "TENTAR NOVAMENTE"
+                        "TRY AGAIN"
                     </Button>
                 </div>
             </Card>

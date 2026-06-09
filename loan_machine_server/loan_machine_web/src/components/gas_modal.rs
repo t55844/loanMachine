@@ -76,7 +76,7 @@ pub fn GasModal() -> impl IntoView {
                     <span class="card-tag">{r.title.clone()}</span>
                     <div class="flex-col gap-6" style="margin-top: var(--sp-6)">
                         <Alert kind=AlertKind::Info>
-                            "Revise o custo estimado de gas antes de assinar."
+                            "Review the estimated gas cost before signing."
                         </Alert>
                         {r.estimates.iter().map(|est| {
                                 let units = est.gas_units();
@@ -106,7 +106,7 @@ pub fn GasModal() -> impl IntoView {
 
                                             match prices.get() {
                                                 None => view! {
-                                                    <span class="t-mono-xs t-muted">"cotação indisponível"</span>
+                                                    <span class="t-mono-xs t-muted">"price unavailable"</span>
                                                 }.into_any(),
                                                 Some(p) => {
                                                     let usd = eth * p.eth_usd;
@@ -148,13 +148,13 @@ pub fn GasModal() -> impl IntoView {
                         full_width=true
                         on_click=Box::new(on_confirm_click)
                     >
-                        "CONFIRMAR E ASSINAR"
+                        "CONFIRM AND SIGN"
                     </Button>
                     <Button
                         variant=BtnVariant::Ghost
                         on_click=Box::new(on_cancel)
                     >
-                        "CANCELAR"
+                        "CANCEL"
                     </Button>
                 </div>
             </div>

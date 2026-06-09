@@ -43,13 +43,13 @@ fn render_restoring() -> String {
 
 #[test]
 fn disconnected_shows_connect_button() {
-    assert!(render_disconnected().contains("CONECTAR"));
+    assert!(render_disconnected().contains("CONNECT"));
 }
 
 #[test]
 fn disconnected_hides_connected_elements() {
     let html = render_disconnected();
-    assert!(!html.contains("DESCONECTAR"));
+    assert!(!html.contains("DISCONNECT"));
     assert!(!html.contains("auth-bar-btn-dot-on"));
 }
 
@@ -67,7 +67,7 @@ fn connected_shows_short_wallet_address() {
 
 #[test]
 fn connected_shows_logout_button() {
-    assert!(render_connected(fake_wallet()).contains("DESCONECTAR"));
+    assert!(render_connected(fake_wallet()).contains("DISCONNECT"));
 }
 
 #[test]
@@ -79,16 +79,16 @@ fn connected_shows_on_dot() {
 #[test]
 fn connected_hides_disconnected_elements() {
     let html = render_connected(fake_wallet());
-    assert!(!html.contains("CARTEIRA NÃO CONECTADA"));
-    assert!(!html.contains(">CONECTAR<"));  // anchor on tag boundary so it
-                                            // doesn't match "DESCONECTAR"
+    assert!(!html.contains("DIGITAL WALLET"));
+    assert!(!html.contains(">CONNECT<"));  // anchor on tag boundary so it
+                                           // doesn't match "DISCONNECT"
 }
 
 // ── RESTORING ─────────────────────────────────────────────────────────────
 
 #[test]
 fn restoring_shows_label() {
-    assert!(render_restoring().contains("RESTAURANDO"));
+    assert!(render_restoring().contains("RESTORING"));
 }
 
 #[test]
@@ -99,8 +99,8 @@ fn restoring_shows_pending_dot() {
 
 #[test]
 fn restoring_shows_no_buttons() {
-    // No CONECTAR / DESCONECTAR during restore — the UI is read-only.
+    // No CONNECT / DISCONNECT during restore — the UI is read-only.
     let html = render_restoring();
-    assert!(!html.contains("CONECTAR"));
-    assert!(!html.contains("DESCONECTAR"));
+    assert!(!html.contains("CONNECT"));
+    assert!(!html.contains("DISCONNECT"));
 }

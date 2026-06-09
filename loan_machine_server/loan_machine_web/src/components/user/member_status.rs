@@ -44,7 +44,7 @@ fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
 
     view! {
         <Card hover=false>
-            <span class="card-tag">"STATUS FINANCEIRO"</span>
+            <span class="card-tag">"FINANCIAL STATUS"</span>
             <div class="flex-col gap-6" style="margin-top: var(--sp-6)">
 
                 // Member identity
@@ -55,30 +55,30 @@ fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
 
                 // Reputation
                 <div style="display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap">
-                    <StatBlock label="Reputação" value=f.reputation.to_string() />
+                    <StatBlock label="Reputation" value=f.reputation.to_string() />
                     {(f.reputation > 0).then(|| view! {
-                        <Badge color=BadgeColor::Green filled=true>"ATIVO"</Badge>
+                        <Badge color=BadgeColor::Green filled=true>"ACTIVE"</Badge>
                     })}
                     {(f.reputation == 0).then(|| view! {
-                        <Badge color=BadgeColor::Gold>"SEM HISTÓRICO"</Badge>
+                        <Badge color=BadgeColor::Gold>"NO HISTORY"</Badge>
                     })}
                     {(f.reputation < 0).then(|| view! {
-                        <Badge color=BadgeColor::Red>"INADIMPLENTE"</Badge>
+                        <Badge color=BadgeColor::Red>"DEFAULTED"</Badge>
                     })}
                 </div>
 
                 // Donation summary
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-4)">
                     <StatBlock
-                        label="Doação"
+                        label="Donation"
                         value=fmt_usdt(&f.donation)
                     />
                     <StatBlock
-                        label="Em cobertura"
+                        label="In coverage"
                         value=fmt_usdt(&f.in_coverage)
                     />
                     <StatBlock
-                        label="Disponível p/ saque"
+                        label="Available for withdrawal"
                         value=fmt_usdt(&f.withdrawable)
                     />
                 </div>
@@ -86,11 +86,11 @@ fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
                 // Borrow summary
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4)">
                     <StatBlock
-                        label="Empréstimos ativos"
+                        label="Active loans"
                         value=fmt_usdt(&f.borrowing)
                     />
                     <StatBlock
-                        label="Último empréstimo"
+                        label="Last loan"
                         value=fmt_timestamp(f.last_borrow_time)
                     />
                 </div>
@@ -98,7 +98,7 @@ fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
                 // Allowance row — only shown when non-zero
                 {has_allowance.then(|| view! {
                     <div class="form-group">
-                        <label class="form-label">"Aprovação USDT ao contrato"</label>
+                        <label class="form-label">"USDT allowance to contract"</label>
                         <p class="t-mono-xs t-muted">{fmt_usdt(&f.allowance)}</p>
                     </div>
                 })}
@@ -106,13 +106,13 @@ fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
                 // Badges / quick status row
                 <div style="display: flex; gap: var(--sp-2); flex-wrap: wrap">
                     {has_donation.then(|| view! {
-                        <Badge color=BadgeColor::Green filled=true>"DOADOR"</Badge>
+                        <Badge color=BadgeColor::Green filled=true>"DONOR"</Badge>
                     })}
                     {has_debt.then(|| view! {
-                        <Badge color=BadgeColor::Red filled=true>"DEVEDOR"</Badge>
+                        <Badge color=BadgeColor::Red filled=true>"DEBTOR"</Badge>
                     })}
                     {(!has_donation && !has_debt).then(|| view! {
-                        <Badge color=BadgeColor::Gold>"SEM MOVIMENTAÇÃO"</Badge>
+                        <Badge color=BadgeColor::Gold>"NO ACTIVITY"</Badge>
                     })}
                 </div>
             </div>
@@ -134,9 +134,9 @@ fn fmt_usdt(raw: &str) -> String {
     }
 }
 
-/// Format a Unix timestamp as a short date, or "Nunca" for 0.
+/// Format a Unix timestamp as a short date, or "Never" for 0.
 fn fmt_timestamp(ts: u64) -> String {
-    if ts == 0 { return "Nunca".into(); }
+    if ts == 0 { return "Never".into(); }
     let days             = ts / 86_400;
     let epoch_day_offset = 719_162u64;
     let day              = days + epoch_day_offset;

@@ -48,17 +48,17 @@ fn choice_html() -> String {
 
 #[test]
 fn choice_shows_section_title() {
-    assert!(choice_html().contains("O QUE DESEJA FAZER"));
+    assert!(choice_html().contains("WHAT DO YOU WANT TO DO"));
 }
 
 #[test]
 fn choice_shows_vinculate_card_text() {
-    assert!(choice_html().contains("ENTRAR EM UMA"));
+    assert!(choice_html().contains("JOIN A "));
 }
 
 #[test]
 fn choice_shows_create_coop_card_text() {
-    assert!(choice_html().contains("CRIAR UMA NOVA"));
+    assert!(choice_html().contains("CREATE A NEW "));
 }
 
 #[test]
@@ -73,12 +73,12 @@ fn choice_create_coop_link_is_correct() {
 
 #[test]
 fn choice_shows_vinculate_cta_button() {
-    assert!(choice_html().contains("VINCULAR DOCUMENTO"));
+    assert!(choice_html().contains("LINK DOCUMENT"));
 }
 
 #[test]
 fn choice_shows_create_coop_cta_button() {
-    assert!(choice_html().contains("CRIAR COOPERATIVA"));
+    assert!(choice_html().contains("CREATE COOPERATIVE"));
 }
 
 // ── CreateCoopPage — Step 1 (Form) ───────────────────────────
@@ -93,7 +93,7 @@ fn page_html() -> String {
 
 #[test]
 fn page_shows_main_title() {
-    assert!(page_html().contains("CRIAR COOPERATIVA"));
+    assert!(page_html().contains("CREATE COOPERATIVE"));
 }
 
 #[test]
@@ -103,27 +103,27 @@ fn page_shows_step_progress_first_label() {
 
 #[test]
 fn page_shows_step_progress_last_label() {
-    assert!(page_html().contains("Pronto"));
+    assert!(page_html().contains("Done"));
 }
 
 #[test]
 fn page_shows_step1_card_tag() {
-    assert!(page_html().contains("PASSO 1 — CONFIGURAÇÃO"));
+    assert!(page_html().contains("STEP 1 — CONFIGURATION"));
 }
 
 #[test]
 fn page_shows_coop_name_label() {
-    assert!(page_html().contains("Nome da Cooperativa"));
+    assert!(page_html().contains("Cooperative Name"));
 }
 
 #[test]
 fn page_shows_coop_name_placeholder() {
-    assert!(page_html().contains("Coop Solidária do Nordeste"));
+    assert!(page_html().contains("Northeast Solidarity Coop"));
 }
 
 #[test]
 fn page_shows_founder_wallet_label() {
-    assert!(page_html().contains("Carteira Fundadora"));
+    assert!(page_html().contains("Founder Wallet"));
 }
 
 #[test]
@@ -132,27 +132,27 @@ fn page_shows_founder_wallet_short_form_in_output() {
 }
 #[test]
 fn page_shows_admin2_label() {
-    assert!(page_html().contains("Admin 2 — Carteira"));
+    assert!(page_html().contains("Admin 2 — Wallet"));
 }
 
 #[test]
 fn page_shows_admin3_label() {
-    assert!(page_html().contains("Admin 3 — Carteira"));
+    assert!(page_html().contains("Admin 3 — Wallet"));
 }
 
 #[test]
 fn page_shows_threshold_value() {
-    assert!(page_html().contains("2 de 3 administradores"));
+    assert!(page_html().contains("2 of 3 administrators"));
 }
 
 #[test]
 fn page_shows_threshold_hint() {
-    assert!(page_html().contains("Fixo para esta versão"));
+    assert!(page_html().contains("Fixed for this version"));
 }
 
 #[test]
 fn page_shows_submit_button() {
-    assert!(page_html().contains("PREPARAR DEPLOY"));
+    assert!(page_html().contains("PREPARE DEPLOY"));
 }
 
 // Steps 2-6 must NOT leak into the step-1 render
@@ -160,31 +160,31 @@ fn page_shows_submit_button() {
 #[test]
 fn page_hides_access_code_step() {
     let html = page_html();
-    assert!(!html.contains("PASSO 2 — CÓDIGO DE ACESSO"), "step 2 tag leaked");
-    assert!(!html.contains("ASSINAR TX 1"),               "deploy button leaked");
+    assert!(!html.contains("STEP 2 — ACCESS CODE"), "step 2 tag leaked");
+    assert!(!html.contains("SIGN TX 1"),            "deploy button leaked");
 }
 
 #[test]
 fn page_hides_waiting_deploy_step() {
-    assert!(!page_html().contains("Aguardando confirmação do deploy"));
+    assert!(!page_html().contains("Waiting for deploy confirmation"));
 }
 
 #[test]
 fn page_hides_sign_init_step() {
     let html = page_html();
-    assert!(!html.contains("PASSO 3 — INICIALIZAR MULTISIG"), "step 3 tag leaked");
-    assert!(!html.contains("ASSINAR TX 2"),                   "init button leaked");
+    assert!(!html.contains("STEP 3 — INITIALIZE MULTISIG"), "step 3 tag leaked");
+    assert!(!html.contains("SIGN TX 2"),                     "init button leaked");
 }
 
 #[test]
 fn page_hides_registering_step() {
-    assert!(!page_html().contains("Registrando cooperativa na blockchain"));
+    assert!(!page_html().contains("Registering cooperative on the blockchain"));
 }
 
 #[test]
 fn page_hides_done_step() {
     let html = page_html();
-    assert!(!html.contains("COOPERATIVA CRIADA!"),  "done card leaked");
+    assert!(!html.contains("COOPERATIVE CREATED!"), "done card leaked");
     assert!(!html.contains("IR PARA O DASHBOARD"), "dashboard link leaked");
 }
 
@@ -203,7 +203,7 @@ fn progress_at(step: CoopStep) -> String {
 #[test]
 fn progress_renders_all_six_labels() {
     let html = progress_at(CoopStep::Form);
-    for label in ["Config", "Código", "Deploy", "Init", "Registro", "Pronto"] {
+    for label in ["Config", "Code", "Deploy", "Init", "Registry", "Done"] {
         assert!(html.contains(label), "missing badge label: {label}");
     }
 }

@@ -71,12 +71,12 @@ fn cnpj_mode_renders_cnpj_label() {
 
 #[test]
 fn cpf_mode_renders_cpf_hint() {
-    assert!(render_cpf().contains("11 dígitos"));
+    assert!(render_cpf().contains("11 digits"));
 }
 
 #[test]
 fn cnpj_mode_renders_cnpj_hint() {
-    assert!(render_cnpj().contains("14 caracteres"));
+    assert!(render_cnpj().contains("14 characters"));
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn renders_error_when_provided() {
     let html = render_to_string(|| {
         let (k, set_k)   = signal(DocKind::Cpf);
         let (d, set_d)   = signal(String::new());
-        let (err, _)     = signal("CPF inválido".to_string());
+        let (err, _)     = signal("Invalid CPF".to_string());
         view! { <DocumentInput
             doc_kind=k set_doc_kind=set_k
             document=d set_document=set_d
@@ -125,5 +125,5 @@ fn renders_error_when_provided() {
         /> }
     });
     assert!(html.contains("form-error"));
-    assert!(html.contains("CPF inválido"));
+    assert!(html.contains("Invalid CPF"));
 }

@@ -183,7 +183,7 @@ async fn prepare_vote_rejects_election_not_active() {
 
     match err {
         ElectionError::Blockchain(BlockchainError::ContractRevert { message, .. }) => {
-            assert_eq!(message, "Nenhuma eleição ativa no momento.");
+            assert_eq!(message, "No active election at this time.");
         }
         other => panic!("expected ContractRevert(ElectionNotActive), got {other:?}"),
     }

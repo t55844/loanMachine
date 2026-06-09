@@ -50,13 +50,13 @@ pub fn ElectionsPage(
     <Section>
         <div class="container-md">
             <div class="t-center" style="margin-bottom: var(--sp-8)">
-                <SectionTitle>"ELEIÇÕES DE MODERADOR"</SectionTitle>
+                <SectionTitle>"MODERATOR ELECTIONS"</SectionTitle>
             </div>
             <Suspense fallback=move || view! {
                 <Card>
                     <div class="flex-col flex-center gap-6" style="padding: var(--sp-12) 0">
                         <span class="spinner" style="width: 40px; height: 40px; border-width: 3px" />
-                        <p class="t-mono-xs t-muted">"Carregando estado da eleição…"</p>
+                        <p class="t-mono-xs t-muted">"Loading election state…"</p>
                     </div>
                 </Card>
             }>
@@ -83,7 +83,7 @@ pub fn ElectionsPage(
                     <Card>
                         <div class="flex-col flex-center gap-6" style="padding: var(--sp-8) 0">
                             <span class="spinner" style="width: 32px; height: 32px; border-width: 3px" />
-                            <p class="t-mono-xs t-muted">"Carregando último resultado…"</p>
+                            <p class="t-mono-xs t-muted">"Loading last result…"</p>
                         </div>
                     </Card>
                 }>

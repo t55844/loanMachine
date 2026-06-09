@@ -15,19 +15,19 @@ use alloy::primitives::{keccak256, FixedBytes};
 
 #[derive(Debug, thiserror::Error)]
 pub enum IdentityError{
-    #[error("CPF DEVE TER 11 DIGITOS")]
+    #[error("CPF must have 11 digits")]
     CpfLength,
-    #[error("CPF invalido: digitos verificadores incorretos")]
+    #[error("Invalid CPF: incorrect check digits")]
     CpfCheckDigits,
-    #[error("CPF invalido: todos os digitos sao iguais")]
+    #[error("Invalid CPF: all digits are the same")]
     CpfAllSame,
-    #[error("CNPJ deve ter 14 digitos")]
+    #[error("CNPJ must have 14 digits")]
     CnpjLength,
-    #[error("CNPJ invalido: digitos verificadores incorretos")]
+    #[error("Invalid CNPJ: incorrect check digits")]
     CnpjCheckDigits,
-    #[error("CNPJ invalido: todos os digitos são iguais")]
+    #[error("Invalid CNPJ: all digits are the same")]
     CnpjAllSame,
-    #[error("COOP_SALT não configurado ou invalido (esperando: 64 hex chars = 32 bytes)")]
+    #[error("COOP_SALT not configured or invalid (expected: 64 hex chars = 32 bytes)")]
     SaltMissing,
 }
 

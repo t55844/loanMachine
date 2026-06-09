@@ -137,6 +137,6 @@ async fn prepare_vote_rejects_already_voted() {
 
     assert_eq!(
         expect_revert_msg(err),
-        "Este membro já votou nesta eleição."
+        "This member has already voted in this election."
     );
 }

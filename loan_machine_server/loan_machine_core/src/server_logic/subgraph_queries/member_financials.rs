@@ -52,10 +52,11 @@ query MemberFinancials($coopId: String!, $wallet: Bytes!, $memberId: Bytes!) {
 }"#;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Vars<'a> {
-    #[serde(rename = "coopId")]   coop_id:   &'a str,
-                                  wallet:    &'a str,
-    #[serde(rename = "memberId")] member_id: &'a str,
+    coop_id:   &'a str,
+    wallet:    &'a str,
+    member_id: &'a str,
 }
 
 #[derive(Deserialize)]

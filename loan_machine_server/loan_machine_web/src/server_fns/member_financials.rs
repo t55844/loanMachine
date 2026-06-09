@@ -13,7 +13,7 @@ pub async fn get_member_financials(
 
     let auth = Authenticated::require().await?;
     if !auth.is_member(&coop_id).await? {
-        return Err(ServerFnError::new("erro 404 pagina não encontrada"));
+        return Err(ServerFnError::new("404 not found"));
     }
     let wallet = auth.wallet().await?;
     let state  = expect_context::<AppState>();

@@ -26,9 +26,10 @@ query IsMember($coopId: Bytes!, $wallet: Bytes!) {
 }"#;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Vars<'a> {
-    #[serde(rename = "coopId")] coop_id: &'a str,
-    wallet: &'a str,
+    coop_id: &'a str,
+    wallet:  &'a str,
 }
 
 #[derive(Deserialize)]

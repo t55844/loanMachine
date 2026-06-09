@@ -35,9 +35,9 @@ pub fn VoteElection(
         let data = b.data.clone();
         let gas  = b.gas_hex.clone();
         gas_modal.set(Some(GasModalRequest {
-            title: "CONFIRMAR VOTO".into(),
+            title: "CONFIRM VOTE".into(),
             estimates: vec![GasEstimate {
-                label:   "Votar em candidato".into(),
+                label:   "Vote for candidate".into(),
                 gas_hex: gas.clone(),
             }],
             on_confirm: Callback::new(move |_| {
@@ -59,7 +59,7 @@ pub fn VoteElection(
             on_tx_success.run(());
         }
         TxOutcome::Failed(err) => {
-            set_error.set(format!("Falha na transação: {err}"));
+            set_error.set(format!("Transaction failed: {err}"));
         }
     });
 
@@ -73,9 +73,9 @@ pub fn VoteElection(
             }}
 
             <TextInput
-                label="Seu voto — Cole o endereço do candidato"
+                label="Your vote — Paste the candidate address"
                 placeholder="0x0000...0000"
-                hint="Copie o endereço acima e cole aqui"
+                hint="Copy the address above and paste here"
                 value=input
                 set_value=set_input
                 error=Signal::derive(move || String::new())
@@ -88,7 +88,7 @@ pub fn VoteElection(
                 on_click=Box::new(move || {
                     let raw = input.get_untracked();
                     match raw.trim().parse::<WalletAddress>() {
-                        Err(_) => set_error.set("Endereço inválido (0x + 40 hex)".into()),
+                        Err(_) => set_error.set("Invalid address (0x + 40 hex)".into()),
                         Ok(cand) => {
                             set_error.set(String::new());
                             cast_vote.dispatch((coop_id.clone(), election_id, cand));
@@ -96,7 +96,7 @@ pub fn VoteElection(
                     }
                 })
             >
-                "CONFIRMAR VOTO"
+                "CONFIRM VOTE"
             </Button>
         </div>
     }

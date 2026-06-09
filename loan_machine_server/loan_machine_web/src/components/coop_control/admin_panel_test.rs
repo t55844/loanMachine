@@ -14,14 +14,14 @@ fn row(viewer_confirmed: bool, moderator_cosigned: bool) -> ApproveWalletProposa
 
 #[test]
 fn admin_button_idle_label() {
-    assert_eq!(action_button_label(ApprovalAction::AdminConfirm,    false), "Confirmar");
-    assert_eq!(action_button_label(ApprovalAction::ModeratorCosign, false), "Cossignar");
+    assert_eq!(action_button_label(ApprovalAction::AdminConfirm,    false), "Confirm");
+    assert_eq!(action_button_label(ApprovalAction::ModeratorCosign, false), "Co-sign");
 }
 
 #[test]
 fn sending_label_is_action_independent() {
-    assert_eq!(action_button_label(ApprovalAction::AdminConfirm,    true), "Enviando…");
-    assert_eq!(action_button_label(ApprovalAction::ModeratorCosign, true), "Enviando…");
+    assert_eq!(action_button_label(ApprovalAction::AdminConfirm,    true), "Sending…");
+    assert_eq!(action_button_label(ApprovalAction::ModeratorCosign, true), "Sending…");
 }
 
 #[test]

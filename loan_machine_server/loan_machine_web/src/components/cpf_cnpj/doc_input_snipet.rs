@@ -107,8 +107,8 @@ pub fn DocumentInput(
                 />
                 <span class="form-hint">
                     {move || match doc_kind.get() {
-                        DocKind::Cpf  => "11 dígitos — formatação opcional",
-                        DocKind::Cnpj => "14 caracteres — letras e dígitos",
+                        DocKind::Cpf  => "11 digits — formatting optional",
+                        DocKind::Cnpj => "14 characters — letters and digits",
                     }}
                 </span>
                 {move || {

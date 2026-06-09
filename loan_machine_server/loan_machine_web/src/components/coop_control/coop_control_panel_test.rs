@@ -115,18 +115,18 @@ fn render_role_with_caps(
 #[test]
 fn visitor_role_shows_request_approval_card() {
     let html = render_role(ViewerRole::Visitor);
-    assert!(html.contains("VISITANTE — PEDIDO DE APROVAÇÃO"),
+    assert!(html.contains("VISITOR — APPROVAL REQUEST"),
         "expected approval-request card tag, got:\n{html}");
-    assert!(html.contains("INICIAR PEDIDO DE APROVAÇÃO"),
+    assert!(html.contains("START APPROVAL REQUEST"),
         "expected initiate button, got:\n{html}");
 }
 
 #[test]
 fn approved_role_shows_first_vinculation_form() {
     let html = render_role(ViewerRole::Approved);
-    assert!(html.contains("VINCULE SUA CARTEIRA"),
+    assert!(html.contains("LINK YOUR WALLET"),
         "expected vinculation form title, got:\n{html}");
-    assert!(html.contains("PASSO 01"),
+    assert!(html.contains("STEP 01"),
         "expected vinculation form step card, got:\n{html}");
 }
 

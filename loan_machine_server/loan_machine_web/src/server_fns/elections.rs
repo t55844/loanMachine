@@ -22,7 +22,7 @@ pub async fn get_current_election(
     use crate::server_fns::auth::Authenticated;
 
     let auth = Authenticated::require().await?;
-    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("404 not found")); }
 
 
     let state = expect_context::<AppState>();
@@ -42,7 +42,7 @@ pub async fn get_wallet_reputation(
 
     // Wallet from JWT — the client never gets to ask about someone else's rep.
     let auth = Authenticated::require().await?;
-    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("404 not found")); }
     
     let wallet = auth.wallet().await?;
 
@@ -70,7 +70,7 @@ pub async fn prepare_open_election(
     use crate::server_fns::auth::Authenticated;
 
     let auth = Authenticated::require().await?;
-    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("404 not found")); }
 
     let caller = auth.wallet().await?;
     let state  = expect_context::<AppState>();
@@ -99,7 +99,7 @@ pub async fn prepare_vote(
 
     // Voter wallet from JWT — body only carries who you're voting *for*.
     let auth = Authenticated::require().await?;
-    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("404 not found")); }
 
     
     let voter = auth.wallet().await?;
@@ -127,7 +127,7 @@ pub async fn get_last_closed_election(
     use crate::server_fns::auth::Authenticated;
 
     let auth = Authenticated::require().await?;
-    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("erro 404 pagina não encontrada")); }
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("404 not found")); }
 
     let state = expect_context::<AppState>();
 

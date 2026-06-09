@@ -23,9 +23,10 @@ query PendingApproval($coopId: String!, $wallet: Bytes!) {
 }"#;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Vars<'a> {
-    #[serde(rename = "coopId")] coop_id: String,
-                                wallet:  &'a str,
+    coop_id: String,
+    wallet:  &'a str,
 }
 
 #[derive(Deserialize)]

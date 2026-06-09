@@ -12,10 +12,10 @@ use crate::server_logic::subgraph_queries::member_financials::fetch_member_finan
 
 #[derive(Debug, Error)]
 pub enum MemberFinancialsError {
-    #[error("ID de cooperativa inválido")]
+    #[error("Invalid cooperative ID")]
     InvalidCoopId,
 
-    #[error("carteira não é membro desta cooperativa")]
+    #[error("wallet is not a member of this cooperative")]
     WalletNotMember,
 
     #[error(transparent)]

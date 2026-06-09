@@ -15,48 +15,48 @@ fn render_hero() -> String {
 
 #[test]
 fn hero_section_headline() {
-    
+
     assert!(render_hero().contains(r#"class="hero""#));
-    assert!(render_hero().contains("Comunidade Ativa"));
-    assert!(render_hero().contains("CRÉDITO"));
-    assert!(render_hero().contains("SOLIDÁRIO"));
-    assert!(render_hero().contains("NA BLOCKCHAIN"));
+    assert!(render_hero().contains("Active Community"));
+    assert!(render_hero().contains("CREDIT"));
+    assert!(render_hero().contains("SOLIDARITY"));
+    assert!(render_hero().contains("ON THE BLOCKCHAIN"));
     assert!(render_hero().contains(r#"class="t-yellow""#));
-    assert!(render_hero().contains("SOLIDÁRIO"));
+    assert!(render_hero().contains("SOLIDARITY"));
 }
 
 #[test]
 fn hero_section_description_paragraph() {
     let html = render_hero();
-    assert!(html.contains("Uma máquina de empréstimos coletiva e transparente."));
-    assert!(html.contains("Cada transação registrada imutavelmente."));
-    assert!(html.contains("Governada pelos próprios membros."));
+    assert!(html.contains("A collective and transparent lending machine."));
+    assert!(html.contains("Every transaction recorded immutably."));
+    assert!(html.contains("Governed by its own members."));
 }
 
 #[test]
 fn hero_section_cta_buttons() {
      let html = render_hero();
-     assert!(html.contains("ENTRAR NA COOPERATIVA"));
+     assert!(html.contains("JOIN THE COOPERATIVE"));
      assert!(html.contains(r#"class="btn btn-primary btn-lg""#));
 }
 
 #[test]
 fn hero_section_ghost_link() {
      let html = render_hero();
-     assert!(html.contains("COMO FUNCIONA"));
-     assert!(html.contains(r##"href="#como-funciona""##));
+     assert!(html.contains("HOW IT WORKS"));
+     assert!(html.contains(r##"href="#how-it-works""##));
      assert!(html.contains(r#"class="btn btn-ghost btn-lg""#));
 }
 
 #[test]
 fn hero_section_stats_blocks() {
      let html = render_hero();
-     assert!(html.contains("Membros Ativos"));
+     assert!(html.contains("Active Members"));
      assert!(html.contains("0+"));
-     assert!(html.contains("Total Doado"));
-     assert!(html.contains("R$ 0"));
-     assert!(html.contains("Empréstimos"));
-     assert!(html.contains(">0<")); // bare zero, not "0+" or "R$ 0"
+     assert!(html.contains("Total Donated"));
+     assert!(html.contains("$ 0"));
+     assert!(html.contains("Loans"));
+     assert!(html.contains(">0<")); // bare zero, not "0+" or "$ 0"
 }
 
 fn render_how_it_works() -> String {
@@ -65,8 +65,8 @@ fn render_how_it_works() -> String {
 
 #[test]
 fn how_it_works_section() {
-    assert!(render_how_it_works().contains(r#"id="como-funciona""#));
-    assert!(render_how_it_works().contains("COMO FUNCIONA"));
+    assert!(render_how_it_works().contains(r#"id="how-it-works""#));
+    assert!(render_how_it_works().contains("HOW IT WORKS"));
     assert!(render_how_it_works().contains(">01<"));
     assert!(render_how_it_works().contains(">02<"));
     assert!(render_how_it_works().contains(">03<"));
@@ -75,15 +75,15 @@ fn how_it_works_section() {
 #[test]
 fn how_it_works_card_content() {
     // ── HOW IT WORKS: card titles ─────────────────────────────────────────
-    assert!(render_how_it_works().contains("ENTRE NA COOP"));
-    assert!(render_how_it_works().contains("CONTRIBUA"));
-    assert!(render_how_it_works().contains("ACESSE CRÉDITO"));
+    assert!(render_how_it_works().contains("JOIN THE COOP"));
+    assert!(render_how_it_works().contains("CONTRIBUTE"));
+    assert!(render_how_it_works().contains("ACCESS CREDIT"));
     // ── HOW IT WORKS: card body copy ──────────────────────────────────────
-    assert!(render_how_it_works().contains("Sua carteira digital é criada automaticamente"));
-    assert!(render_how_it_works().contains("Faça uma doação em USDT para o fundo coletivo."));
-    assert!(render_how_it_works().contains("Solicite empréstimos cobertos pelos membros da sua cooperativa."));
+    assert!(render_how_it_works().contains("Your digital wallet is created automatically"));
+    assert!(render_how_it_works().contains("Make a donation in USDT to the collective fund."));
+    assert!(render_how_it_works().contains("Request loans covered by your cooperative's members."));
 }
- 
+
 fn render_transparency() -> String {
     view! { <TransparencySection /> }.to_html()
 }
@@ -91,19 +91,19 @@ fn render_transparency() -> String {
 #[test]
 fn transparency_contracts_on_chain() {
     let html = render_transparency();
-    assert!(html.contains("Contratos na Chain"));
+    assert!(html.contains("On-Chain Contracts"));
     assert!(html.contains("100%"));
 }
 
 #[test]
 fn trasparency_audit_traits(){
     let html = render_transparency();
-    assert!(html.contains("Código Auditável"));
-    assert!(html.contains("Sem custódia central"));
-    assert!(html.contains("Governança dos membros"));
+    assert!(html.contains("Auditable Code"));
+    assert!(html.contains("No Central Custody"));
+    assert!(html.contains("Member Governance"));
     assert_eq!(render_transparency().matches("✓").count(), 3);
 }
-    
+
 fn render_cta() -> String {
     let owner = Owner::new();
     owner.with(|| {
@@ -114,11 +114,11 @@ fn render_cta() -> String {
 #[test]
 fn cta_section() {
         let html = render_cta();
-        assert!(html.contains("PRONTO PARA FAZER"));
-        assert!(html.contains("PARTE?"));
-        assert!(render_cta().contains("PARTE?"));
-        assert!(render_cta().contains("Você precisará do código de acesso da sua cooperativa para se vincular."));
-        assert!(render_cta().contains("COMEÇAR AGORA"));
+        assert!(html.contains("READY TO"));
+        assert!(html.contains("JOIN IN?"));
+        assert!(render_cta().contains("JOIN IN?"));
+        assert!(render_cta().contains("You will need your cooperative's access code to link up."));
+        assert!(render_cta().contains("GET STARTED"));
         assert!( render_cta().contains(r#"class="btn btn-primary btn-lg""#));
 }
 
@@ -128,6 +128,5 @@ fn render_footer() -> String {
 #[test]
 fn footer_section() {
     assert!(render_footer().contains("LOAN MACHINE"));
-    assert!(render_footer().contains("Contratos imutáveis. Comunidade real."));
+    assert!(render_footer().contains("Immutable contracts. Real community."));
 }
-

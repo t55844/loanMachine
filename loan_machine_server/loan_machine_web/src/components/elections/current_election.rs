@@ -77,9 +77,9 @@ fn StartElectionStep(
         let data = b.data.clone();
         let gas  = b.gas_hex.clone();
         gas_modal.set(Some(GasModalRequest {
-            title: "CONFIRMAR ABERTURA DE ELEIÇÃO".into(),
+            title: "CONFIRM ELECTION OPENING".into(),
             estimates: vec![GasEstimate {
-                label:   "Abrir eleição de moderador".into(),
+                label:   "Open moderator election".into(),
                 gas_hex: gas.clone(),
             }],
             on_confirm: Callback::new(move |_| {
@@ -102,18 +102,18 @@ fn StartElectionStep(
             on_tx_success.run(());
         }
         TxOutcome::Failed(err) => {
-            set_error.set(format!("Falha na transação: {err}"));
+            set_error.set(format!("Transaction failed: {err}"));
         }
     });
 
     view! {
         <Card>
-            <span class="card-tag">"NENHUMA ELEIÇÃO ATIVA"</span>
+            <span class="card-tag">"NO ACTIVE ELECTION"</span>
             <div class="flex-col gap-6" style="margin-top: var(--sp-6)">
 
                 <p class="t-mono-xs t-muted">
-                    "Inicie uma eleição fornecendo os endereços de carteira dos dois
-                    candidatos. Ambos devem ser membros vinculados desta cooperativa."
+                    "Start an election by providing the wallet addresses of the two
+                    candidates. Both must be linked members of this cooperative."
                 </p>
 
                 {move || {
@@ -124,18 +124,18 @@ fn StartElectionStep(
                 }}
 
                 <TextInput
-                    label="Candidato — Carteira"
+                    label="Candidate — Wallet"
                     placeholder="0x0000...0000"
-                    hint="Membro vinculado desta cooperativa"
+                    hint="Linked member of this cooperative"
                     value=candidate
                     set_value=set_candidate
                     error=Signal::derive(move || candidate_err.get())
                 />
 
                 <TextInput
-                    label="Oponente — Carteira"
+                    label="Opponent — Wallet"
                     placeholder="0x0000...0000"
-                    hint="Segundo candidato, também membro vinculado"
+                    hint="Second candidate, also a linked member"
                     value=opponent
                     set_value=set_opponent
                     error=Signal::derive(move || opponent_err.get())
@@ -154,17 +154,17 @@ fn StartElectionStep(
 
                         set_candidate_err.set(match &cand {
                             Ok(_)  => String::new(),
-                            Err(_) => "Endereço inválido (0x + 40 hex)".into(),
+                            Err(_) => "Invalid address (0x + 40 hex)".into(),
                         });
                         set_opponent_err.set(match &opp {
                             Ok(_)  => String::new(),
-                            Err(_) => "Endereço inválido (0x + 40 hex)".into(),
+                            Err(_) => "Invalid address (0x + 40 hex)".into(),
                         });
 
                         if let (Ok(c), Ok(o)) = (cand, opp) {
                             if c == o {
                                 set_opponent_err.set(
-                                    "Oponente deve ser diferente do candidato".into()
+                                    "Opponent must be different from the candidate".into()
                                 );
                                 return;
                             }
@@ -173,7 +173,7 @@ fn StartElectionStep(
                         }
                     })
                 >
-                    "INICIAR ELEIÇÃO"
+                    "START ELECTION"
                 </Button>
             </div>
         </Card>
@@ -202,30 +202,30 @@ fn ActiveElectionStep(
 
     view! {
         <Card variant=CardVariant::Gold>
-            <span class="card-tag">{format!("ELEIÇÃO #{} — EM ANDAMENTO", view_data.id)}</span>
+            <span class="card-tag">{format!("ELECTION #{} — IN PROGRESS", view_data.id)}</span>
             <div class="flex-col gap-6" style="margin-top: var(--sp-6)">
 
                 <Alert kind=AlertKind::Info>
-                    "A eleição está aberta. O peso do seu voto é igual à sua reputação."
+                    "The election is open. The weight of your vote equals your reputation."
                 </Alert>
 
                 {zero_rep_warning.then(|| view! {
                     <Alert kind=AlertKind::Warning>
-                        "Você tem reputação zero — seu voto será registrado mas não
-                         influenciará o resultado. Cubra um empréstimo ou quite uma
-                         parcela em dia para ganhar reputação."
+                        "You have zero reputation — your vote will be recorded but will not
+                         influence the result. Cover a loan or pay an installment on time
+                         to gain reputation."
                     </Alert>
                 })}
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-4)">
-                    <StatBlock label="Sua reputação"  value=rep_label />
-                    <StatBlock label="Total de votos" value=view_data.total_votes_cast.to_string() />
-                    <StatBlock label="Encerramento"   value=format_epoch(view_data.end_time) />
+                    <StatBlock label="Your reputation" value=rep_label />
+                    <StatBlock label="Total votes"     value=view_data.total_votes_cast.to_string() />
+                    <StatBlock label="Closing"         value=format_epoch(view_data.end_time) />
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">
-                        {format!("Candidatos ({})", candidate_count)}
+                        {format!("Candidates ({})", candidate_count)}
                     </label>
                     <div class="flex-col gap-3" style="margin-top: var(--sp-3)">
                         {view_data.candidates.into_iter().enumerate().map(|(i, c)| view! {

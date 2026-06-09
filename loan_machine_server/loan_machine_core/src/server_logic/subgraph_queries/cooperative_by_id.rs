@@ -1,8 +1,6 @@
-// loan_machine_core/src/server_logic/subgraph_queries/cooperative_by_id.rs
-
 use serde::Serialize;
 
-use crate::services::subgraph::{SubgraphError, SubgraphService};
+use crate::services::subgraph::SubgraphError;
 use crate::server_logic::subgraph_queries::cooperatives::CooperativeRow;
 
 const QUERY: &str = r#"
@@ -18,21 +16,18 @@ query CooperativeById($coopId: Bytes!) {
 }"#;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Vars<'a> {
-    #[serde(rename = "coopId")]
     coop_id: &'a str,
 }
 
-#[derive(serde::Deserialize)]
-struct Data {
-    cooperatives: Vec<CooperativeRow>,
-}
-
-/// Returns the coop if found, None if no coop has this id in the index.
-pub async fn fetch_one_coop(
-    subgraph: &SubgraphService,
-    coop_id: &str,
-) -> Result<Option<CooperativeRow>, SubgraphError> {
-    let data: Data = subgraph.query(QUERY, Vars { coop_id }).await?;
-    Ok(data.cooperatives.into_iter().next())
+gql_fetch! { 
+    pub async fn fetch_one_coop(subgraph: &SubgraphService, coop_id: &str)
+        -> Result<Option<CooperativeRow>, SubgraphError>
+    {
+        query: QUERY,
+        vars:  Vars { coop_id },
+        data:  { cooperatives: Vec<CooperativeRow> },
+        map:   |d| Ok(d.cooperatives.into_iter().next()),
+    }
 }

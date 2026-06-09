@@ -67,9 +67,9 @@ fn login_required_kinds_have_distinct_copy() {
 }
 
 #[test]
-fn login_required_copy_uses_ptbr_domain_terms() {
-    // Sanity check: every variant's body mentions a domain term in PT-BR.
-    // Cheap guard against accidental translation drift.
+fn login_required_copy_mentions_wallet_or_connect() {
+    // Sanity check: every variant's body mentions a domain term.
+    // Cheap guard against accidental copy drift.
     for kind in [
         LoginRequiredKind::Cooperatives,
         LoginRequiredKind::Vinculation,
@@ -77,8 +77,8 @@ fn login_required_copy_uses_ptbr_domain_terms() {
     ] {
         let txt = kind.body_text();
         assert!(
-            txt.contains("carteira") || txt.contains("CONECTAR"),
-            "copy missing PT-BR domain term: {txt:?} (kind {kind:?})"
+            txt.contains("wallet") || txt.contains("CONNECT"),
+            "copy missing domain term: {txt:?} (kind {kind:?})"
         );
     }
 }

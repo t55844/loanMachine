@@ -75,9 +75,9 @@ async fn prepare_cosign_succeeds_for_moderator() {
 /// LoanMachine_ModeratorCosignRequired.
 ///
 /// NOTE: as of the current `contract_errors.rs`, selector 0x71055050 is
-/// NOT in the translator table — the entry mapped to "Administrador ainda
-/// não foi proposto." uses a stale selector. So this test asserts on the
-/// fallback "Erro desconhecido (0x71055050)." string until the translator
+/// NOT in the translator table — the entry mapped to "Administrator has not
+/// been proposed yet." uses a stale selector. So this test asserts on the
+/// fallback "Unknown error (0x71055050)." string until the translator
 /// is fixed. Update the assertion when you add the proper mapping.
 #[tokio::test]
 async fn prepare_cosign_rejects_proposal_that_doesnt_need_cosign() {
@@ -104,5 +104,5 @@ async fn prepare_cosign_rejects_proposal_that_doesnt_need_cosign() {
         AdminApprovalError::Blockchain(BlockchainError::ContractRevert { message, .. }) => message,
         other => panic!("expected ContractRevert, got {other:?}"),
     };
-    assert_eq!(message, "Erro desconhecido (0x71055050).");
+    assert_eq!(message, "Unknown error (0x71055050).");
 }

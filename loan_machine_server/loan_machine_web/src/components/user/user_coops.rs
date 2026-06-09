@@ -14,14 +14,14 @@ pub fn UserCoopsPage() -> impl IntoView {
         <Section>
             <div class="container-md">
                 <div class="t-center" style="margin-bottom: var(--sp-8)">
-                    <SectionTitle>"MEU PERFIL"</SectionTitle>
+                    <SectionTitle>"MY PROFILE"</SectionTitle>
                 </div>
 
                 <Suspense fallback=move || view! {
                     <Card>
                         <div class="flex-col flex-center gap-6" style="padding: var(--sp-12) 0">
                             <span class="spinner" style="width: 40px; height: 40px; border-width: 3px" />
-                            <p class="t-mono-xs t-muted">"Carregando seu perfil…"</p>
+                            <p class="t-mono-xs t-muted">"Loading your profile…"</p>
                         </div>
                     </Card>
                 }>
@@ -50,22 +50,22 @@ fn ProfileHeader(wallet: String, coops: Vec<UserProfileCoop>) -> impl IntoView {
     view! {
         <Card>
             <div class="flex-col gap-4">
-                <span class="card-tag">"CARTEIRA"</span>
+                <span class="card-tag">"WALLET"</span>
                 <HashDisplay value=wallet />
                 <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-2)">
                     {(admin_count > 0).then(|| view! {
                         <Badge color=BadgeColor::Gold filled=true>
-                            {format!("ADMIN EM {admin_count}")}
+                            {format!("ADMIN IN {admin_count}")}
                         </Badge>
                     })}
                     {(mod_count > 0).then(|| view! {
                         <Badge color=BadgeColor::Yellow filled=true>
-                            {format!("MODERADOR EM {mod_count}")}
+                            {format!("MODERATOR IN {mod_count}")}
                         </Badge>
                     })}
                     {(total_pending > 0).then(|| view! {
                         <Badge color=BadgeColor::Red filled=true live=true>
-                            {format!("{total_pending} PENDENTE{}", if total_pending == 1 { "" } else { "S" })}
+                            {format!("{total_pending} PENDING{}", if total_pending == 1 { "" } else { "S" })}
                         </Badge>
                     })}
                 </div>
@@ -84,13 +84,13 @@ fn CoopRow(coop: UserProfileCoop) -> impl IntoView {
 
     // Relation badge — only one of these renders, in priority order.
     let relation_badge = if is_member {
-        view! { <Badge color=BadgeColor::Green filled=true>"MEMBRO"</Badge> }.into_any()
+        view! { <Badge color=BadgeColor::Green filled=true>"MEMBER"</Badge> }.into_any()
     } else if coop.is_approved {
-        view! { <Badge color=BadgeColor::Yellow filled=true>"APROVADO — VINCULAR"</Badge> }.into_any()
+        view! { <Badge color=BadgeColor::Yellow filled=true>"APPROVED — LINK"</Badge> }.into_any()
     } else if coop.has_pending_approval {
-        view! { <Badge color=BadgeColor::Gold>"AGUARDANDO APROVAÇÃO"</Badge> }.into_any()
+        view! { <Badge color=BadgeColor::Gold>"AWAITING APPROVAL"</Badge> }.into_any()
     } else {
-        view! { <Badge color=BadgeColor::Red>"SEM RELAÇÃO"</Badge> }.into_any()
+        view! { <Badge color=BadgeColor::Red>"NO RELATION"</Badge> }.into_any()
     };
 
     view! {
@@ -102,13 +102,13 @@ fn CoopRow(coop: UserProfileCoop) -> impl IntoView {
                     <div style="display: flex; gap: var(--sp-2); flex-wrap: wrap">
                         {relation_badge}
                         {if coop.active {
-                            view! { <Badge color=BadgeColor::Green filled=true>"ATIVA"</Badge> }.into_any()
+                            view! { <Badge color=BadgeColor::Green filled=true>"ACTIVE"</Badge> }.into_any()
                         } else {
-                            view! { <Badge color=BadgeColor::Red>"INATIVA"</Badge> }.into_any()
+                            view! { <Badge color=BadgeColor::Red>"INACTIVE"</Badge> }.into_any()
                         }}
                         {has_pending.then(|| view! {
                             <Badge color=BadgeColor::Red filled=true live=true>
-                                {format!("{} PENDENTE{}", coop.pending_count, if coop.pending_count == 1 { "" } else { "S" })}
+                                {format!("{} PENDING{}", coop.pending_count, if coop.pending_count == 1 { "" } else { "S" })}
                             </Badge>
                         })}
                     </div>
@@ -120,35 +120,35 @@ fn CoopRow(coop: UserProfileCoop) -> impl IntoView {
                             <Badge color=BadgeColor::Gold filled=true>"ADMIN"</Badge>
                         })}
                         {coop.is_moderator.then(|| view! {
-                            <Badge color=BadgeColor::Yellow filled=true>"MODERADOR"</Badge>
+                            <Badge color=BadgeColor::Yellow filled=true>"MODERATOR"</Badge>
                         })}
                     </div>
                 })}
 
-                
-                <div class="form-group">
-                    <label class="form-label">"Meu Member ID"</label>
-                    <HashDisplay value=coop.member_id.clone() />
-                </div>
-                
 
                 <div class="form-group">
-                    <label class="form-label">"ID da Cooperativa"</label>
+                    <label class="form-label">"My Member ID"</label>
+                    <HashDisplay value=coop.member_id.clone() />
+                </div>
+
+
+                <div class="form-group">
+                    <label class="form-label">"Cooperative ID"</label>
                     <HashDisplay value=coop.coop_id.clone() />
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">"Ações"</label>
+                    <label class="form-label">"Actions"</label>
                     <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-3)">
                         <LinkTag href=panel_href color=LinkTagColor::Gold size=LinkTagSize::Sm>
-                            {if has_pending { "Painel · Ações pendentes" }
-                             else if !is_member && coop.is_approved { "Vincular agora" }
-                             else if !is_member && coop.has_pending_approval { "Ver status" }
-                             else { "Painel" }}
+                            {if has_pending { "Panel · Pending actions" }
+                             else if !is_member && coop.is_approved { "Link now" }
+                             else if !is_member && coop.has_pending_approval { "View status" }
+                             else { "Panel" }}
                         </LinkTag>
                         {is_member.then(|| view! {
                             <LinkTag href=elections_href color=LinkTagColor::Yellow size=LinkTagSize::Sm>
-                                "Eleições"
+                                "Elections"
                             </LinkTag>
                         })}
                     </div>
@@ -166,15 +166,15 @@ fn CoopRow(coop: UserProfileCoop) -> impl IntoView {
 fn EmptyState() -> impl IntoView {
     view! {
         <Card>
-            <span class="card-tag">"NENHUMA COOPERATIVA"</span>
+            <span class="card-tag">"NO COOPERATIVES"</span>
             <div class="flex-col gap-4" style="margin-top: var(--sp-6)">
                 <p class="t-mono-xs t-muted">
-                    "Você ainda não faz parte de nenhuma cooperativa. "
-                    "Vincule sua carteira a uma cooperativa existente ou crie a sua."
+                    "You are not yet part of any cooperative. "
+                    "Link your wallet to an existing cooperative or create your own."
                 </p>
                 <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap">
-                    <LinkTag href="/vinculation".to_string() color=LinkTagColor::Yellow>"Vincular-se"</LinkTag>
-                    <LinkTag href="/create-coop".to_string() color=LinkTagColor::Gold>"Criar cooperativa"</LinkTag>
+                    <LinkTag href="/vinculation".to_string() color=LinkTagColor::Yellow>"Link up"</LinkTag>
+                    <LinkTag href="/create-coop".to_string() color=LinkTagColor::Gold>"Create cooperative"</LinkTag>
                 </div>
             </div>
         </Card>

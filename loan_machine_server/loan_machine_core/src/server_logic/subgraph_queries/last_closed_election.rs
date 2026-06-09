@@ -23,7 +23,8 @@ query LastClosedElection($coopId: String!) {
 }"#;
 
 #[derive(Serialize)]
-struct Vars { #[serde(rename = "coopId")] coop_id: String }
+#[serde(rename_all = "camelCase")]
+struct Vars { coop_id: String }
 
 #[derive(Deserialize)]
 struct Row {

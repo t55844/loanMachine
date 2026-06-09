@@ -129,7 +129,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
             advance(CoopStep::SignInit);
         }
         DeployOutcome::Failed(err) => {
-            set_error.set(format!("Falha no deploy: {err}"));
+            set_error.set(format!("Deploy failed: {err}"));
             advance(CoopStep::AccessCode);
         }
     });
@@ -141,7 +141,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
             register.dispatch(());
         }
         TxOutcome::Failed(err) => {
-            set_error.set(format!("Falha na inicialização: {err}"));
+            set_error.set(format!("Initialization failed: {err}"));
         }
     });
 
@@ -170,7 +170,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
             <div class="container-sm">
 
                 <div class="t-center" style="margin-bottom: var(--sp-8)">
-                    <SectionTitle>"CRIAR COOPERATIVA"</SectionTitle>
+                    <SectionTitle>"CREATE COOPERATIVE"</SectionTitle>
                     <StepProgress step=step />
                 </div>
 
@@ -214,25 +214,25 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                 set_name_err.set(if name_ok {
                                     String::new()
                                 } else {
-                                    "Nome obrigatório".into()
+                                    "Name is required".into()
                                 });
                                 set_document_err.set(if document_ok {
                                     String::new()
                                 } else {
                                     match dk {
-                                        DocKind::Cpf  => "CPF deve ter 11 dígitos".into(),
-                                        DocKind::Cnpj => "CNPJ deve ter 14 caracteres".into(),
+                                        DocKind::Cpf  => "CPF must have 11 digits".into(),
+                                        DocKind::Cnpj => "CNPJ must have 14 characters".into(),
                                     }
                                 });
                                 set_admin2_err.set(if admin2_ok {
                                     String::new()
                                 } else {
-                                    "Endereço inválido (0x + 40 hex)".into()
+                                    "Invalid address (0x + 40 hex)".into()
                                 });
                                 set_admin3_err.set(if admin3_ok {
                                     String::new()
                                 } else {
-                                    "Endereço inválido (0x + 40 hex)".into()
+                                    "Invalid address (0x + 40 hex)".into()
                                 });
 
                                 if let (true, true, Ok(a2_addr), Ok(a3_addr))
@@ -266,9 +266,9 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                     let dd = deploy_data.clone();
                                     let gd = gas_deploy.clone();
                                     gas_modal.set(Some(GasModalRequest {
-                                        title: "CONFIRMAR DEPLOY".into(),
+                                        title: "CONFIRM DEPLOY".into(),
                                         estimates: vec![GasEstimate {
-                                            label:   "Deploy do LoanMachine".into(),
+                                            label:   "LoanMachine Deploy".into(),
                                             gas_hex: gd.clone(),
                                         }],
                                         on_confirm: Callback::new(move |_| {
@@ -283,8 +283,8 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
 
                     CoopStep::WaitingDeploy => view! {
                         <WaitingStep
-                            label="Aguardando confirmação do deploy…"
-                            hint="Assine a transação na sua carteira Privy"
+                            label="Waiting for deploy confirmation…"
+                            hint="Sign the transaction in your Privy wallet"
                         />
                     }.into_any(),
 
@@ -304,9 +304,9 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                     let d = init_data.clone();
                                     let g = gas_init.clone();
                                     gas_modal.set(Some(GasModalRequest {
-                                        title: "CONFIRMAR INICIALIZAÇÃO".into(),
+                                        title: "CONFIRM INITIALIZATION".into(),
                                         estimates: vec![GasEstimate {
-                                            label:   "Inicializar Multisig".into(),
+                                            label:   "Initialize Multisig".into(),
                                             gas_hex: g.clone(),
                                         }],
                                         on_confirm: Callback::new(move |_| {
@@ -320,8 +320,8 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
 
                     CoopStep::Registering => view! {
                         <WaitingStep
-                            label="Registrando cooperativa na blockchain…"
-                            hint="O servidor está assinando a transação de registro"
+                            label="Registering cooperative on the blockchain…"
+                            hint="The server is signing the registration transaction"
                         />
                     }.into_any(),
 

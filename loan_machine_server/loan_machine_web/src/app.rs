@@ -31,10 +31,10 @@ pub fn Navbar(
             <div class="container navbar-inner">
                 <a href="/" class="navbar-brand">{title}</a>
                 <ul class="navbar-links">
-                    <li><a href="/" class="navbar-link">"Pagina inicial"</a></li>
-                    <li><a href="/cooperatives" class="navbar-link">"Cooperativas"</a></li>
-                    <li><a href="/create-coop" class="navbar-link">"Crie uma Cooper."</a></li>
-                    <li><a href="/user" class="navbar-link">"Usuario"</a></li>
+                    <li><a href="/" class="navbar-link">"Home"</a></li>
+                    <li><a href="/cooperatives" class="navbar-link">"Cooperatives"</a></li>
+                    <li><a href="/create-coop" class="navbar-link">"Create a Cooperative"</a></li>
+                    <li><a href="/user" class="navbar-link">"User"</a></li>
                     <li>
                         <span class="badge badge-live badge-yellow">"Live"</span>
                     </li>

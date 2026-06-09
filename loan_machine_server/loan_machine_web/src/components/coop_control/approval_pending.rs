@@ -17,7 +17,7 @@ pub fn ApprovalPending(
     );
 
     view! {
-        <Card tag="APROVAÇÃO PENDENTE" hover=false>
+        <Card tag="PENDING APPROVAL" hover=false>
             <Suspense fallback=move || view! {
                 <div class="flex-center" style="padding: var(--sp-8) 0">
                     <span class="spinner"></span>
@@ -30,23 +30,23 @@ pub fn ApprovalPending(
                     } => view! {
                         <div class="flex-col gap-4" style="margin-top: var(--sp-4)">
                             <p class="t-mono-xs t-muted">
-                                "Seu pedido foi registrado. Aguarde até que os administradores
-                                confirmem e um moderador faça o co-assinatura."
+                                "Your request has been registered. Wait until the administrators
+                                confirm and a moderator co-signs."
                             </p>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4)">
                                 <StatBlock
-                                    label="Confirmações de admin"
-                                    value=format!("{}/{} (limiar {})", confirmations, total_admins, threshold)
+                                    label="Admin confirmations"
+                                    value=format!("{}/{} (threshold {})", confirmations, total_admins, threshold)
                                 />
                                 <StatBlock
-                                    label="Moderador co-assinou"
-                                    value=if moderator_cosigned { "Sim".into() } else { "Não".into() }
+                                    label="Moderator co-signed"
+                                    value=if moderator_cosigned { "Yes".into() } else { "No".into() }
                                 />
                             </div>
 
                             <div class="stat-block">
-                                <span class="stat-label">"ID da proposta"</span>
+                                <span class="stat-label">"Proposal ID"</span>
                                 <span class="t-mono-sm">{proposal_id.to_string()}</span>
                             </div>
                         </div>
@@ -54,7 +54,7 @@ pub fn ApprovalPending(
 
                     _ => view! {
                         <p class="t-mono-xs t-muted" style="margin-top: var(--sp-4)">
-                            "Estado em atualização..."
+                            "State updating..."
                         </p>
                     }.into_any(),
                 })}

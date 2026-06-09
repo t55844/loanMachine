@@ -27,9 +27,9 @@ pub fn RequestApproval(
         let data = b.data.clone();
         let gas  = b.gas_hex.clone();
         gas_modal.set(Some(GasModalRequest {
-            title: "CONFIRMAR PEDIDO DE APROVAÇÃO".into(),
+            title: "CONFIRM APPROVAL REQUEST".into(),
             estimates: vec![GasEstimate {
-                label:   "Propor aprovação da carteira".into(),
+                label:   "Propose wallet approval".into(),
                 gas_hex: gas.clone(),
             }],
             on_confirm: Callback::new(move |_| {
@@ -49,59 +49,59 @@ pub fn RequestApproval(
             set_error.set(String::new());
             on_tx_success.run(());
         }
-        TxOutcome::Failed(err) => set_error.set(format!("Falha na transação: {err}")),
+        TxOutcome::Failed(err) => set_error.set(format!("Transaction failed: {err}")),
     });
 
     view! {
-        <Card variant=CardVariant::Yellow tag="VISITANTE — PEDIDO DE APROVAÇÃO" hover=false>
+        <Card variant=CardVariant::Yellow tag="VISITOR — APPROVAL REQUEST" hover=false>
             <div class="flex-col gap-6" style="margin-top: var(--sp-4)">
 
                 <p class="t-mono-sm">
-                    "Sua carteira ainda não pertence a esta cooperativa. Para entrar,
-                    é preciso passar por um processo de aprovação coletivo."
+                    "Your wallet does not yet belong to this cooperative. To join,
+                    you must go through a collective approval process."
                 </p>
 
                 <div class="flex-col gap-3" style="padding: var(--sp-4) 0">
-                    <span class="t-mono-xs t-muted">"COMO FUNCIONA"</span>
+                    <span class="t-mono-xs t-muted">"HOW IT WORKS"</span>
 
                     <div style="display: flex; gap: var(--sp-3); align-items: flex-start">
                         <Badge color=BadgeColor::Gold>"1"</Badge>
                         <p class="t-mono-xs">
-                            "Você inicia um pedido de aprovação aqui. Isso registra
-                            sua carteira como candidata, mas ainda não a torna membro."
+                            "You initiate an approval request here. This registers your
+                            wallet as a candidate, but does not yet make it a member."
                         </p>
                     </div>
 
                     <div style="display: flex; gap: var(--sp-3); align-items: flex-start">
                         <Badge color=BadgeColor::Gold>"2"</Badge>
                         <p class="t-mono-xs">
-                            "Os administradores da cooperativa analisam o pedido e
-                            registram suas confirmações. É preciso atingir o limiar
-                            de assinaturas definido pela cooperativa."
+                            "The cooperative's administrators review the request and register
+                            their confirmations. The signature threshold defined by the
+                            cooperative must be reached."
                         </p>
                     </div>
 
                     <div style="display: flex; gap: var(--sp-3); align-items: flex-start">
                         <Badge color=BadgeColor::Gold>"3"</Badge>
                         <p class="t-mono-xs">
-                            "Um moderador eleito co-assina o pedido — esta etapa
-                            garante que a aprovação não dependa apenas dos admins."
+                            "An elected moderator co-signs the request — this step ensures
+                            the approval does not depend solely on admins."
                         </p>
                     </div>
 
                     <div style="display: flex; gap: var(--sp-3); align-items: flex-start">
                         <Badge color=BadgeColor::Gold>"4"</Badge>
                         <p class="t-mono-xs">
-                            "Com confirmações + co-assinatura, sua carteira é aprovada.
-                            Você poderá então vincular seu CPF/CNPJ à carteira e
-                            tornar-se membro de fato."
+                            "With confirmations + co-signature, your wallet is approved.
+                            You can then link your CPF/CNPJ to the wallet and become a
+                            full member."
                         </p>
                     </div>
                 </div>
 
                 <Alert kind=AlertKind::Info>
-                    "Após enviar, esta tela mostrará o andamento do pedido
-                    (confirmações de admin, co-assinatura do moderador) até a aprovação."
+                    "After submitting, this screen will show the progress of the request
+                    (admin confirmations, moderator co-signature) until approval."
                 </Alert>
 
                 {move || {
@@ -120,7 +120,7 @@ pub fn RequestApproval(
                         request.dispatch(coop_id.clone());
                     })
                 >
-                    "INICIAR PEDIDO DE APROVAÇÃO"
+                    "START APPROVAL REQUEST"
                 </Button>
             </div>
         </Card>

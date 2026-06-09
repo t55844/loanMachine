@@ -9,9 +9,9 @@ use crate::services::identity::{IdentityService, IdentityError};
 
 #[derive(Debug, Error)]
 pub enum CreateCoopLogicError {
-    #[error("nome da cooperativa inválido")]
+    #[error("invalid cooperative name")]
     InvalidName,
-    #[error("endereço da LoanMachine inválido")]
+    #[error("invalid LoanMachine address")]
     InvalidLoanMachineAddress,
     #[error(transparent)]
     Deployment(#[from] CoopDeploymentError),
