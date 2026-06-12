@@ -39,11 +39,12 @@ pub async fn get_current_election_logic(
     blockchain:  &BlockchainService,
     coop_id_hex: &str,
 ) -> Result<Option<ElectionView>, ElectionError> {
-    let coop_id_b32       = parse_bytes32_coop(coop_id_hex)?;
-    let coop_registry     = &blockchain.coop_registry;
-    let loan_machine_addr = coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider          = &coop_registry.provider;
-    let contract          = LoanMachine::new(loan_machine_addr, provider.clone());
+    let (_coop_id_b32, loan_machine_addr, _provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ElectionError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
 
     let current_id: i32 = contract.getCurrentElectionId().call().await
         .map_err(BlockchainError::from_call)?._0;
@@ -94,21 +95,24 @@ pub async fn prepare_vote_logic(
     candidate_wallet: WalletAddress,
     voter_wallet:     WalletAddress,
 ) -> Result<VoteBundle, ElectionError> {
-    let coop_id_b32       = parse_bytes32_coop(coop_id_hex)?;
-    let loan_machine_addr = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider          = &blockchain.coop_registry.provider;
-    let contract          = LoanMachine::new(loan_machine_addr, provider.clone());
+    let (_coop_id_b32, loan_machine_addr, provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ElectionError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
 
-    let candidate_id = resolve_member_id(subgraph, provider, loan_machine_addr, &candidate_wallet)
+
+    let candidate_id = resolve_member_id(subgraph, provider.as_ref(), loan_machine_addr, &candidate_wallet)
         .await?
         .ok_or_else(|| BlockchainError::WalletNotVinculated(candidate_wallet.clone()))?;
 
-    let voter_id = resolve_member_id(subgraph, provider, loan_machine_addr, &voter_wallet)
+    let voter_id = resolve_member_id(subgraph, provider.as_ref(), loan_machine_addr, &voter_wallet)
         .await?
         .ok_or_else(|| BlockchainError::WalletNotVinculated(voter_wallet.clone()))?;
 
     let _reputation = resolve_member_reputation(
-        subgraph, provider, loan_machine_addr, voter_id,
+        subgraph, provider.as_ref(), loan_machine_addr, voter_id,
     ).await?;
 
     let voter_addr: Address = wallet_address::to_alloy(&voter_wallet);
@@ -132,11 +136,14 @@ pub async fn get_wallet_reputation_logic(
     coop_id_hex: &str,
     wallet:      WalletAddress,
 ) -> Result<i32, ElectionError> {
-    let coop_id_b32       = parse_bytes32_coop(coop_id_hex)?;
-    let loan_machine_addr = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider          = &blockchain.coop_registry.provider;
+    let (_coop_id_b32, loan_machine_addr, provider, _contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ElectionError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
 
-    let member_id = resolve_member_id(subgraph, provider, loan_machine_addr, &wallet)
+    let member_id = resolve_member_id(subgraph, provider.as_ref(), loan_machine_addr, &wallet)
         .await?
         .ok_or_else(|| BlockchainError::WalletNotVinculated(wallet))?;
 
@@ -158,24 +165,22 @@ pub async fn prepare_open_election_logic(
         return Err(ElectionError::SameCandidates);
     }
 
-    let coop_id_b32       = parse_bytes32_coop(coop_id_hex)?;
-    let coop_registry = &blockchain.coop_registry;
-    let loan_machine_addr = coop_registry.get_loan_machine(coop_id_b32).await?;
-
-
-    let provider = &blockchain.coop_registry.provider;
-    let contract = LoanMachine::new(loan_machine_addr, provider.clone());
-
+    let (_coop_id_b32, loan_machine_addr, provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ElectionError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
 
 
     let candidate_id = resolve_member_id(
-        subgraph, provider, loan_machine_addr, &candidate_wallet,
+        subgraph, provider.as_ref(), loan_machine_addr, &candidate_wallet,
     )
     .await?
     .ok_or_else(|| BlockchainError::WalletNotVinculated(candidate_wallet.clone()))?;
 
     let opponent_id = resolve_member_id(
-        subgraph, provider, loan_machine_addr, &opponent_wallet,
+        subgraph, provider.as_ref(), loan_machine_addr, &opponent_wallet,
     )
     .await?
     .ok_or_else(|| BlockchainError::WalletNotVinculated(opponent_wallet.clone()))?;

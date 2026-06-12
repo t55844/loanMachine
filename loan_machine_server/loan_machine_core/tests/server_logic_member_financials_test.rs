@@ -1,4 +1,5 @@
 mod common;
+
 use crate::common::server_returning;
 
 use loan_machine_core::server_logic::member_financials::{
@@ -71,7 +72,7 @@ async fn invalid_coop_id_returns_error() {
     ).await;
 
     assert!(
-        matches!(result, Err(MemberFinancialsError::InvalidCoopId)),
+        matches!(result, Err(MemberFinancialsError::InvalidCoopId(_))),
         "expected InvalidCoopId, got {:?}", result,
     );
 }

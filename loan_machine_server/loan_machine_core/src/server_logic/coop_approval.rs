@@ -6,7 +6,7 @@ use thiserror::Error;
 use loan_machine_models::responses::{ApprovalStatus, RequestApprovalBundle};
 use loan_machine_models::wallet_address::{self, WalletAddress};
 
-use crate::services::blockchain::{abis::LoanMachine, BlockchainError, BlockchainService};
+use crate::services::blockchain::{ BlockchainError, BlockchainService};
 use crate::services::subgraph::SubgraphService;
 use crate::server_logic::subgraph_queries::pending_approval::fetch_pending_approval;
 
@@ -26,11 +26,14 @@ pub async fn get_approval_status_logic(
     coop_id_hex: &str,
     wallet:      WalletAddress,
 ) -> Result<ApprovalStatus, ApprovalError> {
-    let coop_id_b32       = parse_coop(coop_id_hex)?;
-    let loan_machine_addr = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider          = &blockchain.coop_registry.provider;
-    let contract          = LoanMachine::new(loan_machine_addr, provider.clone());
-    let wallet_addr: Address = wallet_address::to_alloy(&wallet);
+   let wallet_addr: Address = wallet_address::to_alloy(&wallet);
+
+    let (_coop_id_b32, loan_machine_addr, _provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ApprovalError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
 
     // Already approved? Short-circuit.
     let approved = contract.isWalletApproved(wallet_addr).call().await
@@ -78,11 +81,14 @@ pub async fn prepare_request_approval_logic(
     coop_id_hex: &str,
     wallet:      WalletAddress,
 ) -> Result<RequestApprovalBundle, ApprovalError> {
-    let coop_id_b32       = parse_coop(coop_id_hex)?;
-    let loan_machine_addr = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider          = &blockchain.coop_registry.provider;
-    let contract          = LoanMachine::new(loan_machine_addr, provider.clone());
-    let wallet_addr: Address = wallet_address::to_alloy(&wallet);
+   let wallet_addr: Address = wallet_address::to_alloy(&wallet);
+
+    let (_coop_id_b32, loan_machine_addr, _provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ApprovalError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
 
     let call = contract.proposeWalletApproval(wallet_addr);
     let gas  = call.clone().from(wallet_addr).estimate_gas().await
@@ -94,8 +100,4 @@ pub async fn prepare_request_approval_logic(
         data:    format!("0x{}", hex::encode(&data_bytes)),
         gas_hex: format!("0x{gas:x}"),
     })
-}
-
-fn parse_coop(hex_str: &str) -> Result<B256, ApprovalError> {
-    hex_str.parse().map_err(|_| ApprovalError::InvalidCoopId(hex_str.to_string()))
 }

@@ -1,4 +1,3 @@
-use alloy::primitives::FixedBytes;
 use loan_machine_models::responses::{CoopInfo, VinculationBundle};
 use loan_machine_models::wallet_address::{WalletAddress, to_alloy};
 use crate::services::blockchain::{BlockchainService, BlockchainError};
@@ -13,7 +12,7 @@ pub enum VinculationLogicError {
     ServerLogicInvalidWalletAddress,
 
     #[error("Invalid cooperative ID")]
-    ServerLogicInvalidCoopId,
+    InvalidCoopId(String),
 
     #[error("wallet not approved")]
     ServerLogicWalletNotApproved,
@@ -39,15 +38,16 @@ pub async fn prepare_first_vinculation_logic(
     access_code: String,
 ) -> Result<VinculationBundle, VinculationLogicError> {
     let member_id = identity.wallet_to_member_id(smart_wallet.as_bytes());
-
     let wallet_addr = to_alloy(&smart_wallet);
-    let coop_id_bytes: FixedBytes<32> = coop_id.parse()
-        .map_err(|_| VinculationLogicError::ServerLogicInvalidCoopId)?;
 
-    let coop_registry     = &blockchain.coop_registry;
-    let loan_machine_addr = coop_registry.get_loan_machine(coop_id_bytes).await?;
+    let (_coop_id_b32, loan_machine_addr, provider, _contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id,
+        invalid_coop_id: VinculationLogicError::InvalidCoopId(coop_id.into()),
+        contract,
+    );
 
-    let approved = is_wallet_approved(&coop_registry.provider, loan_machine_addr, wallet_addr).await?;
+    let approved = is_wallet_approved(provider.as_ref(), loan_machine_addr, wallet_addr).await?;
     if !approved {
         return Err(VinculationLogicError::ServerLogicWalletNotApproved);
     }
@@ -55,7 +55,7 @@ pub async fn prepare_first_vinculation_logic(
     let join_calldata = encode_join_coop(member_id, wallet_addr, &access_code);
 
     let gas = estimate_join_coop_gas(
-        &coop_registry.provider,
+        provider.as_ref(),
         loan_machine_addr, member_id,
         wallet_addr, &access_code)
         .await?;

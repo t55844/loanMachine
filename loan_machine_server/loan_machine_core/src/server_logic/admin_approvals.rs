@@ -6,7 +6,7 @@ use loan_machine_models::responses::{
 };
 use loan_machine_models::wallet_address::{self, WalletAddress};
 
-use crate::services::blockchain::{abis::LoanMachine, BlockchainError, BlockchainService};
+use crate::services::blockchain::{BlockchainError, BlockchainService};
 use crate::services::subgraph::SubgraphService;
 use crate::server_logic::subgraph_queries::approve_wallet_proposals::fetch_pending_approve_wallet_proposals;
 
@@ -26,11 +26,12 @@ pub async fn list_pending_approvals_logic(
     coop_id_hex: &str,
     wallet:      WalletAddress,
 ) -> Result<ApproveWalletPending, AdminApprovalError> {
-    let coop_id_b32 = coop_id_hex.parse::<B256>()
-        .map_err(|_| AdminApprovalError::InvalidCoopId(coop_id_hex.into()))?;
-    let lm_addr  = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider = &blockchain.coop_registry.provider;
-    let contract = LoanMachine::new(lm_addr, provider.clone());
+    let (_coop_id_b32, lm_addr, _provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
     let wallet_addr = wallet_address::to_alloy(&wallet);
 
     let admins    = contract.getAdmins().call().await.map_err(BlockchainError::from_call)?._0;
@@ -57,11 +58,12 @@ pub async fn prepare_confirm_proposal_logic(
     proposal_id: u64,
     wallet:      WalletAddress,
 ) -> Result<RequestApprovalBundle, AdminApprovalError> {
-    let coop_id_b32 = coop_id_hex.parse::<B256>()
-        .map_err(|_| AdminApprovalError::InvalidCoopId(coop_id_hex.into()))?;
-    let lm_addr  = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider = &blockchain.coop_registry.provider;
-    let contract = LoanMachine::new(lm_addr, provider.clone());
+    let (_coop_id_b32, lm_addr, _provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
     let wallet_addr = wallet_address::to_alloy(&wallet);
 
     let call = contract.confirmProposal(U256::from(proposal_id));
@@ -83,15 +85,16 @@ pub async fn prepare_cosign_proposal_logic(
     proposal_id: u64,
     wallet:      WalletAddress,
 ) -> Result<RequestApprovalBundle, AdminApprovalError> {
-    let coop_id_b32 = coop_id_hex.parse::<B256>()
-        .map_err(|_| AdminApprovalError::InvalidCoopId(coop_id_hex.into()))?;
-    let lm_addr  = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider = &blockchain.coop_registry.provider;
-    let contract = LoanMachine::new(lm_addr, provider.clone());
+    let (_coop_id_b32, lm_addr, provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
     let wallet_addr = wallet_address::to_alloy(&wallet);
 
-    let member_id_b32 = resolve_member_id( 
-            subgraph, provider, lm_addr, &wallet
+    let member_id_b32 = resolve_member_id(
+            subgraph, provider.as_ref(), lm_addr, &wallet
             ).await?
             .unwrap_or(B256::ZERO);
     let is_member = member_id_b32 != B256::ZERO;

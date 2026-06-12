@@ -1,6 +1,6 @@
 // loan_machine_web/src/server_fns/wallet_balance.rs
 //
-// Single #[server] fn for AuthBar's USD/BRL display.
+// Single #[server] fn for AuthBar's USD display.
 // Read, so it just needs an authenticated caller; the wallet
 // parameter is what gets queried, not what authenticates.
 

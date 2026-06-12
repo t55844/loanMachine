@@ -1,10 +1,10 @@
-use alloy::primitives::{Address, B256};
+use alloy::primitives::{Address};
 use thiserror::Error;
 
 use loan_machine_models::responses::MemberFinancials;
 use loan_machine_models::wallet_address::{to_alloy, WalletAddress};
 
-use crate::services::blockchain::{abis::LoanMachine, BlockchainError, BlockchainService};
+use crate::services::blockchain::{ BlockchainError, BlockchainService};
 use crate::services::subgraph::SubgraphService;
 
 use crate::server_logic::helpers::{resolve_member_id, resolve_member_reputation};
@@ -12,8 +12,8 @@ use crate::server_logic::subgraph_queries::member_financials::fetch_member_finan
 
 #[derive(Debug, Error)]
 pub enum MemberFinancialsError {
-    #[error("Invalid cooperative ID")]
-    InvalidCoopId,
+    #[error("invalid coop id: {0}")]
+    InvalidCoopId(String),
 
     #[error("wallet is not a member of this cooperative")]
     WalletNotMember,
@@ -28,22 +28,24 @@ pub async fn get_member_financials_logic(
     coop_id_hex: &str,
     wallet:      WalletAddress,
 ) -> Result<MemberFinancials, MemberFinancialsError> {
-    let coop_id_b32: B256 = coop_id_hex.parse()
-        .map_err(|_| MemberFinancialsError::InvalidCoopId)?;
-
-    let loan_machine_addr = blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
-    let provider          = &blockchain.coop_registry.provider;
     let wallet_addr: Address = to_alloy(&wallet);
-    let contract          = LoanMachine::new(loan_machine_addr, provider.clone());
+
+    let (_coop_id_b32, loan_machine_addr, provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: MemberFinancialsError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
+
 
     // Security gate: the wallet must be an active member of this coop.
-    let member_id = resolve_member_id(subgraph, provider, loan_machine_addr, &wallet)
+    let member_id = resolve_member_id(subgraph, provider.as_ref(), loan_machine_addr, &wallet)
         .await?
         .ok_or(MemberFinancialsError::WalletNotMember)?;
     let member_id_hex = format!("0x{}", hex::encode(member_id.as_slice()));
 
     // Reputation: subgraph-first, chain fallback.
-    let reputation = resolve_member_reputation(subgraph, provider, loan_machine_addr, member_id)
+    let reputation = resolve_member_reputation(subgraph, provider.as_ref(), loan_machine_addr, member_id)
         .await?;
 
     // Financial snapshot from chain.  This is always needed for

@@ -486,7 +486,7 @@ pub fn CopyButton(
 // ── MONEY ────────────────────────────────────────────────────
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum MoneyCurrency { Eth, Usd, Brl }
+pub enum MoneyCurrency { Eth, Usd }
 
 /// Formatted monetary value with currency-specific decimals/prefix.
 /// `None` renders the unavailable state ("$—", "R$—", "— ETH").
@@ -500,8 +500,6 @@ pub fn Money(
         (MoneyCurrency::Eth, None)    => ("money-eth",  "— ETH".to_string()),
         (MoneyCurrency::Usd, Some(v)) => ("money-fiat", format!("${v:.2}")),
         (MoneyCurrency::Usd, None)    => ("money-fiat", "$—".to_string()),
-        (MoneyCurrency::Brl, Some(v)) => ("money-fiat", format!("R${v:.2}")),
-        (MoneyCurrency::Brl, None)    => ("money-fiat", "R$—".to_string()),
     };
     let class = format!("money {modifier}");
 

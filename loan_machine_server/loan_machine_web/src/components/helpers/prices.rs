@@ -1,6 +1,6 @@
 // loan_machine_web/src/services/prices.rs
 //
-// Single source of ETH→USD/BRL pricing for the client.
+// Single source of ETH→USD pricing for the client.
 // Cached in localStorage with a 6h TTL.  Only AuthBar should call
 // ensure_fresh(); everything else reads via the context signal that
 // AuthBar publishes.
@@ -13,7 +13,6 @@ const TTL_MILLIS:  f64  = 6.0 * 60.0 * 60.0 * 1000.0;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Prices {
     pub eth_usd: f64,
-    pub usd_brl: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -84,7 +83,7 @@ async fn fetch_from_coingecko() -> Option<Prices> {
     use web_sys::Response;
 
     let url = "https://api.coingecko.com/api/v3/simple/price\
-               ?ids=ethereum&vs_currencies=usd,brl";
+               ?ids=ethereum&vs_currencies=usd";
 
     let window   = web_sys::window()?;
     let response: Response = JsFuture::from(window.fetch_with_str(url))
@@ -95,10 +94,8 @@ async fn fetch_from_coingecko() -> Option<Prices> {
     let eth_obj = Reflect::get(&json, &JsValue::from_str("ethereum")).ok()?;
     let eth_usd = Reflect::get(&eth_obj, &JsValue::from_str("usd"))
         .ok().and_then(|v| v.as_f64())?;
-    let brl_per_eth = Reflect::get(&eth_obj, &JsValue::from_str("brl"))
-        .ok().and_then(|v| v.as_f64())?;
 
-    Some(Prices { eth_usd, usd_brl: brl_per_eth / eth_usd })
+    Some(Prices { eth_usd })
 }
 #[cfg(not(target_arch = "wasm32"))]
 async fn fetch_from_coingecko() -> Option<Prices> { None }

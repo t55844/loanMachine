@@ -105,16 +105,12 @@ fn BalanceRow(balance: LocalResource<Option<String>>) -> impl IntoView {
         };
 
         let eth = wei_str.parse::<f64>().unwrap_or(0.0) / 1e18;
-        let (usd, brl) = match prices.get() {
-            Some(p) => (Some(eth * p.eth_usd), Some(eth * p.eth_usd * p.usd_brl)),
-            None    => (None, None),
-        };
+        let usd = prices.get().map(|p| eth * p.eth_usd);
 
         view! {
             <span class="auth-bar-balance">
                 <Money currency=MoneyCurrency::Eth value=Some(eth) />
                 <Money currency=MoneyCurrency::Usd value=usd />
-                <Money currency=MoneyCurrency::Brl value=brl />
             </span>
         }.into_any()
     };

@@ -110,7 +110,6 @@ pub fn GasModal() -> impl IntoView {
                                                 }.into_any(),
                                                 Some(p) => {
                                                     let usd = eth * p.eth_usd;
-                                                    let brl = usd * p.usd_brl;
                                                     view! {
                                                         <div class="gas-price-breakdown">
                                                             <div class="gas-price-row">
@@ -124,10 +123,6 @@ pub fn GasModal() -> impl IntoView {
                                                             <div class="gas-price-row">
                                                                 <span class="gas-price-label">"USD"</span>
                                                                 <span class="gas-price-value t-green">{format!("${usd:.2}")}</span>
-                                                            </div>
-                                                            <div class="gas-price-row">
-                                                                <span class="gas-price-label">"BRL"</span>
-                                                                <span class="gas-price-value t-green">{format!("R${brl:.2}")}</span>
                                                             </div>
                                                         </div>
                                                     }.into_any()

@@ -62,3 +62,72 @@ macro_rules! gql_fetch {
         }
     };
 }
+
+/// Resolves the on-chain LoanMachine context for a cooperative.
+///
+/// Almost every `*_logic` function starts the same way: parse the
+/// `coop_id_hex` string into a `B256`, look up the deployed LoanMachine
+/// address for that coop, and grab the provider. This macro expands to
+/// a block expression yielding `(coop_id_b32, lm_addr, provider)` — the
+/// caller destructures it with `let`.
+///
+/// We can't have the macro introduce `let coop_id_b32 = ...` directly
+/// into the caller's scope: identifiers created *inside* a `macro_rules!`
+/// expansion are hygienically separate from identifiers written at the
+/// call site, even if spelled the same. Returning a tuple sidesteps this
+/// — the binding names in `let (coop_id_b32, lm_addr, provider) = ...`
+/// belong to the caller, so they're ordinary, referenceable locals.
+///
+/// It uses `?` twice (on the `parse` and on `get_loan_machine`), so the
+/// enclosing function must return `Result<_, E>` where `E` has a
+/// `#[from] BlockchainError` variant (for the second `?`); the first `?`
+/// uses whatever error expression you pass as `invalid_coop_id`.
+///
+/// # Example
+/// ```ignore
+/// let (coop_id_b32, lm_addr, provider) = coop_context!(
+///     blockchain:      blockchain,
+///     coop_id_hex:     coop_id_hex,
+///     invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
+/// );
+/// ```
+///
+/// Pass the extra `contract` flag to also get a `LoanMachine` instance
+/// (built from `lm_addr` and `provider.clone()`) as a fourth element:
+///
+/// ```ignore
+/// let (coop_id_b32, lm_addr, provider, contract) = coop_context!(
+///     blockchain:      blockchain,
+///     coop_id_hex:     coop_id_hex,
+///     invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
+///     contract,
+/// );
+/// ```
+#[macro_export]
+macro_rules! coop_context {
+    (
+        blockchain:      $blockchain:expr,
+        coop_id_hex:     $coop_id_hex:expr,
+        invalid_coop_id: $err:expr $(,)?
+    ) => {{
+        let coop_id_b32 = $coop_id_hex.parse::<alloy::primitives::B256>()
+            .map_err(|_| $err)?;
+        let lm_addr  = $blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
+        let provider = $blockchain.coop_registry.provider.clone();
+        (coop_id_b32, lm_addr, provider)
+    }};
+
+    (
+        blockchain:      $blockchain:expr,
+        coop_id_hex:     $coop_id_hex:expr,
+        invalid_coop_id: $err:expr,
+        contract $(,)?
+    ) => {{
+        let coop_id_b32 = $coop_id_hex.parse::<alloy::primitives::B256>()
+            .map_err(|_| $err)?;
+        let lm_addr  = $blockchain.coop_registry.get_loan_machine(coop_id_b32).await?;
+        let provider = $blockchain.coop_registry.provider.clone();
+        let contract = $crate::services::blockchain::abis::LoanMachine::new(lm_addr, provider.clone());
+        (coop_id_b32, lm_addr, provider, contract)
+    }};
+}

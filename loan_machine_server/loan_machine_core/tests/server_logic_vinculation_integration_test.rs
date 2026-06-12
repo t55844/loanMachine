@@ -118,7 +118,7 @@ async fn invalid_coop_id_is_rejected() {
         env.access_code.clone(),
     ).await;
 
-    assert!(matches!(result, Err(VinculationLogicError::ServerLogicInvalidCoopId)));
+    assert!(matches!(result, Err(VinculationLogicError::InvalidCoopId(_))));
 }
 
 #[tokio::test]
