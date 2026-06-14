@@ -168,7 +168,7 @@ pub struct VinculationBundle {
 }
 
 /// Donation transaction data
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DonationBundle {
     pub approve_calldata:     String,   // USDT.approve(loanMachine, amount)
     pub usdt_address:         String,
@@ -223,4 +223,20 @@ pub struct MemberFinancials {
     /// USDT allowance granted to the LoanMachine contract.
     pub allowance:         String,
     pub loan_machine_address: String,
+}
+
+/// Cooperative-wide money flow and status, as seen on the coop control panel.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CoopFinancials {
+    /// Lifetime sum of all donations (raw token units).
+    pub total_donations:    String,
+    /// Outstanding amount currently lent out (raw token units).
+    pub total_borrowed:     String,
+    /// Donations not currently locked in active loans (raw token units).
+    pub available_balance:  String,
+    /// USDT actually held by the LoanMachine contract (raw token units).
+    pub contract_balance:   String,
+    pub is_active:           bool,
+    pub active_member_count: u32,
+    pub average_reputation:  i32,
 }

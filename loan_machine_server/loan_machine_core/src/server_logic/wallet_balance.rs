@@ -1,10 +1,11 @@
 use alloy::primitives::Address;
-use alloy::providers::Provider; 
+use alloy::providers::Provider;
 use thiserror::Error;
 
 use loan_machine_models::wallet_address::{self, WalletAddress};
 
 use crate::services::blockchain::{BlockchainError, BlockchainService};
+use crate::services::blockchain::loan_machine_fns_helpers::get_erc20_balance;
 
 #[derive(Debug, Error)]
 pub enum WalletError {
@@ -12,6 +13,8 @@ pub enum WalletError {
     Blockchain(#[from] BlockchainError),
 }
 
+/// Native ETH balance, in wei. Only needed to check that a wallet can
+/// cover gas — surfaced in the gas modal, not the main balance display.
 pub async fn get_wallet_balance_logic(
     blockchain: &BlockchainService,
     wallet:     WalletAddress,
@@ -22,6 +25,22 @@ pub async fn get_wallet_balance_logic(
         .get_balance(addr)
         .await
         .map_err(|e| BlockchainError::Provider(e.to_string()))?;
+
+    Ok(balance.to_string())
+}
+
+/// USDC/USDT balance, in raw token units (6 decimals). This is the
+/// figure shown as the wallet's main balance.
+pub async fn get_wallet_usdc_balance_logic(
+    blockchain:   &BlockchainService,
+    usdc_address: &str,
+    wallet:        WalletAddress,
+) -> Result<String, WalletError> {
+    let usdc_addr: Address = usdc_address.parse()
+        .map_err(|_| WalletError::Blockchain(BlockchainError::InvalidAddress))?;
+    let owner: Address = wallet_address::to_alloy(&wallet);
+
+    let balance = get_erc20_balance(blockchain.raw_provider.as_ref(), usdc_addr, owner).await?;
 
     Ok(balance.to_string())
 }

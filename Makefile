@@ -3,13 +3,19 @@
 # ─────────────────────────────────────────────────────────────
 
 .PHONY: test-web test-core test-one test-all \
-        fund-anvil-wallet deploy-local \
+        fund-anvil-wallet fund-used-wallets deploy-local \
         graph-up graph-down graph-clean graph-logs graph-status graph-query \
         stack-up
 
 ENV_FILE  := loan_machine_server/.env
 COMPOSE   := docker compose -f docker-compose.dev.yml --env-file $(ENV_FILE)
 CARGO     := cargo
+
+# Anvil's default account #0 — used as the funding source for ERC20 mints
+# (MockUSDT.mint is unrestricted, so any funded account can call it).
+ANVIL_DEPLOYER_KEY := 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+USDC_ADDRESS       := $(shell grep -E '^USDC_ADDRESS=' $(ENV_FILE) | cut -d= -f2)
+USDT_FUND_AMOUNT   := 1000000000
 
 # ── Tests ─────────────────────────────────────────────────────
 
@@ -57,6 +63,8 @@ fund-anvil-wallet:
 	curl -X POST http://localhost:8545 \
 	  -H "Content-Type: application/json" \
 	  -d '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["$(WALLET)","0x8AC7230489E80000"],"id":1}'
+	cast send $(USDC_ADDRESS) "mint(address,uint256)" $(WALLET) $(USDT_FUND_AMOUNT) \
+	  --rpc-url http://localhost:8545 --private-key $(ANVIL_DEPLOYER_KEY)
 
 fund-used-wallets:
 	$(MAKE) fund-anvil-wallet WALLET=0x8Fb852022882B2AA3C3a0fE39f3169CdC01C887D

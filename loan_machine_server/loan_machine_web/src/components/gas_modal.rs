@@ -3,6 +3,7 @@
 use leptos::prelude::*;
 use crate::components::ui::*;
 use crate::components::helpers::prices::use_prices;
+use crate::server_fns::wallet_balance::get_wallet_balance_wei;
 
 #[derive(Clone)]
 pub struct GasEstimate {
@@ -49,6 +50,18 @@ pub fn GasModal() -> impl IntoView {
 
    let prices = use_prices();
 
+    // Refetch the wallet's ETH balance every time a new request opens the
+    // modal — this is the only place ETH balance matters (paying gas).
+    let eth_balance = LocalResource::new(move || {
+        let open = visible.get();
+        async move {
+            if !open {
+                return None;
+            }
+            get_wallet_balance_wei().await.ok()
+        }
+    });
+
     // Stable handlers — created once at component mount, live as long as GasModal does.
     let on_backdrop_click = move |e: web_sys::MouseEvent| {
         if e.target().as_ref() == e.current_target().as_ref() {
@@ -78,6 +91,19 @@ pub fn GasModal() -> impl IntoView {
                         <Alert kind=AlertKind::Info>
                             "Review the estimated gas cost before signing."
                         </Alert>
+
+                        {move || {
+                            let wei_str = eth_balance.get().flatten();
+                            wei_str.map(|w| {
+                                let eth = w.parse::<f64>().unwrap_or(0.0) / 1e18;
+                                view! {
+                                    <div class="stat-block">
+                                        <span class="stat-label">"Your ETH balance (for gas)"</span>
+                                        <span class="t-mono-sm t-bright">{format!("{eth:.6} ETH")}</span>
+                                    </div>
+                                }
+                            })
+                        }}
                         {r.estimates.iter().map(|est| {
                                 let units = est.gas_units();
                                 let label = est.label.clone();

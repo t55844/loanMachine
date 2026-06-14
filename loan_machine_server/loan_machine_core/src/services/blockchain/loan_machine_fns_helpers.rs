@@ -1,7 +1,7 @@
 use alloy::primitives::{Address, Bytes, FixedBytes, U256,};
 use alloy::sol_types::SolCall;
 use super::provider::Provider;
-use super::abis::{LoanMachine, };
+use super::abis::{LoanMachine, IERC20};
 use super::BlockchainError;
 
 
@@ -44,18 +44,45 @@ pub async fn estimate_join_coop_gas(
         Ok(U256::from(gas))
     }
 
-pub async fn estimate_donate_gas(
+pub fn encode_approve(spender: Address, amount: U256) -> Bytes {
+    Bytes::from(IERC20::approveCall {
+        spender,
+        amount,
+    }.abi_encode())
+}
+
+pub async fn estimate_approve_gas(
         provider: &Provider,
-        loan_machine_addr: Address,
-        amount:            U256,
-        member_id:         FixedBytes<32>,
-        from:              Address,
+        usdc_addr: Address,
+        spender:   Address,
+        amount:    U256,
+        from:      Address,
     ) -> Result<U256, BlockchainError> {
-        let gas = LoanMachine::new(loan_machine_addr, provider.clone())
-            .donate(amount, member_id).from(from)
+        let gas = IERC20::new(usdc_addr, provider.clone())
+            .approve(spender, amount).from(from)
             .estimate_gas().await
             .map_err(BlockchainError::from_gas_estimate)?;
         Ok(U256::from(gas))
     }
+
+pub async fn get_erc20_balance(
+        provider:   &Provider,
+        token_addr: Address,
+        owner:      Address,
+    ) -> Result<U256, BlockchainError> {
+        IERC20::new(token_addr, provider.clone())
+            .balanceOf(owner)
+            .call()
+            .await
+            .map(|r| r._0)
+            .map_err(BlockchainError::from_call)
+    }
+
+pub fn encode_donate(amount: U256, member_id: FixedBytes<32>) -> Bytes {
+    Bytes::from(LoanMachine::donateCall {
+        amount,
+        memberId: member_id,
+    }.abi_encode())
+}
 
 

@@ -231,6 +231,18 @@ sol! {
     }
 }
 
+// ── ERC20 ────────────────────────────────────────────────────
+// Minimal interface for the USDT/USDC stand-in token.  Only what
+// the donation flow needs to build an `approve` call.
+
+sol! {
+    #[sol(rpc)]
+    interface IERC20 {
+        function approve(address spender, uint256 amount) external returns (bool);
+        function balanceOf(address account) external view returns (uint256);
+    }
+}
+
 // ── COOP REGISTRY ────────────────────────────────────────────
 // Lightweight on-chain registry.  Does NOT deploy LoanMachine.
 // Server deploys LoanMachine directly, then registers here.

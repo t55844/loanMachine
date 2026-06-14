@@ -19,6 +19,9 @@ use secrecy::SecretString;
 pub struct CoopRegistryAddress(pub String);
 
 #[derive(Clone)]
+pub struct UsdcAddress(pub String);
+
+#[derive(Clone)]
 pub struct SubgraphUrl(pub String);
 
 
@@ -33,7 +36,8 @@ pub struct AppState {
     pub privy:              Arc<PrivyService>,
     pub privy_auth:         Arc<PrivyAuthService>, 
     pub coop_deployment:    Arc<CoopDeploymentService>,
-    pub cache_moka:   MembershipCache
+    pub cache_moka:   MembershipCache,
+    pub usdc_address: UsdcAddress,
 
 }
 
@@ -98,7 +102,8 @@ impl AppState {
             privy_auth:         Arc::new(privy_auth),
             subgraph:           subgraph,
             coop_deployment:    Arc::new(coop_deployment),
-            cache_moka: cache_moka
+            cache_moka: cache_moka,
+            usdc_address: UsdcAddress(usdc_address),
         }
     }
 }

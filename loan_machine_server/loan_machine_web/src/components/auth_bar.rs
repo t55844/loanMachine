@@ -2,8 +2,7 @@
 
 use leptos::prelude::*;
 
-use crate::server_fns::wallet_balance::get_wallet_balance_wei;
-use crate::components::helpers::prices::{ use_prices};
+use crate::server_fns::wallet_balance::get_wallet_balance_usdc;
 use crate::wallet_auth::{use_wallet, WalletSession};
 use crate::wallet_auth::privy_bridge::{self, TxOutcome};
 use loan_machine_models::wallet_address::WalletAddress;
@@ -62,7 +61,7 @@ fn ConnectedBar(wallet: WalletAddress) -> impl IntoView {
 
     let balance = LocalResource::new(move || {
         let _ = tick.get();
-        async move { get_wallet_balance_wei().await.ok() }
+        async move { get_wallet_balance_usdc().await.ok() }
     });
 
     view! {
@@ -83,7 +82,7 @@ fn ConnectedBar(wallet: WalletAddress) -> impl IntoView {
         </button>
     }
 }
-use crate::components::ui::{CopyButton, Money, MoneyCurrency};
+use crate::components::ui::CopyButton;
 
 #[component]
 fn WalletWithCopy(short: String, full: String) -> impl IntoView {
@@ -95,27 +94,31 @@ fn WalletWithCopy(short: String, full: String) -> impl IntoView {
 
 #[component]
 fn BalanceRow(balance: LocalResource<Option<String>>) -> impl IntoView {
-    let prices = use_prices();
-
     let view_fn = move || {
-        let Some(wei_str) = balance.get().flatten() else {
+        let Some(raw) = balance.get().flatten() else {
             return view! {
                 <span class="auth-bar-balance t-muted">"balance…"</span>
             }.into_any();
         };
 
-        let eth = wei_str.parse::<f64>().unwrap_or(0.0) / 1e18;
-        let usd = prices.get().map(|p| eth * p.eth_usd);
-
         view! {
-            <span class="auth-bar-balance">
-                <Money currency=MoneyCurrency::Eth value=Some(eth) />
-                <Money currency=MoneyCurrency::Usd value=usd />
-            </span>
+            <span class="auth-bar-balance">{fmt_usdc(&raw)}</span>
         }.into_any()
     };
 
     view! { {view_fn} }
+}
+
+/// Format a raw USDC/USDT amount (6 decimals) as "1234.567890 USDC".
+fn fmt_usdc(raw: &str) -> String {
+    let n: u128 = raw.parse().unwrap_or(0);
+    let whole = n / 1_000_000;
+    let frac  = n % 1_000_000;
+    if frac == 0 {
+        format!("{whole} USDC")
+    } else {
+        format!("{whole}.{frac:06} USDC")
+    }
 }
 
 // ── Disconnected (unchanged) ───────────────────────────────

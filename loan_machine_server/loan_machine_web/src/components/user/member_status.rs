@@ -40,7 +40,6 @@ pub fn MemberStatusPanel(#[prop(into)] coop_id: String) -> impl IntoView {
 fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
     let has_debt        = f.borrowing != "0";
     let has_donation    = f.donation  != "0";
-    let has_allowance   = f.allowance != "0";
 
     view! {
         <Card hover=false>
@@ -94,14 +93,6 @@ fn FinancialsCard(f: MemberFinancials) -> impl IntoView {
                         value=fmt_timestamp(f.last_borrow_time)
                     />
                 </div>
-
-                // Allowance row — only shown when non-zero
-                {has_allowance.then(|| view! {
-                    <div class="form-group">
-                        <label class="form-label">"USDT allowance to contract"</label>
-                        <p class="t-mono-xs t-muted">{fmt_usdt(&f.allowance)}</p>
-                    </div>
-                })}
 
                 // Badges / quick status row
                 <div style="display: flex; gap: var(--sp-2); flex-wrap: wrap">

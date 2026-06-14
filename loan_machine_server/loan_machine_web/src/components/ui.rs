@@ -264,6 +264,101 @@ pub fn NumberInput(
     }
 }
 
+/// Decimal amount input (USDT, 6 decimals). Accepts free-form text so the
+/// user can type "12.5"; rejects characters that can't be part of a
+/// non-negative decimal with at most 6 fractional digits.
+#[component]
+pub fn AmountInput(
+    label: &'static str,
+    value: ReadSignal<String>,
+    set_value: WriteSignal<String>,
+    #[prop(optional)]       hint: Option<&'static str>,
+    #[prop(optional, into)] error: Signal<String>,
+) -> impl IntoView {
+    view! {
+        <div class="form-group">
+            <label class="form-label">{label}</label>
+            <input
+                class="form-input"
+                style=move || if !error.get().is_empty() {
+                    "border-color: var(--c-red);"
+                } else {
+                    ""
+                }
+                type="text"
+                inputmode="decimal"
+                placeholder="0.00"
+                prop:value=value
+                on:input=move |ev| {
+                    let raw = event_target_value(&ev);
+                    if is_valid_amount_input(&raw) {
+                        set_value.set(raw);
+                    }
+                }
+            />
+            {hint.map(|h| view! { <span class="form-hint">{h}</span> })}
+            {move || {
+                let e = error.get();
+                if e.is_empty() {
+                    ().into_any()
+                } else {
+                    view! { <span class="form-error">"⚠ "{e}</span> }.into_any()
+                }
+            }}
+        </div>
+    }
+}
+
+/// Accepts the empty string, digits, and at most one `.` followed by
+/// up to 6 fractional digits.
+fn is_valid_amount_input(s: &str) -> bool {
+    if s.is_empty() {
+        return true;
+    }
+    let mut parts = s.split('.');
+    let whole = parts.next().unwrap_or("");
+    let frac  = parts.next();
+    if parts.next().is_some() {
+        return false; // more than one '.'
+    }
+    if !whole.chars().all(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    match frac {
+        None => true,
+        Some(f) => f.len() <= 6 && f.chars().all(|c| c.is_ascii_digit()),
+    }
+}
+
+/// Converts a decimal USDT amount ("12.5") into raw smallest-unit
+/// string ("12500000"), mirroring `member_status::fmt_usdt`'s reverse.
+/// Returns `None` for empty, zero, or malformed input.
+pub fn usdt_to_raw(decimal: &str) -> Option<String> {
+    if !is_valid_amount_input(decimal) {
+        return None;
+    }
+    let mut parts = decimal.split('.');
+    let whole = parts.next().unwrap_or("");
+    let frac  = parts.next().unwrap_or("");
+
+    if whole.is_empty() && frac.is_empty() {
+        return None;
+    }
+
+    let whole: u128 = if whole.is_empty() { 0 } else { whole.parse().ok()? };
+    let mut frac_digits = frac.to_string();
+    while frac_digits.len() < 6 {
+        frac_digits.push('0');
+    }
+    let frac: u128 = frac_digits.parse().ok()?;
+
+    let raw = whole.checked_mul(1_000_000)?.checked_add(frac)?;
+    if raw == 0 {
+        return None;
+    }
+    Some(raw.to_string())
+}
+
 // ── STATS / DATA ─────────────────────────────────────────────
 
 /// Big stat number display

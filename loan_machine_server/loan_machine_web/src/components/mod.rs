@@ -11,6 +11,7 @@ pub mod coop_control;
 pub mod elections;
 pub mod user;
 pub mod helpers;
+pub mod donation;
 
 // test of components
 #[cfg(all(test, feature = "ssr"))]
