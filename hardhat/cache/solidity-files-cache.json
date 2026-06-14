@@ -74,8 +74,8 @@
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/contracts/ILoanMachine.sol": {
-      "lastModificationDate": 1776551179230,
-      "contentHash": "8345f26beeafc378612f35813917e46a",
+      "lastModificationDate": 1781462618728,
+      "contentHash": "1ea04df5242679f0fbb34444b2823048",
       "sourceName": "contracts/ILoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -110,7 +110,7 @@
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/contracts/structs/LoanStructs.sol": {
-      "lastModificationDate": 1776551179467,
+      "lastModificationDate": 1780885881095,
       "contentHash": "851f9bc6cd127aa8594bf3a68e19ca95",
       "sourceName": "contracts/structs/LoanStructs.sol",
       "solcConfig": {
@@ -148,8 +148,8 @@
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/contracts/LoanMachine.sol": {
-      "lastModificationDate": 1779390713271,
-      "contentHash": "63fe8b365c45927936cae6b5a2a5cbe5",
+      "lastModificationDate": 1781462670390,
+      "contentHash": "dde63479f38756cb16f0d01fded6c344",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",

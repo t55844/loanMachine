@@ -53,10 +53,6 @@ templates:
         - AccessCodeRotatedEvent
         - CoopDeactivatedEvent
         - CoopReactivatedEvent
-        - WithdrawalRequestedEvent
-        - WithdrawalExecutedEvent
-        - WithdrawalBlockedEvent
-        - WithdrawalCancelledEvent
         - DonatedEvent
         - WithdrawnEvent
         - BorrowedEvent
@@ -115,14 +111,6 @@ templates:
           handler: handleCoopDeactivated
         - event: CoopReactivated()
           handler: handleCoopReactivated
-        - event: WithdrawalRequested(indexed uint256,indexed address,uint256,uint256)
-          handler: handleWithdrawalRequested
-        - event: WithdrawalExecuted(indexed uint256,indexed address,uint256)
-          handler: handleWithdrawalExecuted
-        - event: WithdrawalBlocked(indexed uint256,indexed address)
-          handler: handleWithdrawalBlocked
-        - event: WithdrawalCancelled(indexed uint256,indexed address)
-          handler: handleWithdrawalCancelled
         - event: Donated(indexed address,uint256,uint256)
           handler: handleDonated
         - event: Withdrawn(indexed address,uint256,uint256)

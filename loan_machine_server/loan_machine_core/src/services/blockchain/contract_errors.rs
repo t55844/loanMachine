@@ -40,13 +40,6 @@ pub fn translate_revert(data: &[u8]) -> String {
         [0xf3, 0x9a, 0xa3, 0x32] => "Only the elected moderator can perform this action.".into(),
         [0x42, 0x42, 0x64, 0x21] => "Administrator has not been proposed yet.".into(),
 
-        // ── Withdrawals ───────────────────────────────────────
-        [0x26, 0x31, 0xd2, 0x1e] => "Withdrawal cannot be executed yet (wait for the 48h delay).".into(),
-        [0x7e, 0xea, 0x2b, 0x43] => "This withdrawal has been blocked.".into(),
-        [0xa7, 0xc0, 0xca, 0x2b] => "This withdrawal has already been executed.".into(),
-        [0xd9, 0xbc, 0xe5, 0xd0] => "Only the requester can execute this withdrawal.".into(),
-        [0x1d, 0xa5, 0x97, 0xea] => "Only admin or moderator can perform this action.".into(),
-
         // ── Coop lifecycle / membership ───────────────────────
         [0x47, 0x6e, 0xbc, 0x32] => "Cooperative already initialized.".into(),
         [0x63, 0xfa, 0x89, 0x7b] => "Wallet not approved by the cooperative.".into(),

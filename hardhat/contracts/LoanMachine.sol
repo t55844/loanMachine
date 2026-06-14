@@ -110,16 +110,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     event ProposalCosigned(uint256 indexed proposalId, bytes32 indexed moderatorMemberId);
 
     // =============================================================
-    //                   WITHDRAWAL DELAY STORAGE
-    // =============================================================
-
-    uint256 public constant WITHDRAWAL_DELAY = 48 hours;
-
-    uint256 public withdrawalRequestCounter;
-    mapping(uint256 => WithdrawalRequest) private withdrawalRequests;
-    mapping(address => uint256[]) private userWithdrawalRequestIds;
-
-    // =============================================================
     //                     GENERAL STORAGE
     // =============================================================
 
@@ -189,12 +179,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_NotModerator();
     error LoanMachine_ModeratorCosignRequired();
 
-    error LoanMachine_WithdrawalNotReady();
-    error LoanMachine_WithdrawalBlocked();
-    error LoanMachine_WithdrawalAlreadyExecuted();
-    error LoanMachine_WithdrawalNotOwner();
-    error LoanMachine_OnlyAdminOrModerator();
-
     error LoanMachine_AlreadyInitialized();
     error LoanMachine_NotApproved();
     error LoanMachine_AlreadyMember();
@@ -232,18 +216,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     modifier onlyActive() {
         if (!active) revert LoanMachine_CoopNotActive();
-        _;
-    }
-
-    modifier onlyAdminOrModerator() {
-        bool authorized = isAdmin[msg.sender];
-        if (!authorized) {
-            bytes32 callerId = _rs.walletToMemberId[msg.sender];
-            if (callerId != bytes32(0) && _rs.isModerator[callerId]) {
-                authorized = true;
-            }
-        }
-        if (!authorized) revert LoanMachine_OnlyAdminOrModerator();
         _;
     }
 
@@ -513,10 +485,10 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     }
     
     // =============================================================
-    //               WITHDRAWAL WITH DELAY
+    //                         WITHDRAWAL
     // =============================================================
 
-    function requestWithdrawal(
+    function withdraw(
         uint256 amount,
         bytes32 memberId
     )
@@ -524,78 +496,20 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         validMember(memberId, msg.sender)
         validAmount(amount)
         nonReentrant
-        returns (uint256 requestId)
     {
         uint256 withdrawable = getWithdrawableBalance(msg.sender);
         if (amount > withdrawable)
             revert LoanMachine_InsufficientWithdrawableBalance();
 
-        requestId = withdrawalRequestCounter++;
-        uint256 executableAfter = block.timestamp + WITHDRAWAL_DELAY;
-
-        withdrawalRequests[requestId] = WithdrawalRequest({
-            requester:       msg.sender,
-            amount:          amount,
-            requestedAt:     block.timestamp,
-            executableAfter: executableAfter,
-            executed:        false,
-            blocked:         false
-        });
-
-        userWithdrawalRequestIds[msg.sender].push(requestId);
         donations[msg.sender] -= amount;
+        totalDonations        -= amount;
+        availableBalance      -= amount;
 
-        emit WithdrawalRequested(requestId, msg.sender, amount, executableAfter);
-    }
+        _safeTransfer(msg.sender, amount);
 
-    function executeWithdrawal(
-        uint256 requestId,
-        bytes32 memberId
-    )
-        external
-        validMember(memberId, msg.sender)
-        nonReentrant
-    {
-        WithdrawalRequest storage req = withdrawalRequests[requestId];
-        if (req.requester != msg.sender)      revert LoanMachine_WithdrawalNotOwner();
-        if (req.executed)                     revert LoanMachine_WithdrawalAlreadyExecuted();
-        if (req.blocked)                      revert LoanMachine_WithdrawalBlocked();
-        if (block.timestamp < req.executableAfter)
-            revert LoanMachine_WithdrawalNotReady();
-
-        req.executed = true;
-
-        totalDonations   -= req.amount;
-        availableBalance -= req.amount;
-
-        _safeTransfer(msg.sender, req.amount);
-
-        emit WithdrawalExecuted(requestId, msg.sender, req.amount);
-        emit Withdrawn(msg.sender, req.amount, donations[msg.sender]);
+        emit Withdrawn(msg.sender, amount, donations[msg.sender]);
         emit TotalDonationsUpdated(totalDonations);
         emit AvailableBalanceUpdated(availableBalance);
-    }
-
-    function cancelWithdrawal(uint256 requestId) external {
-        WithdrawalRequest storage req = withdrawalRequests[requestId];
-        if (req.requester != msg.sender) revert LoanMachine_WithdrawalNotOwner();
-        if (req.executed) revert LoanMachine_WithdrawalAlreadyExecuted();
-
-        req.executed = true;
-        donations[msg.sender] += req.amount;
-
-        emit WithdrawalCancelled(requestId, msg.sender);
-    }
-
-    function blockWithdrawal(uint256 requestId) external onlyAdminOrModerator {
-        WithdrawalRequest storage req = withdrawalRequests[requestId];
-        if (req.executed) revert LoanMachine_WithdrawalAlreadyExecuted();
-
-        req.blocked  = true;
-        req.executed = true;
-        donations[req.requester] += req.amount;
-
-        emit WithdrawalBlocked(requestId, msg.sender);
     }
 
     // =============================================================
@@ -1002,14 +916,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             p.requiresModeratorCosign,
             p.moderatorCosignedBy
         );
-    }
-
-    function getWithdrawalRequest(uint256 requestId) external view returns (WithdrawalRequest memory) {
-        return withdrawalRequests[requestId];
-    }
-
-    function getUserWithdrawalRequests(address user) external view returns (uint256[] memory) {
-        return userWithdrawalRequestIds[user];
     }
 
     function isWalletApproved(address wallet) external view returns (bool) {

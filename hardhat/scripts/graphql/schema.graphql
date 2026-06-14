@@ -166,47 +166,6 @@ type CoopReactivatedEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-# ── WITHDRAWAL (48h delay) ───────────────────────────────────
-
-type WithdrawalRequestedEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
-  requestId: BigInt!
-  requester: Bytes!
-  amount: BigInt!
-  executableAfter: BigInt!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type WithdrawalExecutedEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
-  requestId: BigInt!
-  requester: Bytes!
-  amount: BigInt!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type WithdrawalBlockedEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
-  requestId: BigInt!
-  blocker: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type WithdrawalCancelledEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
-  requestId: BigInt!
-  requester: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
 # ── FINANCIAL ─────────────────────────────────────────────────
 
 type DonatedEvent @entity(immutable: true) {

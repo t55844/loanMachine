@@ -920,106 +920,6 @@ export class WalletRevoked__Params {
   }
 }
 
-export class WithdrawalBlocked extends ethereum.Event {
-  get params(): WithdrawalBlocked__Params {
-    return new WithdrawalBlocked__Params(this);
-  }
-}
-
-export class WithdrawalBlocked__Params {
-  _event: WithdrawalBlocked;
-
-  constructor(event: WithdrawalBlocked) {
-    this._event = event;
-  }
-
-  get requestId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get blocker(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-}
-
-export class WithdrawalCancelled extends ethereum.Event {
-  get params(): WithdrawalCancelled__Params {
-    return new WithdrawalCancelled__Params(this);
-  }
-}
-
-export class WithdrawalCancelled__Params {
-  _event: WithdrawalCancelled;
-
-  constructor(event: WithdrawalCancelled) {
-    this._event = event;
-  }
-
-  get requestId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get requester(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-}
-
-export class WithdrawalExecuted extends ethereum.Event {
-  get params(): WithdrawalExecuted__Params {
-    return new WithdrawalExecuted__Params(this);
-  }
-}
-
-export class WithdrawalExecuted__Params {
-  _event: WithdrawalExecuted;
-
-  constructor(event: WithdrawalExecuted) {
-    this._event = event;
-  }
-
-  get requestId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get requester(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get amount(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
-  }
-}
-
-export class WithdrawalRequested extends ethereum.Event {
-  get params(): WithdrawalRequested__Params {
-    return new WithdrawalRequested__Params(this);
-  }
-}
-
-export class WithdrawalRequested__Params {
-  _event: WithdrawalRequested;
-
-  constructor(event: WithdrawalRequested) {
-    this._event = event;
-  }
-
-  get requestId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
-  }
-
-  get requester(): Address {
-    return this._event.parameters[1].value.toAddress();
-  }
-
-  get amount(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
-  }
-
-  get executableAfter(): BigInt {
-    return this._event.parameters[3].value.toBigInt();
-  }
-}
-
 export class Withdrawn extends ethereum.Event {
   get params(): Withdrawn__Params {
     return new Withdrawn__Params(this);
@@ -1558,32 +1458,6 @@ export class LoanMachine__getUserFinancialsResult {
   }
 }
 
-export class LoanMachine__getWithdrawalRequestResultValue0Struct extends ethereum.Tuple {
-  get requester(): Address {
-    return this[0].toAddress();
-  }
-
-  get amount(): BigInt {
-    return this[1].toBigInt();
-  }
-
-  get requestedAt(): BigInt {
-    return this[2].toBigInt();
-  }
-
-  get executableAfter(): BigInt {
-    return this[3].toBigInt();
-  }
-
-  get executed(): boolean {
-    return this[4].toBoolean();
-  }
-
-  get blocked(): boolean {
-    return this[5].toBoolean();
-  }
-}
-
 export class LoanMachine extends ethereum.SmartContract {
   static bind(address: Address): LoanMachine {
     return new LoanMachine("LoanMachine", address);
@@ -1656,29 +1530,6 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toI32());
-  }
-
-  WITHDRAWAL_DELAY(): BigInt {
-    let result = super.call(
-      "WITHDRAWAL_DELAY",
-      "WITHDRAWAL_DELAY():(uint256)",
-      [],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_WITHDRAWAL_DELAY(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "WITHDRAWAL_DELAY",
-      "WITHDRAWAL_DELAY():(uint256)",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   adminThreshold(): BigInt {
@@ -2454,64 +2305,6 @@ export class LoanMachine extends ethereum.SmartContract {
     );
   }
 
-  getUserWithdrawalRequests(user: Address): Array<BigInt> {
-    let result = super.call(
-      "getUserWithdrawalRequests",
-      "getUserWithdrawalRequests(address):(uint256[])",
-      [ethereum.Value.fromAddress(user)],
-    );
-
-    return result[0].toBigIntArray();
-  }
-
-  try_getUserWithdrawalRequests(
-    user: Address,
-  ): ethereum.CallResult<Array<BigInt>> {
-    let result = super.tryCall(
-      "getUserWithdrawalRequests",
-      "getUserWithdrawalRequests(address):(uint256[])",
-      [ethereum.Value.fromAddress(user)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigIntArray());
-  }
-
-  getWithdrawalRequest(
-    requestId: BigInt,
-  ): LoanMachine__getWithdrawalRequestResultValue0Struct {
-    let result = super.call(
-      "getWithdrawalRequest",
-      "getWithdrawalRequest(uint256):((address,uint256,uint256,uint256,bool,bool))",
-      [ethereum.Value.fromUnsignedBigInt(requestId)],
-    );
-
-    return changetype<LoanMachine__getWithdrawalRequestResultValue0Struct>(
-      result[0].toTuple(),
-    );
-  }
-
-  try_getWithdrawalRequest(
-    requestId: BigInt,
-  ): ethereum.CallResult<LoanMachine__getWithdrawalRequestResultValue0Struct> {
-    let result = super.tryCall(
-      "getWithdrawalRequest",
-      "getWithdrawalRequest(uint256):((address,uint256,uint256,uint256,bool,bool))",
-      [ethereum.Value.fromUnsignedBigInt(requestId)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(
-      changetype<LoanMachine__getWithdrawalRequestResultValue0Struct>(
-        value[0].toTuple(),
-      ),
-    );
-  }
-
   hasMemberVoted(electionId: BigInt, memberId: Bytes): boolean {
     let result = super.call(
       "hasMemberVoted",
@@ -2726,38 +2519,6 @@ export class LoanMachine extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
-  requestWithdrawal(amount: BigInt, memberId: Bytes): BigInt {
-    let result = super.call(
-      "requestWithdrawal",
-      "requestWithdrawal(uint256,bytes32):(uint256)",
-      [
-        ethereum.Value.fromUnsignedBigInt(amount),
-        ethereum.Value.fromFixedBytes(memberId),
-      ],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_requestWithdrawal(
-    amount: BigInt,
-    memberId: Bytes,
-  ): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "requestWithdrawal",
-      "requestWithdrawal(uint256,bytes32):(uint256)",
-      [
-        ethereum.Value.fromUnsignedBigInt(amount),
-        ethereum.Value.fromFixedBytes(memberId),
-      ],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-
   requisitionCounter(): BigInt {
     let result = super.call(
       "requisitionCounter",
@@ -2794,29 +2555,6 @@ export class LoanMachine extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toAddress());
-  }
-
-  withdrawalRequestCounter(): BigInt {
-    let result = super.call(
-      "withdrawalRequestCounter",
-      "withdrawalRequestCounter():(uint256)",
-      [],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_withdrawalRequestCounter(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "withdrawalRequestCounter",
-      "withdrawalRequestCounter():(uint256)",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 }
 
@@ -2884,36 +2622,6 @@ export class AddCandidateCall__Outputs {
   }
 }
 
-export class BlockWithdrawalCall extends ethereum.Call {
-  get inputs(): BlockWithdrawalCall__Inputs {
-    return new BlockWithdrawalCall__Inputs(this);
-  }
-
-  get outputs(): BlockWithdrawalCall__Outputs {
-    return new BlockWithdrawalCall__Outputs(this);
-  }
-}
-
-export class BlockWithdrawalCall__Inputs {
-  _call: BlockWithdrawalCall;
-
-  constructor(call: BlockWithdrawalCall) {
-    this._call = call;
-  }
-
-  get requestId(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class BlockWithdrawalCall__Outputs {
-  _call: BlockWithdrawalCall;
-
-  constructor(call: BlockWithdrawalCall) {
-    this._call = call;
-  }
-}
-
 export class CancelLoanRequisitionCall extends ethereum.Call {
   get inputs(): CancelLoanRequisitionCall__Inputs {
     return new CancelLoanRequisitionCall__Inputs(this);
@@ -2949,36 +2657,6 @@ export class CancelLoanRequisitionCall__Outputs {
 
   get totalUncoveredAmount(): BigInt {
     return this._call.outputValues[0].value.toBigInt();
-  }
-}
-
-export class CancelWithdrawalCall extends ethereum.Call {
-  get inputs(): CancelWithdrawalCall__Inputs {
-    return new CancelWithdrawalCall__Inputs(this);
-  }
-
-  get outputs(): CancelWithdrawalCall__Outputs {
-    return new CancelWithdrawalCall__Outputs(this);
-  }
-}
-
-export class CancelWithdrawalCall__Inputs {
-  _call: CancelWithdrawalCall;
-
-  constructor(call: CancelWithdrawalCall) {
-    this._call = call;
-  }
-
-  get requestId(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-}
-
-export class CancelWithdrawalCall__Outputs {
-  _call: CancelWithdrawalCall;
-
-  constructor(call: CancelWithdrawalCall) {
-    this._call = call;
   }
 }
 
@@ -3194,40 +2872,6 @@ export class DonateCall__Outputs {
   _call: DonateCall;
 
   constructor(call: DonateCall) {
-    this._call = call;
-  }
-}
-
-export class ExecuteWithdrawalCall extends ethereum.Call {
-  get inputs(): ExecuteWithdrawalCall__Inputs {
-    return new ExecuteWithdrawalCall__Inputs(this);
-  }
-
-  get outputs(): ExecuteWithdrawalCall__Outputs {
-    return new ExecuteWithdrawalCall__Outputs(this);
-  }
-}
-
-export class ExecuteWithdrawalCall__Inputs {
-  _call: ExecuteWithdrawalCall;
-
-  constructor(call: ExecuteWithdrawalCall) {
-    this._call = call;
-  }
-
-  get requestId(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-
-  get memberId(): Bytes {
-    return this._call.inputValues[1].value.toBytes();
-  }
-}
-
-export class ExecuteWithdrawalCall__Outputs {
-  _call: ExecuteWithdrawalCall;
-
-  constructor(call: ExecuteWithdrawalCall) {
     this._call = call;
   }
 }
@@ -3456,44 +3100,6 @@ export class RepayCall__Outputs {
   }
 }
 
-export class RequestWithdrawalCall extends ethereum.Call {
-  get inputs(): RequestWithdrawalCall__Inputs {
-    return new RequestWithdrawalCall__Inputs(this);
-  }
-
-  get outputs(): RequestWithdrawalCall__Outputs {
-    return new RequestWithdrawalCall__Outputs(this);
-  }
-}
-
-export class RequestWithdrawalCall__Inputs {
-  _call: RequestWithdrawalCall;
-
-  constructor(call: RequestWithdrawalCall) {
-    this._call = call;
-  }
-
-  get amount(): BigInt {
-    return this._call.inputValues[0].value.toBigInt();
-  }
-
-  get memberId(): Bytes {
-    return this._call.inputValues[1].value.toBytes();
-  }
-}
-
-export class RequestWithdrawalCall__Outputs {
-  _call: RequestWithdrawalCall;
-
-  constructor(call: RequestWithdrawalCall) {
-    this._call = call;
-  }
-
-  get requestId(): BigInt {
-    return this._call.outputValues[0].value.toBigInt();
-  }
-}
-
 export class VinculationMemberToWalletCall extends ethereum.Call {
   get inputs(): VinculationMemberToWalletCall__Inputs {
     return new VinculationMemberToWalletCall__Inputs(this);
@@ -3562,6 +3168,40 @@ export class VoteForModeratorCall__Outputs {
   _call: VoteForModeratorCall;
 
   constructor(call: VoteForModeratorCall) {
+    this._call = call;
+  }
+}
+
+export class WithdrawCall extends ethereum.Call {
+  get inputs(): WithdrawCall__Inputs {
+    return new WithdrawCall__Inputs(this);
+  }
+
+  get outputs(): WithdrawCall__Outputs {
+    return new WithdrawCall__Outputs(this);
+  }
+}
+
+export class WithdrawCall__Inputs {
+  _call: WithdrawCall;
+
+  constructor(call: WithdrawCall) {
+    this._call = call;
+  }
+
+  get amount(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+
+  get memberId(): Bytes {
+    return this._call.inputValues[1].value.toBytes();
+  }
+}
+
+export class WithdrawCall__Outputs {
+  _call: WithdrawCall;
+
+  constructor(call: WithdrawCall) {
     this._call = call;
   }
 }

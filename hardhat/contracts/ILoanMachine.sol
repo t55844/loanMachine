@@ -30,15 +30,6 @@ interface ILoanMachine {
         uint256       creationTime;
     }
 
-    struct WithdrawalRequest {
-        address requester;
-        uint256 amount;
-        uint256 requestedAt;
-        uint256 executableAfter;
-        bool    executed;
-        bool    blocked;
-    }
-
     struct DebtWatchItem {
         uint256 requisitionId;
         address borrower;
@@ -69,21 +60,13 @@ interface ILoanMachine {
     event BorrowerOverdue(uint256 indexed requisitionId, address indexed borrower, uint256 dueDate);
     event BorrowerDebtSettled(uint256 indexed requisitionId, address indexed borrower);
 
-    // Withdrawal events
-    event WithdrawalRequested(uint256 indexed requestId, address indexed requester, uint256 amount, uint256 executableAfter);
-    event WithdrawalExecuted(uint256 indexed requestId, address indexed requester, uint256 amount);
-    event WithdrawalBlocked(uint256 indexed requestId, address indexed blocker);
-    event WithdrawalCancelled(uint256 indexed requestId, address indexed requester);
-
     // Core functions
     function donate(uint256 amount, bytes32 memberId) external;
     function createLoanRequisition(uint256 _amount, uint32 _minimumCoverage, uint32 _parcelsCount, bytes32 memberId, uint32 daysIntervalOfPayment) external returns (uint256);
     function coverLoan(uint256 requisitionId, uint32 coveragePercentage, bytes32 memberId) external;
     function repay(uint256 requisitionId, uint256 amount, bytes32 memberId) external;
 
-    function requestWithdrawal(uint256 amount, bytes32 memberId) external returns (uint256 requestId);
-    function executeWithdrawal(uint256 requestId, bytes32 memberId) external;
-    function cancelWithdrawal(uint256 requestId) external;
+    function withdraw(uint256 amount, bytes32 memberId) external;
 
     // View functions — consolidated to reduce bytecode
     function getCoopStats() external view returns (

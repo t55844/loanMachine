@@ -10,7 +10,7 @@
 // - memberId: uint32 → bytes32 (keccak256(COOP_SALT ++ wallet_bytes))
 // - Single admin → multisig (proposeAction/confirmProposal)
 // - Wallet approval: admin + moderator co-signature
-// - Withdrawal: 48h delay (request → wait → execute)
+// - Withdrawal: immediate, single-step withdraw()
 // - Views: consolidated into getCoopStats() and getUserFinancials()
 // - LoanMachineFactory → CoopRegistry (lightweight)
 
@@ -68,19 +68,11 @@ sol! {
         // ── DONATIONS ────────────────────────────────────────
         function donate(uint256 amount, bytes32 memberId) external;
 
-        // ── WITHDRAWAL (48h delay) ───────────────────────────
-        function requestWithdrawal(
+        // ── WITHDRAWAL ────────────────────────────────────────
+        function withdraw(
             uint256 amount,
             bytes32 memberId
-        ) external returns (uint256 requestId);
-
-        function executeWithdrawal(
-            uint256 requestId,
-            bytes32 memberId
         ) external;
-
-        function cancelWithdrawal(uint256 requestId) external;
-        function blockWithdrawal(uint256 requestId) external;
 
         // ── LOAN LIFECYCLE ───────────────────────────────────
         function createLoanRequisition(
@@ -161,17 +153,6 @@ sol! {
             bool    requiresModeratorCosign,
             bytes32 moderatorCosignedBy
         );
-
-        // Withdrawal views
-        function getWithdrawalRequest(uint256 requestId) external view returns (
-            address requester,
-            uint256 amount,
-            uint256 requestedAt,
-            uint256 executableAfter,
-            bool    executed,
-            bool    blocked
-        );
-        function getUserWithdrawalRequests(address user) external view returns (uint256[] memory);
 
         // Loan views
         function getRequisitionInfo(uint256 requisitionId) external view returns (

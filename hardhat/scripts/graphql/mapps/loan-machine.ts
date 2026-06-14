@@ -5,7 +5,6 @@ import {
   AdminAdded, AdminRemoved, AdminTransferred, ThresholdChanged,
   ProposalCosigned, WalletApproved, WalletRevoked,
   MemberRegistered, AccessCodeRotated, CoopDeactivated, CoopReactivated,
-  WithdrawalRequested, WithdrawalExecuted, WithdrawalBlocked, WithdrawalCancelled,
   Donated, Withdrawn, Borrowed, Repaid,
   TotalDonationsUpdated, TotalBorrowedUpdated, AvailableBalanceUpdated, NewDonor,
   LoanRequisitionCreatedCancelled, LoanCovered, LoanFunded, LoanContractGenerated,
@@ -22,7 +21,6 @@ import {
   AdminAddedEvent, AdminRemovedEvent, AdminTransferredEvent, ThresholdChangedEvent,
   ProposalCosignedEvent, WalletApprovedEvent, WalletRevokedEvent,
   MemberRegisteredEvent, AccessCodeRotatedEvent, CoopDeactivatedEvent, CoopReactivatedEvent,
-  WithdrawalRequestedEvent, WithdrawalExecutedEvent, WithdrawalBlockedEvent, WithdrawalCancelledEvent,
   DonatedEvent, WithdrawnEvent, BorrowedEvent, RepaidEvent,
   TotalDonationsUpdatedEvent, TotalBorrowedUpdatedEvent, AvailableBalanceUpdatedEvent, NewDonorEvent,
   LoanRequisitionCreatedCancelledEvent, LoanCoveredEvent, LoanFundedEvent,
@@ -220,53 +218,6 @@ export function handleCoopReactivated(event: CoopReactivated): void {
     coop.active = true
     coop.save()
   }
-}
-
-// ═════════════════════════════════════════════════════════════
-//                  WITHDRAWAL DELAY
-// ═════════════════════════════════════════════════════════════
-
-export function handleWithdrawalRequested(event: WithdrawalRequested): void {
-  let entity = new WithdrawalRequestedEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.requestId       = event.params.requestId
-  entity.requester       = event.params.requester
-  entity.amount          = event.params.amount
-  entity.executableAfter = event.params.executableAfter
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleWithdrawalExecuted(event: WithdrawalExecuted): void {
-  let entity = new WithdrawalExecutedEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.requestId       = event.params.requestId
-  entity.requester       = event.params.requester
-  entity.amount          = event.params.amount
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleWithdrawalBlocked(event: WithdrawalBlocked): void {
-  let entity = new WithdrawalBlockedEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.requestId       = event.params.requestId
-  entity.blocker         = event.params.blocker
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleWithdrawalCancelled(event: WithdrawalCancelled): void {
-  let entity = new WithdrawalCancelledEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.requestId       = event.params.requestId
-  entity.requester       = event.params.requester
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
 }
 
 // ═════════════════════════════════════════════════════════════
