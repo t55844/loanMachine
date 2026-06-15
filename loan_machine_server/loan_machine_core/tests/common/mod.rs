@@ -6,6 +6,7 @@ pub mod payloads;
 pub mod services;
 pub mod proposals;
 pub mod elections;
+pub mod financials;
 
 pub use deploy::get_deployed;
 pub use subgraph_mock::{mount_query, server_returning, server_returning_status};
@@ -20,9 +21,10 @@ pub use proposals::{
     propose_add_admin, propose_wallet_approval, propose_fresh_wallet_approval,
 };
 pub use elections::{
-    bootstrap_admin1_as_moderator, vinculate_second_admin,
+    bootstrap_admin1_as_moderator, vinculate_second_admin, admin2_member_id,
     open_election, cast_vote_as_second_admin, bootstrap_active_election,
 };
+pub use financials::{donate_as, withdraw_as, mint_usdt};
 
 use alloy::primitives::Address;
 use loan_machine_models::wallet_address::{from_alloy, WalletAddress};

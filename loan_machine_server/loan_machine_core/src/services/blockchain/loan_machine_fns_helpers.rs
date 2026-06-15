@@ -85,4 +85,26 @@ pub fn encode_donate(amount: U256, member_id: FixedBytes<32>) -> Bytes {
     }.abi_encode())
 }
 
+pub fn encode_withdraw(amount: U256, member_id: FixedBytes<32>) -> Bytes {
+    Bytes::from(LoanMachine::withdrawCall {
+        amount,
+        memberId: member_id,
+    }.abi_encode())
+}
+
+pub async fn estimate_withdraw_gas(
+        provider: &Provider,
+        loan_machine_addr: Address,
+        amount:    U256,
+        member_id: FixedBytes<32>,
+        from:      Address,
+    ) -> Result<U256, BlockchainError> {
+        let gas = LoanMachine::new(loan_machine_addr, provider.clone())
+            .withdraw(amount, member_id)
+            .from(from)
+            .estimate_gas().await
+            .map_err(BlockchainError::from_gas_estimate)?;
+        Ok(U256::from(gas))
+    }
+
 

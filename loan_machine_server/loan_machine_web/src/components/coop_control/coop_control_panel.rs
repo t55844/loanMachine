@@ -149,7 +149,7 @@ use crate::components::coop_control::approval_pending::ApprovalPending;
 use crate::components::coop_control::coop_approval::RequestApproval;
 use crate::components::coop_control::admin_panel::{AdminPanel, ModeratorPanel};
 use crate::components::user::member_status::MemberStatusPanel;
-use crate::components::donation::donation::DonationForm;
+use crate::components::donation::transfer_panel::TransferPanel;
 #[component]
 pub(crate) fn RoleSection(
     role: ViewerRole,
@@ -179,7 +179,7 @@ pub(crate) fn RoleSection(
         ViewerRole::Member | ViewerRole::Admin | ViewerRole::Moderator => view! {
             <MemberStatusPanel coop_id=coop_id.clone() />
             <div style="margin-top: var(--sp-6)">
-                <DonationForm coop_id=coop_id.clone() on_tx_success=move || on_state_changed.run(()) />
+                <TransferPanel coop_id=coop_id.clone() on_tx_success=Callback::new(move |()| on_state_changed.run(())) />
             </div>
         }.into_any(),
     };

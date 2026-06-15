@@ -178,6 +178,14 @@ pub struct DonationBundle {
     pub gas_donate:           String,
 }
 
+/// Withdrawal transaction data
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WithdrawalBundle {
+    pub withdraw_calldata:    String,   // LoanMachine.withdraw(amount, memberId)
+    pub loan_machine_address: String,
+    pub gas_withdraw:         String,
+}
+
 /// Bundle returned to the founder for the deploy + initialize flow.
 /// The client signs `deploy_tx` first, gets the deployed address,
 /// then signs `initialize_calldata` against that address.

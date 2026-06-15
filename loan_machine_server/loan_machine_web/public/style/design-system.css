@@ -275,6 +275,45 @@ body {
 .btn-lg   { font-size: 1.2rem;  padding: var(--sp-4) var(--sp-8); border-radius: var(--radius-lg); }
 .btn-full { width: 100%; }
 
+/* ── TABS ─────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.tab-btn {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: var(--sp-3) var(--sp-6);
+  border: 1px solid rgba(240,235,224,0.12);
+  border-radius: var(--radius-md);
+  background: rgba(240,235,224,0.05);
+  color: var(--c-paper-dim);
+  cursor: pointer;
+  transition:
+    background    var(--transition-fast),
+    color         var(--transition-fast),
+    border-color  var(--transition-fast);
+}
+
+.tab-btn:hover {
+  background: rgba(240,235,224,0.09);
+  color: var(--c-paper);
+  border-color: rgba(240,235,224,0.25);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--c-yellow) 0%, #d4a800 100%);
+  color: var(--c-ink);
+  font-weight: 700;
+  border-color: transparent;
+  box-shadow: var(--shadow-yellow), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
 /* ── CARDS ────────────────────────────────────────────────── */
 .card {
   background: var(--c-surface);

@@ -10,4 +10,5 @@ pub mod user_profile;
 pub mod admin_approvals;
 pub mod member_financials;
 pub mod donation;
+pub mod withdrawal;
 pub mod coop_financials;

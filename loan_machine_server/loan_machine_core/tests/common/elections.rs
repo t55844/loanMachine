@@ -21,7 +21,7 @@ fn signer_from_hex(hex_key: &str) -> PrivateKeySigner {
     PrivateKeySigner::from_slice(&bytes).expect("admin key is 32 bytes")
 }
 
-fn admin2_member_id() -> FixedBytes<32> {
+pub fn admin2_member_id() -> FixedBytes<32> {
     keccak256(b"test-admin2-member-id")
 }
 

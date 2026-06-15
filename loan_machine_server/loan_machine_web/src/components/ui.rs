@@ -309,8 +309,15 @@ pub fn AmountInput(
     }
 }
 
+/// Largest amount the input accepts, in whole USDT units.
+const MAX_AMOUNT_WHOLE: u128 = 1_000_000;
+
+/// `MAX_AMOUNT_WHOLE` expressed in raw 6-decimal units.
+const MAX_AMOUNT_RAW: u128 = MAX_AMOUNT_WHOLE * 1_000_000;
+
 /// Accepts the empty string, digits, and at most one `.` followed by
-/// up to 6 fractional digits.
+/// up to 6 fractional digits, with a total value no greater than
+/// `MAX_AMOUNT_WHOLE` (1,000,000).
 fn is_valid_amount_input(s: &str) -> bool {
     if s.is_empty() {
         return true;
@@ -324,9 +331,36 @@ fn is_valid_amount_input(s: &str) -> bool {
     if !whole.chars().all(|c| c.is_ascii_digit()) {
         return false;
     }
-    match frac {
+    if let Some(f) = frac {
+        if f.len() > 6 || !f.chars().all(|c| c.is_ascii_digit()) {
+            return false;
+        }
+    }
+    !exceeds_max(whole, frac)
+}
+
+/// Whether `whole`["."`frac`] represents a value greater than
+/// `MAX_AMOUNT_RAW` raw units. Overflowing the whole part also counts
+/// as exceeding the max.
+fn exceeds_max(whole: &str, frac: Option<&str>) -> bool {
+    let whole_val: u128 = if whole.is_empty() {
+        0
+    } else {
+        match whole.parse() {
+            Ok(v) => v,
+            Err(_) => return true,
+        }
+    };
+
+    let mut frac_digits = frac.unwrap_or("").to_string();
+    while frac_digits.len() < 6 {
+        frac_digits.push('0');
+    }
+    let frac_val: u128 = frac_digits.parse().unwrap_or(0);
+
+    match whole_val.checked_mul(1_000_000).and_then(|v| v.checked_add(frac_val)) {
+        Some(raw) => raw > MAX_AMOUNT_RAW,
         None => true,
-        Some(f) => f.len() <= 6 && f.chars().all(|c| c.is_ascii_digit()),
     }
 }
 
@@ -599,4 +633,115 @@ pub fn Money(
     let class = format!("money {modifier}");
 
     view! { <span class=class>{formatted}</span> }
+}
+
+// ── TESTS ────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod amount_input_tests {
+    use super::{is_valid_amount_input, usdt_to_raw};
+
+    // ── is_valid_amount_input: structural validity ──────────────
+
+    #[test]
+    fn empty_string_is_valid() {
+        assert!(is_valid_amount_input(""));
+    }
+
+    #[test]
+    fn plain_integer_is_valid() {
+        assert!(is_valid_amount_input("100"));
+    }
+
+    #[test]
+    fn decimal_with_up_to_six_fraction_digits_is_valid() {
+        assert!(is_valid_amount_input("12.5"));
+        assert!(is_valid_amount_input("12.123456"));
+    }
+
+    #[test]
+    fn more_than_six_fraction_digits_is_invalid() {
+        assert!(!is_valid_amount_input("12.1234567"));
+    }
+
+    #[test]
+    fn multiple_dots_are_invalid() {
+        assert!(!is_valid_amount_input("12.3.4"));
+    }
+
+    #[test]
+    fn letters_are_invalid() {
+        assert!(!is_valid_amount_input("12a"));
+        assert!(!is_valid_amount_input("abc"));
+        assert!(!is_valid_amount_input("1e10"));
+    }
+
+    #[test]
+    fn symbols_are_invalid() {
+        assert!(!is_valid_amount_input("-100"));
+        assert!(!is_valid_amount_input("12,5"));
+        assert!(!is_valid_amount_input("$100"));
+        assert!(!is_valid_amount_input("1 000"));
+    }
+
+    // ── is_valid_amount_input: 1,000,000 cap ─────────────────────
+
+    #[test]
+    fn exactly_one_million_is_valid() {
+        assert!(is_valid_amount_input("1000000"));
+        assert!(is_valid_amount_input("1000000.0"));
+        assert!(is_valid_amount_input("1000000.000000"));
+    }
+
+    #[test]
+    fn above_one_million_whole_is_invalid() {
+        assert!(!is_valid_amount_input("1000001"));
+        assert!(!is_valid_amount_input("9999999"));
+    }
+
+    #[test]
+    fn one_million_plus_fraction_is_invalid() {
+        assert!(!is_valid_amount_input("1000000.000001"));
+        assert!(!is_valid_amount_input("1000000.5"));
+    }
+
+    #[test]
+    fn just_under_one_million_is_valid() {
+        assert!(is_valid_amount_input("999999.999999"));
+    }
+
+    #[test]
+    fn huge_numbers_are_invalid() {
+        assert!(!is_valid_amount_input("999999999999999999999999999999"));
+        assert!(!is_valid_amount_input("115792089237316195423570985008687907853269984665640564039457584007913129639935")); // u256::MAX
+    }
+
+    // ── usdt_to_raw ───────────────────────────────────────────────
+
+    #[test]
+    fn usdt_to_raw_converts_decimal_to_raw_units() {
+        assert_eq!(usdt_to_raw("1"), Some("1000000".to_string()));
+        assert_eq!(usdt_to_raw("12.5"), Some("12500000".to_string()));
+        assert_eq!(usdt_to_raw("0.000001"), Some("1".to_string()));
+    }
+
+    #[test]
+    fn usdt_to_raw_rejects_empty_zero_and_malformed() {
+        assert_eq!(usdt_to_raw(""), None);
+        assert_eq!(usdt_to_raw("0"), None);
+        assert_eq!(usdt_to_raw("0.000000"), None);
+        assert_eq!(usdt_to_raw("not-a-number"), None);
+        assert_eq!(usdt_to_raw("12.1234567"), None);
+    }
+
+    #[test]
+    fn usdt_to_raw_rejects_amounts_above_one_million() {
+        assert_eq!(usdt_to_raw("1000001"), None);
+        assert_eq!(usdt_to_raw("1000000.000001"), None);
+    }
+
+    #[test]
+    fn usdt_to_raw_accepts_exactly_one_million() {
+        assert_eq!(usdt_to_raw("1000000"), Some("1000000000000".to_string()));
+    }
 }
