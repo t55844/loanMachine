@@ -4,7 +4,7 @@
 //! younger than the indexing lag. In steady state the fallback never runs.
 
 use alloy::primitives::Address;
-use futures::future::join_all;
+use futures::stream::{FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
 
 use loan_machine_models::responses::CoopInfo;
@@ -99,7 +99,7 @@ async fn on_chain_scan(
         .getAllCoops().call().await
         .map_err(BlockchainError::from_call)?._0;
 
-    let checks = coop_ids.iter().map(|&coop_id| {
+    let mut futs: FuturesUnordered<_> = coop_ids.iter().map(|&coop_id| {
         let provider = provider.clone();
         async move {
             let lm_addr = CoopRegistry::new(registry_addr, provider.clone())
@@ -110,9 +110,9 @@ async fn on_chain_scan(
                 .map_err(BlockchainError::from_call)?._0;
             Ok::<_, BlockchainError>(vinculated.then_some(coop_id))
         }
-    });
+    }).collect();
 
-    for result in join_all(checks).await {
+    while let Some(result) = futs.next().await {
         if let Some(coop_id) = result? {
             return Ok(Some(registry.get_coop_info(coop_id).await?));
         }
