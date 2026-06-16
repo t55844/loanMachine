@@ -264,9 +264,9 @@ pub fn NumberInput(
     }
 }
 
-/// Decimal amount input (USDT, 6 decimals). Accepts free-form text so the
-/// user can type "12.5"; rejects characters that can't be part of a
-/// non-negative decimal with at most 6 fractional digits.
+/// Decimal amount input (USDT, 6 decimals). Accepts digits and at most one
+/// `.` with up to 6 fractional digits, capped at 1,000,000. Invalid chars
+/// are rejected immediately — they never appear in the input box.
 #[component]
 pub fn AmountInput(
     label: &'static str,
@@ -275,10 +275,13 @@ pub fn AmountInput(
     #[prop(optional)]       hint: Option<&'static str>,
     #[prop(optional, into)] error: Signal<String>,
 ) -> impl IntoView {
+    let input_ref = NodeRef::<leptos::html::Input>::new();
+
     view! {
         <div class="form-group">
             <label class="form-label">{label}</label>
             <input
+                node_ref=input_ref
                 class="form-input"
                 style=move || if !error.get().is_empty() {
                     "border-color: var(--c-red);"
@@ -287,12 +290,14 @@ pub fn AmountInput(
                 }
                 type="text"
                 inputmode="decimal"
-                placeholder="0.00"
+                placeholder="0.000001 – 1,000,000"
                 prop:value=value
                 on:input=move |ev| {
                     let raw = event_target_value(&ev);
                     if is_valid_amount_input(&raw) {
                         set_value.set(raw);
+                    } else if let Some(el) = input_ref.get() {
+                        el.set_value(&value.get_untracked());
                     }
                 }
             />
