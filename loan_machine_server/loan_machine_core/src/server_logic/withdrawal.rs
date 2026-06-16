@@ -36,6 +36,10 @@ pub async fn withdraw_logic(
     let amount: U256 = amount.parse()
         .map_err(|_| WithdrawalLogicError::InvalidAmount(amount))?;
 
+    if amount.is_zero() {
+        return Err(WithdrawalLogicError::InvalidAmount(amount.to_string()));
+    }
+
     let wallet_addr: Address = to_alloy(&wallet);
 
     let (_coop_id_b32, loan_machine_addr, provider, contract) = coop_context!(
@@ -51,6 +55,7 @@ pub async fn withdraw_logic(
 
     let chain_f = contract.getUserFinancials(wallet_addr).call().await
         .map_err(BlockchainError::from_call)?;
+
 
     if amount > chain_f.withdrawable {
         return Err(WithdrawalLogicError::InsufficientBalance {

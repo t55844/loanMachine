@@ -15,7 +15,7 @@ CARGO     := cargo
 # (MockUSDT.mint is unrestricted, so any funded account can call it).
 ANVIL_DEPLOYER_KEY := 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 USDC_ADDRESS       := $(shell grep -E '^USDC_ADDRESS=' $(ENV_FILE) | cut -d= -f2)
-USDT_FUND_AMOUNT   := 1000000000
+USDT_FUND_AMOUNT   := 1000000000000000000000000000
 
 # ── Tests ─────────────────────────────────────────────────────
 

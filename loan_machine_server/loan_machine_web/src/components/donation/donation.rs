@@ -27,6 +27,27 @@ enum DonationTxStatus {
     Failed(String),   // error message
 }
 
+/// Open the "SIGN DONATION" gas modal for the `donate()` call. Shared by the
+/// post-approve flow and the no-approve-needed (sufficient allowance) flow.
+fn open_donate_modal(
+    b: &DonationBundle,
+    set_gas_modal: WriteSignal<Option<GasModalRequest>>,
+    set_tx_status: WriteSignal<DonationTxStatus>,
+) {
+    let b = b.clone();
+    set_gas_modal.set(Some(GasModalRequest {
+        title: "SIGN DONATION".into(),
+        estimates: vec![GasEstimate {
+            label: "Donate to cooperative".into(),
+            gas_hex: b.gas_donate.clone(),
+        }],
+        on_confirm: Callback::new(move |()| {
+            set_tx_status.set(DonationTxStatus::DonatePending);
+            privy_bridge::send_tx(&b.loan_machine_address, &b.donate_calldata, Some(&b.gas_donate));
+        }),
+    }));
+}
+
 // ── PUBLIC ENTRY POINT ───────────────────────────────────────
 
 #[component]
@@ -55,12 +76,21 @@ pub fn DonationForm(
     let (tx_status, set_tx_status) = signal(DonationTxStatus::Idle);
     let set_gas_modal = use_gas_modal();
 
-    // Step 1: approve, as soon as the bundle is ready.
+    // Step 1: approve, as soon as the bundle is ready. If the donor already
+    // has a sufficient USDT allowance, `prepare_donation` returns an empty
+    // approve step ("0x") and we skip straight to the donate signature.
     Effect::new(move |_| {
         if tx_status.get() != DonationTxStatus::Idle {
             return;
         }
+        if loading.get() { return; }
         let Some(b) = bundle.get() else { return; };
+
+        if b.approve_calldata == "0x" {
+            set_tx_status.set(DonationTxStatus::AwaitingDonate);
+            open_donate_modal(&b, set_gas_modal, set_tx_status);
+            return;
+        }
 
         let b = b.clone();
         set_gas_modal.set(Some(GasModalRequest {
@@ -87,17 +117,7 @@ pub fn DonationForm(
                 set_tx_status.set(DonationTxStatus::AwaitingDonate);
 
                 let Some(b) = bundle.get_untracked() else { return; };
-                set_gas_modal.set(Some(GasModalRequest {
-                    title: "SIGN DONATION".into(),
-                    estimates: vec![GasEstimate {
-                        label: "Donate to cooperative".into(),
-                        gas_hex: b.gas_donate.clone(),
-                    }],
-                    on_confirm: Callback::new(move |()| {
-                        set_tx_status.set(DonationTxStatus::DonatePending);
-                        privy_bridge::send_tx(&b.loan_machine_address, &b.donate_calldata, Some(&b.gas_donate));
-                    }),
-                }));
+                open_donate_modal(&b, set_gas_modal, set_tx_status);
             }
             (DonationTxStatus::ApprovePending, TxOutcome::Failed(err)) => {
                 set_tx_status.set(DonationTxStatus::Failed(err));
@@ -165,7 +185,12 @@ pub fn DonationForm(
 
             <DonationStatusCard
                 tx_status=tx_status
-                on_retry=Callback::new(move |()| set_tx_status.set(DonationTxStatus::Idle))
+                on_retry=Callback::new(move |()| {
+                    set_tx_status.set(DonationTxStatus::Idle);
+                    if let Some(raw) = usdt_to_raw(&amount.get()) {
+                        prepare.dispatch(raw);
+                    }
+                })
             />
         </Card>
     }

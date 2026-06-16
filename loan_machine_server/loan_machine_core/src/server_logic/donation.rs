@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, U256};
+use alloy::primitives::{Address, Bytes, U256};
 use thiserror::Error;
 
 use loan_machine_models::responses::DonationBundle;
@@ -6,7 +6,7 @@ use loan_machine_models::wallet_address::{to_alloy, WalletAddress};
 
 use crate::services::blockchain::{BlockchainError, BlockchainService};
 use crate::services::blockchain::loan_machine_fns_helpers::{
-    encode_approve, estimate_approve_gas, encode_donate, get_erc20_balance,
+    encode_approve, estimate_approve_gas, encode_donate, get_erc20_allowance, get_erc20_balance,
 };
 use crate::services::subgraph::SubgraphService;
 
@@ -40,6 +40,10 @@ pub async fn donate_logic(
     let amount: U256 = amount.parse()
         .map_err(|_| DonationLogicError::InvalidAmount(amount))?;
 
+    if amount.is_zero() {
+        return Err(DonationLogicError::InvalidAmount(amount.to_string()));
+    }
+
     let wallet_addr: Address = to_alloy(&wallet);
 
     let (_coop_id_b32, loan_machine_addr, provider, _contract) = coop_context!(
@@ -64,10 +68,19 @@ pub async fn donate_logic(
         });
     }
 
-    let approve_calldata = encode_approve(loan_machine_addr, amount);
-    let gas_approve = estimate_approve_gas(
-        provider.as_ref(), usdc_addr, loan_machine_addr, amount, wallet_addr,
-    ).await?;
+    // Skip the approve step entirely if a sufficient allowance is already
+    // in place (e.g. left over from a previous donation) — saves the donor
+    // a signature and a transaction.
+    let allowance = get_erc20_allowance(provider.as_ref(), usdc_addr, wallet_addr, loan_machine_addr).await?;
+    let (approve_calldata, gas_approve) = if allowance >= amount {
+        (Bytes::new(), U256::ZERO)
+    } else {
+        let approve_calldata = encode_approve(loan_machine_addr, amount);
+        let gas_approve = estimate_approve_gas(
+            provider.as_ref(), usdc_addr, loan_machine_addr, amount, wallet_addr,
+        ).await?;
+        (approve_calldata, gas_approve)
+    };
 
     let donate_calldata = encode_donate(amount, member_id);
 

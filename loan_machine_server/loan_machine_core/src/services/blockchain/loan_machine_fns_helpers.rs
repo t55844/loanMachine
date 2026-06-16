@@ -65,6 +65,20 @@ pub async fn estimate_approve_gas(
         Ok(U256::from(gas))
     }
 
+pub async fn get_erc20_allowance(
+        provider:   &Provider,
+        token_addr: Address,
+        owner:      Address,
+        spender:    Address,
+    ) -> Result<U256, BlockchainError> {
+        IERC20::new(token_addr, provider.clone())
+            .allowance(owner, spender)
+            .call()
+            .await
+            .map(|r| r._0)
+            .map_err(BlockchainError::from_call)
+    }
+
 pub async fn get_erc20_balance(
         provider:   &Provider,
         token_addr: Address,

@@ -2795,6 +2795,7 @@ dependencies = [
  "base64",
  "chrono",
  "dotenvy",
+ "futures",
  "hex",
  "jsonwebtoken",
  "leptos",

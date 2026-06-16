@@ -4,6 +4,7 @@
 //! younger than the indexing lag. In steady state the fallback never runs.
 
 use alloy::primitives::Address;
+use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 
 use loan_machine_models::responses::CoopInfo;
@@ -82,6 +83,10 @@ async fn subgraph_lookup(
 
 // ── chain fallback ────────────────────────────────────────
 
+// Concurrent scan: all coop membership checks fire in parallel (O(1) RTT
+// latency, O(n) work). Long-term fix is a `getCoopForWallet` view on
+// CoopRegistry for true O(1), but this is good enough while the coop count
+// is small and this path only runs on subgraph indexing-lag fallbacks.
 async fn on_chain_scan(
     blockchain: &BlockchainService,
     wallet: Address,
@@ -94,16 +99,21 @@ async fn on_chain_scan(
         .getAllCoops().call().await
         .map_err(BlockchainError::from_call)?._0;
 
-    for coop_id in coop_ids {
-        let lm_addr = CoopRegistry::new(registry_addr, provider.clone())
-            .getCoopInstance(coop_id).call().await
-            .map_err(BlockchainError::from_call)?._0;
+    let checks = coop_ids.iter().map(|&coop_id| {
+        let provider = provider.clone();
+        async move {
+            let lm_addr = CoopRegistry::new(registry_addr, provider.clone())
+                .getCoopInstance(coop_id).call().await
+                .map_err(BlockchainError::from_call)?._0;
+            let vinculated = LoanMachine::new(lm_addr, provider)
+                .isWalletVinculated(wallet).call().await
+                .map_err(BlockchainError::from_call)?._0;
+            Ok::<_, BlockchainError>(vinculated.then_some(coop_id))
+        }
+    });
 
-        let vinculated = LoanMachine::new(lm_addr, provider.clone())
-            .isWalletVinculated(wallet).call().await
-            .map_err(BlockchainError::from_call)?._0;
-
-        if vinculated {
+    for result in join_all(checks).await {
+        if let Some(coop_id) = result? {
             return Ok(Some(registry.get_coop_info(coop_id).await?));
         }
     }

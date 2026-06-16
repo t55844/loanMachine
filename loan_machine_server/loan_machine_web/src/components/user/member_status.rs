@@ -128,11 +128,21 @@ fn fmt_usdt(raw: &str) -> String {
 /// Format a Unix timestamp as a short date, or "Never" for 0.
 fn fmt_timestamp(ts: u64) -> String {
     if ts == 0 { return "Never".into(); }
-    let days             = ts / 86_400;
-    let epoch_day_offset = 719_162u64;
-    let day              = days + epoch_day_offset;
-    let year             = day / 365;
-    let month            = (day % 365) / 30 + 1;
-    let dom              = (day % 365) % 30 + 1;
-    format!("{year}-{month:02}-{dom:02}")
+    let (y, m, d) = civil_date((ts / 86_400) as i64);
+    format!("{y}-{m:02}-{d:02}")
+}
+
+/// Convert days-since-Unix-epoch to (year, month, day) using the
+/// Gregorian calendar. Algorithm by Howard Hinnant (public domain).
+fn civil_date(z: i64) -> (i32, u32, u32) {
+    let z   = z + 719_468;
+    let era = (if z >= 0 { z } else { z - 146_096 }) / 146_097;
+    let doe = (z - era * 146_097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp  = (5 * doy + 2) / 153;
+    let d   = doy - (153 * mp + 2) / 5 + 1;
+    let m   = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y   = yoe as i64 + era * 400 + if m <= 2 { 1 } else { 0 };
+    (y as i32, m as u32, d as u32)
 }

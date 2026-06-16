@@ -6,6 +6,7 @@ use leptos::prelude::*;
 
 use crate::components::donation::donation::DonationForm;
 use crate::components::donation::withdrawal::WithdrawalForm;
+use crate::components::gas_modal::use_gas_modal;
 
 #[derive(Clone, Copy, PartialEq)]
 enum TransferTab {
@@ -19,6 +20,7 @@ pub fn TransferPanel(
     on_tx_success: Callback<()>,
 ) -> impl IntoView {
     let (tab, set_tab) = signal(TransferTab::Donate);
+    let set_gas_modal  = use_gas_modal();
 
     let donate_class = move || match tab.get() {
         TransferTab::Donate => "tab-btn active",
@@ -34,10 +36,16 @@ pub fn TransferPanel(
 
     view! {
         <div class="tab-bar">
-            <button class=donate_class on:click=move |_| set_tab.set(TransferTab::Donate)>
+            <button class=donate_class on:click=move |_| {
+                set_gas_modal.set(None);
+                set_tab.set(TransferTab::Donate);
+            }>
                 "DONATE"
             </button>
-            <button class=withdraw_class on:click=move |_| set_tab.set(TransferTab::Withdraw)>
+            <button class=withdraw_class on:click=move |_| {
+                set_gas_modal.set(None);
+                set_tab.set(TransferTab::Withdraw);
+            }>
                 "WITHDRAW"
             </button>
         </div>

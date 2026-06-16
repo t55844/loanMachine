@@ -6,7 +6,6 @@ use alloy::primitives::U256;
 use loan_machine_core::server_logic::coop_financials::get_coop_financials_logic;
 use loan_machine_core::server_logic::member_financials::get_member_financials_logic;
 use loan_machine_core::server_logic::withdrawal::{withdraw_logic, WithdrawalLogicError};
-use loan_machine_core::services::blockchain::BlockchainError;
 use loan_machine_core::services::subgraph::SubgraphService;
 use loan_machine_models::wallet_address::from_alloy;
 use serde_json::json;
@@ -276,24 +275,16 @@ async fn zero_amount_withdraw_reverts_with_invalid_amount() {
     let server   = server_returning(empty_subgraph()).await;
     let subgraph = SubgraphService::new(server.uri());
 
-    let _guard = env.platform_admin_lock.lock().await;
-
-    let amount = U256::from(1_000_000u64); // 1 USDT
-    donate_as(&env, &env.platform_admin_key_hex, env.founder_member_id, amount).await;
-
+    // `0` is rejected by withdraw_logic's own amount > 0 check, before any
+    // chain call is made — no donate/cleanup needed.
     let result = withdraw_logic(
         &subgraph, &env.blockchain, &env.coop_id_hex, wallet.clone(), "0".to_string(),
     ).await;
 
-    match result {
-        Err(WithdrawalLogicError::Blockchain(BlockchainError::ContractRevert { message, .. })) => {
-            assert_eq!(message, "Invalid amount.");
-        }
-        other => panic!("expected ContractRevert(\"Invalid amount.\"), got {:?}", other),
-    }
-
-    // cleanup — restore admin1's donation balance to its pre-test value.
-    withdraw_as(&env, &env.platform_admin_key_hex, env.founder_member_id, amount).await;
+    assert!(
+        matches!(result, Err(WithdrawalLogicError::InvalidAmount(_))),
+        "expected InvalidAmount, got {:?}", result,
+    );
 }
 
 #[tokio::test]

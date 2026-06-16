@@ -31,6 +31,8 @@ const QUERY: &str = r#"
 query MemberIdByWallet($coopId: String!, $wallet: Bytes!) {
   memberRegisteredEvents(
     where: { cooperative: $coopId, wallet: $wallet }
+    orderBy: blockTimestamp
+    orderDirection: desc
     first: 1
   ) {
     memberId

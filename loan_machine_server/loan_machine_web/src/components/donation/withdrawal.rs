@@ -138,7 +138,12 @@ pub fn WithdrawalForm(
 
             <WithdrawalStatusCard
                 tx_status=tx_status
-                on_retry=Callback::new(move |()| set_tx_status.set(WithdrawalTxStatus::Idle))
+                on_retry=Callback::new(move |()| {
+                    set_tx_status.set(WithdrawalTxStatus::Idle);
+                    if let Some(raw) = usdt_to_raw(&amount.get()) {
+                        prepare.dispatch(raw);
+                    }
+                })
             />
         </Card>
     }

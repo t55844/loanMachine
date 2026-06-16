@@ -20,6 +20,9 @@ pub enum MemberFinancialsError {
 
     #[error(transparent)]
     Blockchain(#[from] BlockchainError),
+
+    #[error("on-chain lastBorrowTime does not fit in u64: {0}")]
+    InvalidLastBorrowTime(String),
 }
 
 pub async fn get_member_financials_logic(
@@ -59,17 +62,20 @@ pub async fn get_member_financials_logic(
     let coop_id_str = format!("{loan_machine_addr:#x}").to_lowercase();
     let wallet_str  = wallet.to_string();
 
+    let chain_last_borrow_time: u64 = chain_f.lastBorrowTime.try_into()
+        .map_err(|e| MemberFinancialsError::InvalidLastBorrowTime(format!("{e}")))?;
+
     let (donation, borrowing, last_borrow_time) =
         match fetch_member_financials(subgraph, &coop_id_str, &wallet_str, &member_id_hex).await {
             Ok(s) => (
                 s.donation.unwrap_or_else(|| chain_f.donation.to_string()),
                 s.borrowing.unwrap_or_else(|| chain_f.borrowing.to_string()),
-                s.last_borrow_time.unwrap_or_else(|| chain_f.lastBorrowTime.try_into().unwrap_or(0)),
+                s.last_borrow_time.unwrap_or(chain_last_borrow_time),
             ),
             Err(_) => (
                 chain_f.donation.to_string(),
                 chain_f.borrowing.to_string(),
-                chain_f.lastBorrowTime.try_into().unwrap_or(0),
+                chain_last_borrow_time,
             ),
         };
 

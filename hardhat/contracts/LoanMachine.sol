@@ -159,6 +159,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     uint32 private constant BORROW_DURATION         = 30 days;
     uint32 private constant MIN_DONATION_FOR_BORROW = 1e6;
+    uint32 private constant PROPOSAL_EXPIRY         = 30 days;
 
     int32 public constant REPUTATION_GAIN_BY_REPAYNG_DEBT  = ReputationLib.GAIN_REPAY;
     int32 public constant REPUTATION_GAIN_BY_COVERING_LOAN = ReputationLib.GAIN_COVER;
@@ -204,6 +205,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_IntervalOfPaymentAboveLimit();
     error LoanMachine_WalletApprovalAlreadyProposed();
     error LoanMachine_WalletAlreadyApproved();
+    error LoanMachine_ProposalExpired();
 
     // =============================================================
     //                         MODIFIERS
@@ -343,8 +345,14 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     function proposeWalletApproval(address wallet) external returns (uint256 proposalId) {
         if (wallet == address(0))            revert LoanMachine_MemberIdOrWalletInvalid();
         if (approvedWallets[wallet])         revert LoanMachine_WalletAlreadyApproved();
-        if (pendingApprovalProposalId[wallet] != 0)
-            revert LoanMachine_WalletApprovalAlreadyProposed();
+
+        uint256 pendingId = pendingApprovalProposalId[wallet];
+        if (pendingId != 0) {
+            Proposal storage pending = proposals[pendingId];
+            if (block.timestamp <= pending.createdAt + PROPOSAL_EXPIRY)
+                revert LoanMachine_WalletApprovalAlreadyProposed();
+            delete pendingApprovalProposalId[wallet];
+        }
 
         proposalId = _createProposal(
             ProposalType.ApproveWallet, abi.encode(wallet),
@@ -357,6 +365,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         Proposal storage p = proposals[proposalId];
         if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
         if (p.executed)       revert LoanMachine_ProposalAlreadyExecuted();
+        if (block.timestamp > p.createdAt + PROPOSAL_EXPIRY)
+            revert LoanMachine_ProposalExpired();
         if (hasConfirmedProposal[proposalId][msg.sender])
             revert LoanMachine_AlreadyConfirmed();
 
@@ -375,6 +385,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         Proposal storage p = proposals[proposalId];
         if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
         if (p.executed)       revert LoanMachine_ProposalAlreadyExecuted();
+        if (block.timestamp > p.createdAt + PROPOSAL_EXPIRY)
+            revert LoanMachine_ProposalExpired();
         if (!p.requiresModeratorCosign) revert LoanMachine_ModeratorCosignRequired();
 
         if (_rs.walletToMemberId[msg.sender] != moderatorMemberId)
@@ -522,11 +534,9 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         string calldata accessCode
     ) external onlyActive {
         if (!approvedWallets[wallet])      revert LoanMachine_NotApproved();
-        //if (isMember)              revert LoanMachine_AlreadyMember();
         if (keccak256(abi.encodePacked(accessCode)) != accessCodeHash)
             revert LoanMachine_InvalidAccessCode();
 
-        
         memberWallets.push(wallet);
         _rs.registerMemberWallet(memberId, wallet);
     }
@@ -879,6 +889,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     }
 
     function _removeFromWatchlist(uint256 requisitionId) internal {
+        if (debtWatchlist.length == 0) return;
+
         uint256 idx  = watchlistIndex[requisitionId];
         uint256 last = debtWatchlist.length - 1;
         if (idx != last) {
@@ -945,6 +957,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         uint256 len = _rs.elections.length;
         if (len == 0) return -1;
         IReputationSystem.ElectionStatus storage last = _rs.elections[len - 1];
+        // `id` is a uint32 election index (increments by 1 per election), so it
+        // never approaches 2^31 and the int32 cast below cannot overflow/revert.
         return last.active ? int32(last.id) : -1;
     }
 

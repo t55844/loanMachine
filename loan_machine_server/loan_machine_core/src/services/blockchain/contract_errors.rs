@@ -108,3 +108,79 @@ pub fn friendly_from_error(err: &dyn std::error::Error) -> String {
     }
     err.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // `extract_revert_data` doesn't have structured access to alloy's error
+    // types — it scans the `Debug` output for `RawValue("0x...")`, which is
+    // how `alloy_json_rpc::ErrorPayload`'s `data: Option<Box<RawValue>>`
+    // renders. This stand-in mirrors that shape closely enough (a
+    // `TransportError`-style wrapper around an `ErrorResp` carrying a
+    // `RawValue` payload) to exercise the real parsing path end to end.
+    struct FakeAlloyError(String);
+
+    // `extract_revert_data` scans the *Debug* output, so this needs a manual
+    // impl that writes the raw shape verbatim (a `#[derive(Debug)]` on a
+    // `String` field would escape the inner quotes as `\"`, which wouldn't
+    // match `RawValue("0x...`).
+    impl std::fmt::Debug for FakeAlloyError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str(&self.0)
+        }
+    }
+
+    impl std::fmt::Display for FakeAlloyError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "server returned an error response: {}", self.0)
+        }
+    }
+
+    impl std::error::Error for FakeAlloyError {}
+
+    fn revert_error(selector_hex: &str) -> FakeAlloyError {
+        FakeAlloyError(format!(
+            "TransportError(ErrorResp(ErrorPayload {{ code: 3, message: \"execution reverted\", \
+             data: Some(RawValue(\"0x{selector_hex}\")) }}))"
+        ))
+    }
+
+    #[test]
+    fn extract_revert_data_parses_selector_from_raw_value() {
+        let err = revert_error("0d84c0f0");
+        let bytes = extract_revert_data(&err).expect("selector should be extracted");
+        assert_eq!(bytes.as_ref(), &[0x0d, 0x84, 0xc0, 0xf0]);
+    }
+
+    #[test]
+    fn extract_revert_data_returns_none_without_raw_value() {
+        let err = FakeAlloyError("execution reverted".into());
+        assert!(extract_revert_data(&err).is_none());
+    }
+
+    #[test]
+    fn friendly_from_error_translates_known_selector() {
+        let err = revert_error("0d84c0f0"); // Invalid amount.
+        assert_eq!(friendly_from_error(&err), "Invalid amount.");
+    }
+
+    #[test]
+    fn friendly_from_error_falls_back_to_display_for_unmatched_payload() {
+        let err = FakeAlloyError("connection refused".into());
+        assert_eq!(friendly_from_error(&err), err.to_string());
+    }
+
+    #[test]
+    fn translate_revert_handles_known_and_unknown_selectors() {
+        assert_eq!(
+            translate_revert(&[0xdb, 0xee, 0x9d, 0x4f]),
+            "Insufficient balance available for withdrawal.",
+        );
+        assert_eq!(
+            translate_revert(&[0xff, 0xff, 0xff, 0xff]),
+            "Unknown error (0xffffffff).",
+        );
+        assert_eq!(translate_revert(&[]), "Unknown error (empty payload).");
+    }
+}
