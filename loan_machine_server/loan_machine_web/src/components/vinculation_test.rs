@@ -63,11 +63,6 @@ fn form_shows_coop_id_input() {
 }
 
 #[test]
-fn form_shows_access_code_input() {
-    assert!(form_html().contains("Access Code"));
-}
-
-#[test]
 fn form_shows_prepare_button() {
     assert!(form_html().contains("PREPARE LINKING"));
 }

@@ -5,7 +5,7 @@
 // WHAT THESE TESTS COVER
 // ──────────────────────
 // Initial SSR render only — the HTML produced before any signal update or
-// user interaction. Reactive branches (AccessCode, SignInit, Done, etc.)
+// user interaction. Reactive branches (SignInit, Done, etc.)
 // are only reachable after signals change, which can't happen via spawn_local
 // in SSR. Those branches need wasm-bindgen-test in a real browser.
 //
@@ -155,14 +155,7 @@ fn page_shows_submit_button() {
     assert!(page_html().contains("PREPARE DEPLOY"));
 }
 
-// Steps 2-6 must NOT leak into the step-1 render
-
-#[test]
-fn page_hides_access_code_step() {
-    let html = page_html();
-    assert!(!html.contains("STEP 2 — ACCESS CODE"), "step 2 tag leaked");
-    assert!(!html.contains("SIGN TX 1"),            "deploy button leaked");
-}
+// Later steps must NOT leak into the step-1 render
 
 #[test]
 fn page_hides_waiting_deploy_step() {
@@ -201,9 +194,9 @@ fn progress_at(step: CoopStep) -> String {
 }
 
 #[test]
-fn progress_renders_all_six_labels() {
+fn progress_renders_all_five_labels() {
     let html = progress_at(CoopStep::Form);
-    for label in ["Config", "Code", "Deploy", "Init", "Registry", "Done"] {
+    for label in ["Config", "Deploy", "Init", "Registry", "Done"] {
         assert!(html.contains(label), "missing badge label: {label}");
     }
 }
@@ -214,28 +207,23 @@ fn progress_form_step_one_badge_filled() {
 }
 
 #[test]
-fn progress_access_code_step_two_badges_filled() {
-    assert_eq!(progress_at(CoopStep::AccessCode).matches("badge-filled-yellow").count(), 2);
+fn progress_waiting_deploy_step_two_badges_filled() {
+    assert_eq!(progress_at(CoopStep::WaitingDeploy).matches("badge-filled-yellow").count(), 2);
 }
 
 #[test]
-fn progress_waiting_deploy_step_three_badges_filled() {
-    assert_eq!(progress_at(CoopStep::WaitingDeploy).matches("badge-filled-yellow").count(), 3);
+fn progress_sign_init_step_three_badges_filled() {
+    assert_eq!(progress_at(CoopStep::SignInit).matches("badge-filled-yellow").count(), 3);
 }
 
 #[test]
-fn progress_sign_init_step_four_badges_filled() {
-    assert_eq!(progress_at(CoopStep::SignInit).matches("badge-filled-yellow").count(), 4);
+fn progress_registering_step_four_badges_filled() {
+    assert_eq!(progress_at(CoopStep::Registering).matches("badge-filled-yellow").count(), 4);
 }
 
 #[test]
-fn progress_registering_step_five_badges_filled() {
-    assert_eq!(progress_at(CoopStep::Registering).matches("badge-filled-yellow").count(), 5);
-}
-
-#[test]
-fn progress_done_step_all_six_badges_filled() {
-    assert_eq!(progress_at(CoopStep::Done).matches("badge-filled-yellow").count(), 6);
+fn progress_done_step_all_five_badges_filled() {
+    assert_eq!(progress_at(CoopStep::Done).matches("badge-filled-yellow").count(), 5);
 }
 
 // ── Error alert behavior ──────────────────────────────────────

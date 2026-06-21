@@ -61,7 +61,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         AddAdmin,
         ApproveWallet,
         RemoveAdmin,
-        RotateAccessCode,
         RevokeWallet,
         Deactivate,
         Reactivate,
@@ -113,14 +112,12 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     //                     GENERAL STORAGE
     // =============================================================
 
-    bytes32 private accessCodeHash;
     bool    private active;
 
     mapping(address => bool) private approvedWallets;
     address[] private memberWallets;
 
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-    event AccessCodeRotated();
     event CoopDeactivated();
     event CoopReactivated();
 
@@ -183,7 +180,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_AlreadyInitialized();
     error LoanMachine_NotApproved();
     error LoanMachine_AlreadyMember();
-    error LoanMachine_InvalidAccessCode();
     error LoanMachine_CoopNotActive();
     error LoanMachine_InvalidAmount();
     error LoanMachine_InsufficientFunds();
@@ -213,6 +209,15 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     modifier onlyAdmin() {
         if (!isAdmin[msg.sender]) revert LoanMachine_NotAdmin();
+        _;
+    }
+
+    modifier onlyAdminOrModerator() {
+        if (!isAdmin[msg.sender]) {
+            bytes32 mid = _rs.walletToMemberId[msg.sender];
+            if (mid == bytes32(0) || !_rs.isModerator[mid])
+                revert LoanMachine_NotAdmin();
+        }
         _;
     }
 
@@ -268,8 +273,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     function initializeMultisig(
         address[] calldata _admins,
         uint256   _threshold,
-        string calldata accessCode,
-        bytes32   founderMemberId      
+        bytes32   founderMemberId
     ) external {
         if (_initialized) revert LoanMachine_AlreadyInitialized();
         if (_admins.length == 0) revert LoanMachine_NotEnoughAdmins();
@@ -289,12 +293,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             emit WalletApproved(a);
         }
         adminThreshold = _threshold;
-        accessCodeHash = keccak256(abi.encodePacked(accessCode));
         active         = true;
 
-        // Founder joins inline — same effect as joinCoop() but skipping the
-        // access-code check (we just set the hash on the line above, and the
-        // founder doesn't need to know their own code at this exact moment).
         address founder = _admins[0];
         memberWallets.push(founder);
         _rs.reputationChange(founderMemberId, 1, true);
@@ -361,6 +361,20 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         pendingApprovalProposalId[wallet] = proposalId;
     }
 
+    function proposeApproveWalletAsAdmin(address wallet) external onlyAdminOrModerator returns (uint256) {
+        if (wallet == address(0))   revert LoanMachine_MemberIdOrWalletInvalid();
+        if (approvedWallets[wallet]) revert LoanMachine_WalletAlreadyApproved();
+
+        bool proposerCounts = isAdmin[msg.sender];
+        uint256 proposalId = _createProposal(
+            ProposalType.ApproveWallet,
+            abi.encode(wallet),
+            false, false, proposerCounts
+        );
+        pendingApprovalProposalId[wallet] = proposalId;
+        return proposalId;
+    }
+
     function confirmProposal(uint256 proposalId) external onlyAdmin {
         Proposal storage p = proposals[proposalId];
         if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
@@ -425,10 +439,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         } else if (p.pType == ProposalType.RemoveAdmin) {
             address toRemove = abi.decode(p.data, (address));
             _removeAdmin(toRemove);
-        } else if (p.pType == ProposalType.RotateAccessCode) {
-            bytes32 newHash = abi.decode(p.data, (bytes32));
-            accessCodeHash = newHash;
-            emit AccessCodeRotated();
         } else if (p.pType == ProposalType.RevokeWallet) {
             address wallet = abi.decode(p.data, (address));
             approvedWallets[wallet] = false;
@@ -530,12 +540,9 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     function joinCoop(
         bytes32 memberId,
-        address wallet,
-        string calldata accessCode
+        address wallet
     ) external onlyActive {
-        if (!approvedWallets[wallet])      revert LoanMachine_NotApproved();
-        if (keccak256(abi.encodePacked(accessCode)) != accessCodeHash)
-            revert LoanMachine_InvalidAccessCode();
+        if (!approvedWallets[wallet]) revert LoanMachine_NotApproved();
 
         memberWallets.push(wallet);
         _rs.registerMemberWallet(memberId, wallet);

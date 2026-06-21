@@ -35,7 +35,6 @@ pub async fn prepare_first_vinculation_logic(
     coop_registry_address: &str,
     smart_wallet: WalletAddress,
     coop_id: String,
-    access_code: String,
 ) -> Result<VinculationBundle, VinculationLogicError> {
     let member_id = identity.wallet_to_member_id(smart_wallet.as_bytes());
     let wallet_addr = to_alloy(&smart_wallet);
@@ -52,12 +51,12 @@ pub async fn prepare_first_vinculation_logic(
         return Err(VinculationLogicError::ServerLogicWalletNotApproved);
     }
 
-    let join_calldata = encode_join_coop(member_id, wallet_addr, &access_code);
+    let join_calldata = encode_join_coop(member_id, wallet_addr);
 
     let gas = estimate_join_coop_gas(
         provider.as_ref(),
         loan_machine_addr, member_id,
-        wallet_addr, &access_code)
+        wallet_addr)
         .await?;
 
     Ok(VinculationBundle {

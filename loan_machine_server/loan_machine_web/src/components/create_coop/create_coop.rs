@@ -12,7 +12,7 @@ use loan_machine_models::wallet_address::WalletAddress;
 
 use crate::components::ui::*;
 use crate::components::create_coop::create_coop_steps::{
-    AccessCodeStep, DoneStep, FormStep, SignInitStep, StepProgress, WaitingStep,
+    DoneStep, FormStep, SignInitStep, StepProgress, WaitingStep,
 };
 use crate::server_fns::create_coop::{prepare_create_coop, register_deployed_coop};
 use crate::components::gas_modal::{use_gas_modal, GasEstimate, GasModalRequest};
@@ -23,7 +23,6 @@ use crate::wallet_auth::privy_bridge::{self, DeployOutcome, TxOutcome};
 #[derive(Clone, PartialEq)]
 pub enum CoopStep {
     Form,
-    AccessCode,
     WaitingDeploy,
     SignInit,
     Registering,
@@ -34,11 +33,10 @@ impl CoopStep {
     fn index(&self) -> usize {
         match self {
             CoopStep::Form          => 0,
-            CoopStep::AccessCode    => 1,
-            CoopStep::WaitingDeploy => 2,
-            CoopStep::SignInit      => 3,
-            CoopStep::Registering   => 4,
-            CoopStep::Done          => 5,
+            CoopStep::WaitingDeploy => 1,
+            CoopStep::SignInit      => 2,
+            CoopStep::Registering   => 3,
+            CoopStep::Done          => 4,
         }
     }
 }
@@ -64,8 +62,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
     // Results from the two on-chain steps.
     let (contract_address, set_contract_address) = signal(String::new());
     let (reg_result, set_reg_result) = signal(Option::<CoopRegistrationResult>::None);
-
-    let (code_saved, set_code_saved) = signal(false);
 
     // ── Server-fn Actions ───────────────────────────────────
     let prepare = Action::new(|req: &CreateCoopRequest| {
@@ -97,17 +93,29 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         set_step.set(next);
     };
 
-    // ── Prepare action settles ──────────────────────────────
+    let gas_modal = use_gas_modal();
+
+    // ── Prepare action settles — open deploy modal immediately ──
     Effect::new(move |_| {
-        let Some(result) = prepare.value().get() else { return };
-        match result {
-            Ok(_) => {
-                if step.get_untracked() == CoopStep::Form {
-                    advance(CoopStep::AccessCode);
-                }
-            }
-            Err(e) => set_error.set(e.to_string()),
-        }
+        let Some(Ok(b)) = prepare.value().get() else {
+            if let Some(Err(e)) = prepare.value().get() { set_error.set(e.to_string()); }
+            return;
+        };
+        if step.get_untracked() != CoopStep::Form { return; }
+
+        let dd = b.deploy_data.clone();
+        let gd = b.gas_deploy.clone();
+        gas_modal.set(Some(GasModalRequest {
+            title: "CONFIRM DEPLOY".into(),
+            estimates: vec![GasEstimate {
+                label:   "LoanMachine Deploy".into(),
+                gas_hex: gd.clone(),
+            }],
+            on_confirm: Callback::new(move |_| {
+                advance(CoopStep::WaitingDeploy);
+                privy_bridge::deploy_contract(&dd, &gd);
+            }),
+        }));
     });
 
     // ── TX 1 outcome (deploy) ───────────────────────────────
@@ -118,7 +126,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
         }
         DeployOutcome::Failed(err) => {
             set_error.set(format!("Deploy failed: {err}"));
-            advance(CoopStep::AccessCode);
+            advance(CoopStep::Form);
         }
     });
 
@@ -222,36 +230,6 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                             })
                         />
                     }.into_any(),
-
-                    CoopStep::AccessCode => {
-                        let access_code = bundle.get().map(|b| b.access_code.clone()).unwrap_or_default();
-                        let deploy_data = bundle.get().map(|b| b.deploy_data.clone()).unwrap_or_default();
-                        let gas_deploy  = bundle.get().map(|b| b.gas_deploy.clone()).unwrap_or_default();
-
-                        let gas_modal = use_gas_modal();
-
-                        view! {
-                            <AccessCodeStep
-                                access_code
-                                code_saved set_code_saved
-                                on_sign=Box::new(move || {
-                                    let dd = deploy_data.clone();
-                                    let gd = gas_deploy.clone();
-                                    gas_modal.set(Some(GasModalRequest {
-                                        title: "CONFIRM DEPLOY".into(),
-                                        estimates: vec![GasEstimate {
-                                            label:   "LoanMachine Deploy".into(),
-                                            gas_hex: gd.clone(),
-                                        }],
-                                        on_confirm: Callback::new(move |_| {
-                                            advance(CoopStep::WaitingDeploy);
-                                            privy_bridge::deploy_contract(&dd, &gd);
-                                        }),
-                                    }));
-                                })
-                            />
-                        }.into_any()
-                    },
 
                     CoopStep::WaitingDeploy => view! {
                         <WaitingStep

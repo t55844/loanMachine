@@ -1,4 +1,5 @@
-use alloy::primitives::{B256, U256};
+use alloy::primitives::{Address, B256, U256};
+use std::str::FromStr;
 use thiserror::Error;
 
 use loan_machine_models::responses::{
@@ -15,7 +16,9 @@ use crate::server_logic::helpers::resolve_member_id;
 #[derive(Debug, Error)]
 pub enum AdminApprovalError {
     #[error("invalid coop id: {0}")] InvalidCoopId(String),
+    #[error("invalid target wallet address")] InvalidTargetWallet,
     #[error("viewer is not vinculated; cannot cosign")] NotVinculated,
+    #[error("not authorized: admin or moderator required")] NotAuthorized,
     #[error(transparent)] Blockchain(#[from] BlockchainError),
     #[error(transparent)] Subgraph(#[from] crate::services::subgraph::SubgraphError),
 }
@@ -105,6 +108,46 @@ pub async fn prepare_cosign_proposal_logic(
 
     let call = contract.cosignProposal(U256::from(proposal_id), member_id_b32);
     let gas  = call.clone().from(wallet_addr).estimate_gas().await
+        .map_err(BlockchainError::from_call)?;
+    let data_bytes = call.calldata().clone();
+
+    Ok(RequestApprovalBundle {
+        to:      format!("{lm_addr:#x}"),
+        data:    format!("0x{}", hex::encode(&data_bytes)),
+        gas_hex: format!("0x{gas:x}"),
+    })
+}
+
+pub async fn prepare_propose_wallet_as_admin_logic(
+    blockchain:    &BlockchainService,
+    coop_id_hex:   &str,
+    target_wallet: &str,
+    caller:        WalletAddress,
+) -> Result<RequestApprovalBundle, AdminApprovalError> {
+    let (_coop_id_b32, lm_addr, _provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
+    let caller_addr = wallet_address::to_alloy(&caller);
+    let target_addr = Address::from_str(target_wallet)
+        .map_err(|_| AdminApprovalError::InvalidTargetWallet)?;
+
+    let is_admin = contract.isAdmin(caller_addr).call().await
+        .map(|r| r._0).map_err(BlockchainError::from_call)?;
+    if !is_admin {
+        let mid = contract.getMemberId(caller_addr).call().await
+            .map(|r| r._0).map_err(BlockchainError::from_call)?;
+        let is_mod = mid != B256::ZERO && contract.isModerator(mid).call().await
+            .map(|r| r._0).map_err(BlockchainError::from_call)?;
+        if !is_mod {
+            return Err(AdminApprovalError::NotAuthorized);
+        }
+    }
+
+    let call = contract.proposeApproveWalletAsAdmin(target_addr);
+    let gas  = call.clone().from(caller_addr).estimate_gas().await
         .map_err(BlockchainError::from_call)?;
     let data_bytes = call.calldata().clone();
 

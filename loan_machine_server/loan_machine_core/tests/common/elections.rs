@@ -45,7 +45,7 @@ pub async fn vinculate_second_admin(env: &DeployedEnv) -> FixedBytes<32> {
     }
 
     let id = admin2_member_id();
-    lm.joinCoop(id, env.second_admin, env.access_code.clone())
+    lm.joinCoop(id, env.second_admin)
         .send().await.expect("send joinCoop(admin2)")
         .watch().await.expect("mine joinCoop(admin2)");
     id

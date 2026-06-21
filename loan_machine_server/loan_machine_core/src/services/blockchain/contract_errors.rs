@@ -44,7 +44,6 @@ pub fn translate_revert(data: &[u8]) -> String {
         [0x47, 0x6e, 0xbc, 0x32] => "Cooperative already initialized.".into(),
         [0x63, 0xfa, 0x89, 0x7b] => "Wallet not approved by the cooperative.".into(),
         [0x7f, 0x1a, 0x48, 0xc5] => "This wallet is already a member of the cooperative.".into(),
-        [0x67, 0xf7, 0x6b, 0xa4] => "Invalid access code.".into(),
         [0x81, 0xe2, 0x31, 0xf6] => "This cooperative is not active.".into(),
 
         // ── Financial ops ─────────────────────────────────────

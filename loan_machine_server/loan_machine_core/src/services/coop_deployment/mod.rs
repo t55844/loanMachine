@@ -37,15 +37,6 @@ use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult};
 /// Multisig admin count. The contract expects exactly this many addresses.
 const REQUIRED_ADMIN_COUNT: usize = 3;
  
-/// Length of the human-shareable access code printed for cooperative founders.
-/// 12 chars from a 32-char alphabet → ~60 bits of entropy. Shrinking this
-/// reduces entropy; growing it hurts UX. Locked by
-/// `deploy_bundle_access_code_is_human_friendly_length`.
-const ACCESS_CODE_LEN: usize = 12;
- 
-/// Confusable-stripped alphabet (no I/O/0/1).
-const ACCESS_CODE_CHARSET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
- 
 /// Gas fallback when `eth_estimateGas` fails (e.g. unfunded deployer).
 /// Production-safe but noisy in tests — see
 /// `deploy_gas_estimate_is_realistic_not_fallback`.
@@ -157,15 +148,6 @@ impl CoopDeploymentService {
         })
     }
 
-    fn generate_access_code() -> String {
-        let mut rng = rand::thread_rng();
-        (0..ACCESS_CODE_LEN)
-            .map(|_| ACCESS_CODE_CHARSET[rng.gen_range(0..ACCESS_CODE_CHARSET.len())] as char)
-            .collect()
-    }
-
-       // Inside CoopDeploymentService impl
-
     pub async fn prepare_deploy_bundle(
         &self,
         founder_addr: Address,
@@ -183,17 +165,14 @@ impl CoopDeploymentService {
             return Err(CoopDeploymentError::FounderNotInAdmins);
         }
 
-        let access_code = Self::generate_access_code();
-
         use alloy::sol_types::SolValue;
         let constructor_args = self.usdc_address.abi_encode();
         let mut deploy_data = self.loan_machine_bytecode.clone();
         deploy_data.extend(&constructor_args);
 
         let init_call = LoanMachine::initializeMultisigCall {
-            admins:     admin_addrs.to_vec(),
-            threshold:  U256::from(threshold),
-            accessCode: access_code.clone(),
+            admins:          admin_addrs.to_vec(),
+            threshold:       U256::from(threshold),
             founderMemberId: founder_member_id,
         };
         let initialize_data = init_call.abi_encode();
@@ -215,11 +194,10 @@ impl CoopDeploymentService {
             .unwrap_or(GAS_DEPLOY_FALLBACK);
 
         Ok(CoopDeployBundle {
-            deploy_data:    format!("0x{}", hex::encode(deploy_data)),
-            gas_deploy:     format!("0x{:x}", gas_deploy),
+            deploy_data:     format!("0x{}", hex::encode(deploy_data)),
+            gas_deploy:      format!("0x{:x}", gas_deploy),
             initialize_data: format!("0x{}", hex::encode(initialize_data)),
-            gas_initialize: format!("0x{:x}", GAS_INITIALIZE_LIMIT),
-            access_code,
+            gas_initialize:  format!("0x{:x}", GAS_INITIALIZE_LIMIT),
         })
     }
 

@@ -37,15 +37,6 @@ use loan_machine_core::services::blockchain::contract_errors::{translate_revert}
         );
     }
 
-    #[test]
-    fn invalid_access_code() {
-        // wrong access code supplied to join or verify
-        assert_eq!(
-            translate_revert(&payload(0x67, 0xf7, 0x6b, 0xa4)),
-            "Invalid access code."
-        );
-    }
-
     // ── STEP: register_deployed_coop (TX2, platform admin signs) ─
 
     #[test]

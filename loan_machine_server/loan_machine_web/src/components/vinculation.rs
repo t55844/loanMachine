@@ -31,7 +31,6 @@ pub enum TxStatus {
 #[derive(Clone)]
 struct FormFields {
     coop_id: String,
-    access_code: String,
 }
 
 // ── PUBLIC ENTRY POINT ───────────────────────────────────────
@@ -43,7 +42,7 @@ pub fn FirstVinculationForm(
     let prepare = Action::new(move |args: &FormFields| {
         let a = args.clone();
         async move {
-            prepare_first_vinculation(a.coop_id, a.access_code).await
+            prepare_first_vinculation(a.coop_id).await
         }
     });
 
@@ -123,15 +122,11 @@ fn IdentifyCard(
     #[prop(into)] error: Signal<String>,
     #[prop(into)] loading: Signal<bool>,
 ) -> impl IntoView {
-    let (coop_id,    set_coop_id)     = signal(String::new());
-    let (access_code, set_access_code) = signal(String::new());
+    let (coop_id, set_coop_id) = signal(String::new());
 
     let on_prepare = move |ev: SubmitEvent| {
         ev.prevent_default();
-        on_submit.run(FormFields {
-            coop_id:     coop_id.get(),
-            access_code: access_code.get(),
-        });
+        on_submit.run(FormFields { coop_id: coop_id.get() });
     };
 
     view! {
@@ -153,13 +148,6 @@ fn IdentifyCard(
                     hint="The bytes32 identifier of your cooperative"
                     value=coop_id
                     set_value=set_coop_id
-                />
-
-                <TextInput
-                    label="Access Code"
-                    placeholder="Provided by the administrator"
-                    value=access_code
-                    set_value=set_access_code
                     error=error
                 />
 

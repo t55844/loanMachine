@@ -15,8 +15,6 @@ use loan_machine_core::services::blockchain::BlockchainService;
 
 use tokio::sync::OnceCell;
 
-pub const TEST_ACCESS_CODE: &str = "test-access-code";
-
 /// Deterministic test memberId for the founder.  Real flows derive this
 /// from `IdentityService::wallet_to_member_id`; for deploy tests we
 /// just need any non-zero bytes32 so initializeMultisig accepts it.
@@ -30,7 +28,6 @@ struct Deployed {
     loan_machine_address:   String,
     usdt_address:           String,
     coop_id_hex:            String,
-    access_code:            String,
     approved_wallet:        Address,
     unapproved_wallet:      Address,
     platform_admin_key_hex: String,
@@ -53,7 +50,6 @@ pub struct DeployedEnv {
     pub loan_machine_address:   String,
     pub usdt_address:           String,
     pub coop_id_hex:            String,
-    pub access_code:            String,
     pub approved_wallet:        Address,
     pub unapproved_wallet:      Address,
     pub platform_admin_key_hex: String,
@@ -86,7 +82,6 @@ pub async fn get_deployed() -> DeployedEnv {
         loan_machine_address:   d.loan_machine_address.clone(),
         usdt_address:           d.usdt_address.clone(),
         coop_id_hex:            d.coop_id_hex.clone(),
-        access_code:            d.access_code.clone(),
         approved_wallet:        d.approved_wallet,
         unapproved_wallet:      d.unapproved_wallet,
         platform_admin_key_hex: d.platform_admin_key_hex.clone(),
@@ -143,7 +138,6 @@ async fn deploy() -> Deployed {
         .initializeMultisig(
             vec![admin1_addr, admin2_addr, admin3_addr],
             U256::from(2u64),
-            TEST_ACCESS_CODE.to_string(),
             founder_member_id,
         )
         .send().await.expect("send initializeMultisig")
@@ -178,7 +172,6 @@ async fn deploy() -> Deployed {
         loan_machine_address:   loan_machine_address.to_string(),
         usdt_address:           usdt_address.to_string(),
         coop_id_hex:            format!("0x{}", hex::encode(coop_id)),
-        access_code:            TEST_ACCESS_CODE.to_string(),
         approved_wallet:        admin1_addr,
         unapproved_wallet:      stranger_addr,
         _anvil:                 anvil,

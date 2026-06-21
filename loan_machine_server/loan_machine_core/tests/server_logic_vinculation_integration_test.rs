@@ -76,7 +76,7 @@ async fn prepare_vinculation_rejects_unapproved_wallet() {
     let result = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await;
 
     assert!(
@@ -94,7 +94,7 @@ async fn prepare_vinculation_happy_path_returns_bundle() {
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await.expect("happy path should succeed");
 
     assert!(bundle.join_calldata.starts_with("0x"));
@@ -115,7 +115,6 @@ async fn invalid_coop_id_is_rejected() {
         &identity, &env.blockchain, &env.coop_registry_address,
         wallet,
         "not-bytes32".into(),
-        env.access_code.clone(),
     ).await;
 
     assert!(matches!(result, Err(VinculationLogicError::InvalidCoopId(_))));
@@ -130,7 +129,7 @@ async fn bundle_contains_coop_registry_address() {
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await.unwrap();
 
     assert_eq!(
@@ -148,7 +147,7 @@ async fn bundle_calldata_starts_with_join_coop_selector() {
     let bundle = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         wallet,
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await.unwrap();
 
     assert!(bundle.join_calldata.starts_with("0x"));
@@ -166,13 +165,13 @@ async fn different_salts_produce_different_calldata() {
     let bundle_a = prepare_first_vinculation_logic(
         &id_a, &env.blockchain, &env.coop_registry_address,
         wallet.clone(),
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await.unwrap();
 
     let bundle_b = prepare_first_vinculation_logic(
         &id_b, &env.blockchain, &env.coop_registry_address,
         wallet.clone(),
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await.unwrap();
 
     assert_ne!(bundle_a.join_calldata, bundle_b.join_calldata);
@@ -191,7 +190,7 @@ async fn prepare_vinculation_rejects_already_linked_wallet() {
     let err = prepare_first_vinculation_logic(
         &identity, &env.blockchain, &env.coop_registry_address,
         from_alloy(env.approved_wallet),
-        env.coop_id_hex.clone(), env.access_code.clone(),
+        env.coop_id_hex.clone(),
     ).await.unwrap_err();
 
     assert_eq!(
@@ -200,19 +199,3 @@ async fn prepare_vinculation_rejects_already_linked_wallet() {
     );
 }
 
-#[tokio::test]
-async fn prepare_vinculation_rejects_wrong_access_code() {
-    let env      = common::get_deployed().await;
-    let identity = IdentityService::with_salt([0x01u8; 32]);
-
-    let err = prepare_first_vinculation_logic(
-        &identity, &env.blockchain, &env.coop_registry_address,
-        from_alloy(env.second_admin),
-        env.coop_id_hex.clone(), "wrong-access-code".into(),
-    ).await.unwrap_err();
-
-    assert_eq!(
-        expect_revert_msg(err),
-        "Invalid access code."
-    );
-}

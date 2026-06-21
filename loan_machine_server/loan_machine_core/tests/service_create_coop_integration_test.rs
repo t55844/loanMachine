@@ -124,31 +124,8 @@ async fn prepare_happy_path_returns_bundle() {
     assert!(parse_hex_u64(&bundle.gas_deploy) > 1_000_000,
         "deploy gas should be substantial: {}", bundle.gas_deploy);
     assert!(parse_hex_u64(&bundle.gas_initialize) > 0);
-    assert_eq!(bundle.access_code.len(), 12, "access code should be 12 chars");
 }
 
-#[tokio::test]
-async fn access_codes_are_unique_across_calls() {
-    let env = common::get_deployed().await;
-    let identity = make_identity_from_env();
-    let svc = make_deployment_service(&env);
-
-    let admins = vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)];
-
-    let b1 = prepare_create_coop_logic(
-        &identity, &svc, "Coop A".into(),
-        wa(env.approved_wallet),
-        admins.clone(), 2,
-    ).await.unwrap();
-
-    let b2 = prepare_create_coop_logic(
-        &identity, &svc, "Coop B".into(),
-        wa(env.approved_wallet),
-        admins, 2,
-    ).await.unwrap();
-
-    assert_ne!(b1.access_code, b2.access_code);
-}
 
 #[tokio::test]
 async fn initialize_data_starts_with_initialize_multisig_selector() {

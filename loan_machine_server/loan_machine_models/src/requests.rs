@@ -13,10 +13,9 @@ pub struct RegisterDeployedCoopRequest {
 
 #[derive(Deserialize)]
 pub struct VinculateMemberRequest {
-    pub member_id:    u32,
+    pub member_id:      u32,
     pub wallet_address: WalletAddress,
-    pub coop_id:      String,   // bytes32 hex — which cooperative
-    pub access_code:  String,   // cooperative invite code
+    pub coop_id:        String,
 }
 
 

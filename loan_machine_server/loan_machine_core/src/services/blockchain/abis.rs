@@ -29,13 +29,12 @@ sol! {
         function initializeMultisig(
             address[] calldata admins,
             uint256   threshold,
-            string calldata accessCode,
-            bytes32   founderMemberId      
+            bytes32   founderMemberId
         ) external;
 
         // ── MULTISIG ADMIN ───────────────────────────────────
-        // ProposalType enum: 0=TransferAdmin, 1=AddAdmin, 2=RemoveAdmin,
-        // 3=RotateAccessCode, 4=RevokeWallet, 5=Deactivate,
+        // ProposalType enum: 0=TransferAdmin, 1=AddAdmin, 2=ApproveWallet,
+        // 3=RemoveAdmin, 4=RevokeWallet, 5=Deactivate,
         // 6=Reactivate, 7=SetAuthorizedCaller, 8=ChangeThreshold
 
         function proposeAction(
@@ -47,6 +46,7 @@ sol! {
 
         // ── WALLET APPROVAL (admin + moderator co-sign) ──────
         function proposeWalletApproval(address wallet) external returns (uint256 requestId);
+        function proposeApproveWalletAsAdmin(address wallet) external returns (uint256);
 
 
         function cosignProposal(
@@ -56,8 +56,7 @@ sol! {
         // ── MEMBER JOIN ──────────────────────────────────────
         function joinCoop(
             bytes32 memberId,
-            address wallet,
-            string calldata accessCode
+            address wallet
         ) external;
 
         function vinculationMemberToWallet(
@@ -140,9 +139,9 @@ sol! {
         function canUserBorrow(address user, uint256 amount) external view returns (bool);
 
         // Admin views
-        function getAdmins()        external view returns (address[] memory);
-        function isAdmin(address a) external view returns (bool);
-        function adminThreshold()   external view returns (uint256);
+        function getAdmins()           external view returns (address[] memory);
+        function isAdmin(address a)    external view returns (bool);
+        function adminThreshold()      external view returns (uint256);
 
         function getProposal(uint256 proposalId) external view returns (
             uint8   pType,

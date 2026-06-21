@@ -25,8 +25,7 @@ pub async fn get_wallet_coop() -> Result<Option<CoopInfo>, ServerFnError> {
 /// The browser signs + broadcasts via the Privy bridge — the server never holds the key.
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
 pub async fn prepare_first_vinculation(
-    coop_id:     String,
-    access_code: String,
+    coop_id: String,
 ) -> Result<VinculationBundle, ServerFnError> {
     use loan_machine_core::config::AppState;
     use loan_machine_core::server_logic::vinculation::prepare_first_vinculation_logic;
@@ -42,7 +41,6 @@ pub async fn prepare_first_vinculation(
         &state.coop_registry_address.0,
         smart_wallet,
         coop_id,
-        access_code,
     )
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))

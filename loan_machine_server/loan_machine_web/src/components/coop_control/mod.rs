@@ -2,6 +2,7 @@ pub mod coop_control_panel;
 pub mod coop_approval;
 pub mod approval_pending;
 pub mod admin_panel;
+pub mod invite_member_panel;
 pub mod coop_financials;
 
 #[cfg(test)]

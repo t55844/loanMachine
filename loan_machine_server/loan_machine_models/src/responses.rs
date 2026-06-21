@@ -63,6 +63,7 @@ pub struct RequestApprovalBundle {
     pub gas_hex: String,
 }
 
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserCoop {
     /// Lowercased LoanMachine address (matches the subgraph Cooperative.id).
@@ -161,7 +162,7 @@ pub struct CoopInfo {
 /// so we only need one calldata instead of two.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VinculationBundle {
-    pub join_calldata:        String,   // encoded joinCoop(memberId, wallet, accessCode)
+    pub join_calldata:        String,   // encoded joinCoop(memberId, wallet)
     pub loan_machine_address: String,   // target contract for the tx
     pub coop_registry_address:      String,   // coop_registry address (for reference/display)
     pub gas_join:             String,   // gas estimate as string
@@ -195,14 +196,11 @@ pub struct CoopDeployBundle {
     /// `data` is bytecode + ABI-encoded constructor args.
     pub deploy_data:        String,    // 0x-prefixed hex
     pub gas_deploy:         String,    // estimated gas 0x-prefixed hex
-    /// Calldata for `initializeMultisig(admins, threshold, accessCode)`.
+    /// Calldata for `initializeMultisig(admins, threshold, founderMemberId)`.
     /// The founder calls this AGAINST the address from the deploy receipt.
     pub initialize_data:    String,
     pub gas_initialize:     String,
-    /// Server-generated access code. Shown to founder ONCE.
-    /// They must save it before continuing — admins use it to approve members.
-    pub access_code:        String,
-}
+    }
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

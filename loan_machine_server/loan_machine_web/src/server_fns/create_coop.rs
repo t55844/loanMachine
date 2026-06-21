@@ -27,13 +27,7 @@ pub async fn prepare_create_coop(req: CreateCoopRequest) -> Result<CoopDeployBun
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    Ok(CoopDeployBundle{
-        deploy_data: bundle.deploy_data,
-        gas_deploy: bundle.gas_deploy,
-        initialize_data: bundle.initialize_data,
-        gas_initialize: bundle.gas_initialize,
-        access_code: bundle.access_code,
-    })
+    Ok(bundle)
 }
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]

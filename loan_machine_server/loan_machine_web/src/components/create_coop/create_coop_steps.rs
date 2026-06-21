@@ -84,68 +84,6 @@ pub fn FormStep(
     }
 }
 
-// ── AccessCodeStep ────────────────────────────────────────────
-
-#[component]
-pub fn AccessCodeStep(
-    access_code: String,
-    code_saved: ReadSignal<bool>,
-    set_code_saved: WriteSignal<bool>,
-    on_sign: Box<dyn Fn() + Send + Sync>,
-) -> impl IntoView {
-    view! {
-        <Card variant=CardVariant::Yellow>
-            <span class="card-tag">"STEP 2 — ACCESS CODE"</span>
-            <div class="flex-col gap-6" style="margin-top: var(--sp-6)">
-
-                <Alert kind=AlertKind::Warning>
-                    "WARNING: Save this code now. It will not be shown again. \
-                    Without it, no member will be able to join the cooperative."
-                </Alert>
-
-                <div class="flex-col flex-center gap-4">
-                    <span class="t-mono-xs t-muted" style="text-transform: uppercase; letter-spacing: 0.1em">
-                        "Access Code"
-                    </span>
-                    <div style="
-                        font-family: var(--font-display);
-                        font-size: 2.8rem;
-                        letter-spacing: 0.18em;
-                        color: var(--c-yellow);
-                        background: rgba(240,204,0,0.07);
-                        border: 1px solid rgba(240,204,0,0.3);
-                        border-radius: var(--radius-lg);
-                        padding: var(--sp-6) var(--sp-8);
-                        text-align: center;
-                    ">
-                        {access_code}
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: var(--sp-3)">
-                    <input
-                        type="checkbox"
-                        id="code-saved"
-                        style="width: 18px; height: 18px; accent-color: var(--c-yellow); cursor: pointer; flex-shrink: 0"
-                        on:change=move |ev| set_code_saved.set(event_target_checked(&ev))
-                    />
-                    <label for="code-saved" class="t-mono-sm t-bright" style="cursor: pointer">
-                        "I saved the access code in a safe place"
-                    </label>
-                </div>
-
-                <Button
-                    variant=BtnVariant::Primary full_width=true
-                    disabled=Signal::derive(move || !code_saved.get())
-                    on_click=on_sign
-                >
-                    "SIGN TX 1 — DEPLOY CONTRACT"
-                </Button>
-            </div>
-        </Card>
-    }
-}
-
 // ── WaitingStep ───────────────────────────────────────────────
 
 #[component]
@@ -236,15 +174,14 @@ pub fn DoneStep(reg_result: ReadSignal<Option<CoopRegistrationResult>>) -> impl 
 
 #[component]
 pub fn StepProgress(step: ReadSignal<CoopStep>) -> impl IntoView {
-    let labels = ["Config", "Code", "Deploy", "Init", "Registry", "Done"];
+    let labels = ["Config", "Deploy", "Init", "Registry", "Done"];
 
     let current = move || match step.get() {
         CoopStep::Form          => 0usize,
-        CoopStep::AccessCode    => 1,
-        CoopStep::WaitingDeploy => 2,
-        CoopStep::SignInit      => 3,
-        CoopStep::Registering   => 4,
-        CoopStep::Done          => 5,
+        CoopStep::WaitingDeploy => 1,
+        CoopStep::SignInit      => 2,
+        CoopStep::Registering   => 3,
+        CoopStep::Done          => 4,
     };
 
     view! {
