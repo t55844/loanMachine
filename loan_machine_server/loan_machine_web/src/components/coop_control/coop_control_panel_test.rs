@@ -113,12 +113,12 @@ fn render_role_with_caps(
 // is what `role` drives. Capabilities are tested separately below.
 
 #[test]
-fn visitor_role_shows_request_approval_card() {
+fn visitor_role_shows_visitor_card() {
     let html = render_role(ViewerRole::Visitor);
-    assert!(html.contains("VISITOR — APPROVAL REQUEST"),
-        "expected approval-request card tag, got:\n{html}");
-    assert!(html.contains("START APPROVAL REQUEST"),
-        "expected initiate button, got:\n{html}");
+    assert!(html.contains("VISITOR"),
+        "expected visitor card tag, got:\n{html}");
+    assert!(html.contains("not yet approved"),
+        "expected informational message, got:\n{html}");
 }
 
 #[test]

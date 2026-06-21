@@ -20,7 +20,6 @@ use alloy::primitives::{Address, FixedBytes, U256};
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::sol_types::SolCall;
-use rand::Rng;
 use secrecy::{ExposeSecret, SecretString};
 use thiserror::Error;
 
@@ -35,7 +34,7 @@ use loan_machine_models::responses::{CoopDeployBundle, CoopRegistrationResult};
 // changes are obvious in code review.
  
 /// Multisig admin count. The contract expects exactly this many addresses.
-const REQUIRED_ADMIN_COUNT: usize = 3;
+const REQUIRED_ADMIN_COUNT: usize = 2;
  
 /// Gas fallback when `eth_estimateGas` fails (e.g. unfunded deployer).
 /// Production-safe but noisy in tests — see

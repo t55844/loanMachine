@@ -20,7 +20,7 @@ async fn prepare_rejects_empty_name() {
         &identity, &svc,
         "".into(),
         wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
+        vec![wa(env.approved_wallet), wa(env.second_admin)],
         2,
     ).await;
 
@@ -37,7 +37,7 @@ async fn prepare_rejects_whitespace_only_name() {
         &identity, &svc,
         "   ".into(),
         wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
+        vec![wa(env.approved_wallet), wa(env.second_admin)],
         2,
     ).await;
 
@@ -54,7 +54,7 @@ async fn prepare_rejects_too_long_name() {
         &identity, &svc,
         "a".repeat(101),
         wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
+        vec![wa(env.approved_wallet), wa(env.second_admin)],
         2,
     ).await;
 
@@ -71,14 +71,14 @@ async fn prepare_rejects_wrong_admin_count() {
         &identity, &svc,
         "Test Coop".into(),
         wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin)], // 2 instead of 3
+        vec![wa(env.approved_wallet)], // 1 instead of 2
         2,
     ).await;
 
     assert!(matches!(
         result,
         Err(CreateCoopLogicError::Deployment(
-            CoopDeploymentError::AdminCountWrong { got: 2, expected: 3 }
+            CoopDeploymentError::AdminCountWrong { got: 1, expected: 2 }
         ))
     ));
 }
@@ -93,7 +93,7 @@ async fn prepare_rejects_founder_not_in_admins() {
         &identity, &svc,
         "Test Coop".into(),
         wa(env.unapproved_wallet), // ← founder NOT in admin list
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
+        vec![wa(env.approved_wallet), wa(env.second_admin)],
         2,
     ).await;
 
@@ -115,7 +115,7 @@ async fn prepare_happy_path_returns_bundle() {
         &identity, &svc,
         "Cooperativa Test".into(),
         wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
+        vec![wa(env.approved_wallet), wa(env.second_admin)],
         2,
     ).await.expect("happy path");
 
@@ -136,7 +136,7 @@ async fn initialize_data_starts_with_initialize_multisig_selector() {
     let bundle = prepare_create_coop_logic(
         &identity, &svc, "Test".into(),
         wa(env.approved_wallet),
-        vec![wa(env.approved_wallet), wa(env.second_admin), wa(env.third_admin)],
+        vec![wa(env.approved_wallet), wa(env.second_admin)],
         2,
     ).await.unwrap();
 

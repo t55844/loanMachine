@@ -19,11 +19,8 @@ pub fn FormStep(
     set_name:   WriteSignal<String>,
     admin2:     ReadSignal<String>,
     set_admin2: WriteSignal<String>,
-    admin3:     ReadSignal<String>,
-    set_admin3: WriteSignal<String>,
     name_err:   ReadSignal<String>,
     admin2_err: ReadSignal<String>,
-    admin3_err: ReadSignal<String>,
     #[prop(into)] loading: Signal<bool>,
     founder_wallet: WalletAddress,
     on_submit: Box<dyn Fn() + Send + Sync>,
@@ -49,25 +46,17 @@ pub fn FormStep(
                 </div>
 
                 <TextInput
-                    label="Admin 2 — Wallet"
+                    label="Co-Admin Wallet"
                     placeholder="0x0000...0000"
                     hint="Second administrator of the cooperative"
                     value=admin2 set_value=set_admin2
                     error=Signal::derive(move || admin2_err.get())
                 />
 
-                <TextInput
-                    label="Admin 3 — Wallet"
-                    placeholder="0x0000...0000"
-                    hint="Third administrator of the cooperative"
-                    value=admin3 set_value=set_admin3
-                    error=Signal::derive(move || admin3_err.get())
-                />
-
                 <div class="form-group">
                     <label class="form-label">"Approval Threshold"</label>
                     <div class="hash-display" style="color: var(--c-yellow)">
-                        "2 of 3 administrators"
+                        "2 of 2 administrators"
                     </div>
                     <span class="form-hint">"Fixed for this version"</span>
                 </div>

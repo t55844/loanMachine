@@ -24,6 +24,7 @@ use leptos::prelude::*;
 use crate::components::create_coop::create_coop::{CoopStep, CreateCoopPage};
 use crate::components::create_coop::create_coop_steps::StepProgress;
 use crate::components::create_coop::coop_choice::CoopChoicePage;
+use crate::components::gas_modal::provide_gas_modal;
 use crate::components::tests_helper::fake_wallet;
 // ── Helper ────────────────────────────────────────────────────
 
@@ -86,8 +87,9 @@ fn choice_shows_create_coop_cta_button() {
 // The page always mounts in CoopStep::Form — this is the SSR initial render.
 
 fn page_html() -> String {
-    render_to_string(|| view! {
-        <CreateCoopPage founder_wallet=fake_wallet() />
+    render_to_string(|| {
+        provide_gas_modal();
+        view! { <CreateCoopPage founder_wallet=fake_wallet() /> }
     })
 }
 
@@ -131,18 +133,13 @@ fn page_shows_founder_wallet_short_form_in_output() {
     assert!(page_html().contains("0x1111…1111"));
 }
 #[test]
-fn page_shows_admin2_label() {
-    assert!(page_html().contains("Admin 2 — Wallet"));
-}
-
-#[test]
-fn page_shows_admin3_label() {
-    assert!(page_html().contains("Admin 3 — Wallet"));
+fn page_shows_co_admin_label() {
+    assert!(page_html().contains("Co-Admin Wallet"));
 }
 
 #[test]
 fn page_shows_threshold_value() {
-    assert!(page_html().contains("2 of 3 administrators"));
+    assert!(page_html().contains("2 of 2 administrators"));
 }
 
 #[test]

@@ -146,7 +146,6 @@ pub(crate) fn CoopHeader(coop: CooperativeView) -> impl IntoView {
 // ── DISPATCH (the panel's only real job) ────────────────────
 use crate::components::vinculation::FirstVinculationForm;
 use crate::components::coop_control::approval_pending::ApprovalPending;
-use crate::components::coop_control::coop_approval::RequestApproval;
 use crate::components::coop_control::admin_panel::{AdminPanel, ModeratorPanel};
 use crate::components::coop_control::invite_member_panel::InviteMemberPanel;
 use crate::components::user::member_status::MemberStatusPanel;
@@ -166,7 +165,7 @@ pub(crate) fn RoleSection(
     // 1. Membership ladder — what's the user's relationship to the coop?
     let ladder = match role {
         ViewerRole::Visitor => view! {
-            <RequestApproval coop_id=coop_id.clone() on_tx_success=on_state_changed />
+            <VisitorCard />
         }.into_any(),
 
         ViewerRole::ApprovalPending => view! {
@@ -206,3 +205,20 @@ pub(crate) fn RoleSection(
     }
 }
 
+#[component]
+fn VisitorCard() -> impl IntoView {
+    view! {
+        <Card variant=CardVariant::Default tag="VISITOR" hover=false>
+            <div class="flex-col gap-4" style="margin-top: var(--sp-4)">
+                <p class="t-mono-sm">
+                    "Your wallet is not yet approved for this cooperative."
+                </p>
+                <p class="t-mono-xs t-muted">
+                    "To join, contact an administrator and ask them to send you an
+                    invitation. Once an admin creates an approval proposal for your
+                    wallet, the status will appear here automatically."
+                </p>
+            </div>
+        </Card>
+    }
+}
