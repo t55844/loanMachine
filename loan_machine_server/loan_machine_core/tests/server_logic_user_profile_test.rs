@@ -34,7 +34,7 @@ async fn founder_is_admin_member_and_approved() {
     })).await;
     // Founder is admin → count_actionable_proposals fires PendingForUser
     mount_query(&server, "PendingForUser", json!({
-        "data": { "created": [], "executed": [], "confirmedByMe": [], "cosigned": [] }
+        "data": { "created": [], "executed": [], "confirmedByMe": [] }
     })).await;
 
     let subgraph = SubgraphService::new(server.uri());
@@ -89,7 +89,6 @@ async fn admin_pending_count_excludes_already_confirmed_proposals() {
             "created":       [{"proposalId": "0"}, {"proposalId": "1"}, {"proposalId": "2"}],
             "executed":      [{"proposalId": "2"}],
             "confirmedByMe": [{"proposalId": "0"}],
-            "cosigned":      [],
         }
     })).await;
 

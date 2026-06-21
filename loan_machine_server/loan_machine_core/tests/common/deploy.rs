@@ -136,7 +136,7 @@ async fn deploy() -> Deployed {
 
     loan_machine
         .initializeMultisig(
-            vec![admin1_addr, admin2_addr, admin3_addr],
+            vec![admin1_addr, admin2_addr],
             U256::from(2u64),
             founder_member_id,
         )

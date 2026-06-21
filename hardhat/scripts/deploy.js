@@ -8,7 +8,6 @@ const STABLECOINS = {
 
 const LOCAL = {
   coopName: "Test Coop",
-  accessCode: "test123",
   memberId: 1,
   guardians: [],
 };
@@ -49,7 +48,6 @@ async function main() {
     LOCAL.coopName,
     usdtAddr,
     coopAdminAddr,
-    LOCAL.accessCode
   );
   const receipt = await deployTx.wait();
 
@@ -79,7 +77,7 @@ async function main() {
     await loanMachine.connect(coopAdmin).approveWallet(member1.address);
     console.log("✅ Wallet approved");
 
-    await loanMachine.connect(member1).joinCoop(LOCAL.memberId, member1.address, LOCAL.accessCode);
+    await loanMachine.connect(member1).joinCoop(LOCAL.memberId, member1.address);
     console.log("✅ Member1 joined coop");*/
 
     console.log("");

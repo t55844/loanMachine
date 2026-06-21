@@ -58,6 +58,7 @@ test-web-one:
 # ── Chain helpers ─────────────────────────────────────────────
 compile:
 	cd ./hardhat && npx hardhat clean && npx hardhat compile
+	find ./hardhat/artifacts/contracts -name '*.json' ! -name '*.dbg.json' -exec cp {} ./hardhat/scripts/graphql/abis/ \;
 
 fund-anvil-wallet:
 	curl -X POST http://localhost:8545 \

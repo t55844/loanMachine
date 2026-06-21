@@ -16,9 +16,6 @@ query ApproveWalletProposals($coopId: String!) {
   confirmed: proposalConfirmedEvents(where: { cooperative: $coopId }) {
     proposalId admin
   }
-  cosigned: proposalCosignedEvents(where: { cooperative: $coopId }) {
-    proposalId
-  }
 }"#;
 
 #[derive(Serialize)]
@@ -42,16 +39,14 @@ struct Data {
     created:   Vec<CreatedRow>,
     executed:  Vec<IdRow>,
     confirmed: Vec<ConfRow>,
-    cosigned:  Vec<IdRow>,
 }
 
 pub struct ApproveWalletProposalRaw {
-    pub proposal_id:        u64,
-    pub proposer:           String,
-    pub created_at:         u64,
-    pub confirmations:      u32,
-    pub viewer_confirmed:   bool,
-    pub moderator_cosigned: bool,
+    pub proposal_id:      u64,
+    pub proposer:         String,
+    pub created_at:       u64,
+    pub confirmations:    u32,
+    pub viewer_confirmed: bool,
 }
 
 pub async fn fetch_pending_approve_wallet_proposals(
@@ -64,7 +59,6 @@ pub async fn fetch_pending_approve_wallet_proposals(
     let data: Data = subgraph.query(QUERY, Vars { coop_id }).await?;
 
     let executed: HashSet<&str> = data.executed.iter().map(|r| r.proposal_id.as_str()).collect();
-    let cosigned: HashSet<&str> = data.cosigned.iter().map(|r| r.proposal_id.as_str()).collect();
 
     let mut out = Vec::new();
     for c in &data.created {
@@ -79,12 +73,11 @@ pub async fn fetch_pending_approve_wallet_proposals(
         );
 
         out.push(ApproveWalletProposalRaw {
-            proposal_id:        c.proposal_id.parse().unwrap_or(0),
-            proposer:           c.proposer.clone(),
-            created_at:         c.block_timestamp.parse().unwrap_or(0),
+            proposal_id:  c.proposal_id.parse().unwrap_or(0),
+            proposer:     c.proposer.clone(),
+            created_at:   c.block_timestamp.parse().unwrap_or(0),
             confirmations,
             viewer_confirmed,
-            moderator_cosigned: cosigned.contains(id),
         });
     }
     Ok(out)

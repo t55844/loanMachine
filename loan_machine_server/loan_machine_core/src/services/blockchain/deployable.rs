@@ -23,9 +23,3 @@ sol! {
     CoopRegistry,
     "../../hardhat/artifacts/contracts/CoopRegistry.sol/CoopRegistry.json"
 }
-
-sol! {
-    #[sol(rpc)]
-    CoopAccount,
-    "../../hardhat/artifacts/contracts/CoopAccount.sol/CoopAccount.json"
-}

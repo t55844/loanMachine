@@ -44,15 +44,8 @@ sol! {
 
         function confirmProposal(uint256 proposalId) external;
 
-        // ── WALLET APPROVAL (admin + moderator co-sign) ──────
-        function proposeWalletApproval(address wallet) external returns (uint256 requestId);
+        // ── WALLET APPROVAL (admin/moderator invite) ─────────
         function proposeApproveWalletAsAdmin(address wallet) external returns (uint256);
-
-
-        function cosignProposal(
-            uint256 proposalId,
-            bytes32 moderatorMemberId
-        ) external;
         // ── MEMBER JOIN ──────────────────────────────────────
         function joinCoop(
             bytes32 memberId,
@@ -148,9 +141,7 @@ sol! {
             uint256 confirmations,
             bool    executed,
             uint256 createdAt,
-            bool    requiresUnanimous,
-            bool    requiresModeratorCosign,
-            bytes32 moderatorCosignedBy
+            bool    requiresUnanimous
         );
 
         // Loan views
@@ -246,33 +237,5 @@ sol! {
             uint256 registeredAt,
             bool    exists
         );
-    }
-}
-
-// ── COOP ACCOUNT ─────────────────────────────────────────────
-// Smart wallet per member, target-locked to LoanMachine.
-// memberId is bytes32 (keccak256(COOP_SALT ++ wallet_bytes)).
-
-sol! {
-    #[sol(rpc)]
-    contract CoopAccount {
-        function initialize(
-            address            owner,
-            address            loanMachine,
-            bytes32            memberId,
-            address[] calldata guardians
-        ) external;
-
-        function execute(address target, bytes calldata data) external;
-
-        function approveRecovery(address proposedOwner) external;
-
-        function getGuardians()                           external view returns (address[] memory);
-        function getRecoveryApprovalCount(address p)      external view returns (uint256);
-        function hasGuardianApproved(address g, address p) external view returns (bool);
-
-        function owner()       external view returns (address);
-        function loanMachine() external view returns (address);
-        function memberId()    external view returns (bytes32);
     }
 }

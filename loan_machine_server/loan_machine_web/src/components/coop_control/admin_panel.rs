@@ -5,27 +5,25 @@ use loan_machine_models::responses::{ApproveWalletPending, ApproveWalletProposal
 
 use crate::components::ui::*;
 use crate::server_fns::admin_approvals::{
-    list_pending_approvals, prepare_confirm_proposal, prepare_cosign_proposal,
+    list_pending_approvals, prepare_confirm_proposal,
 };
 use crate::wallet_auth::privy_bridge;
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum ApprovalAction { AdminConfirm, ModeratorCosign }
+pub enum ApprovalAction { AdminConfirm }
 
 // ── pure logic, exposed for tests ─────────────────────────────────────────
 
 pub(crate) fn viewer_has_acted(row: &ApproveWalletProposalRow, action: ApprovalAction) -> bool {
     match action {
-        ApprovalAction::AdminConfirm    => row.viewer_confirmed,
-        ApprovalAction::ModeratorCosign => row.moderator_cosigned,
+        ApprovalAction::AdminConfirm => row.viewer_confirmed,
     }
 }
 
 pub(crate) fn action_button_label(action: ApprovalAction, is_sending: bool) -> &'static str {
     match (action, is_sending) {
-        (_,                              true)  => "Sending…",
-        (ApprovalAction::AdminConfirm,    false) => "Confirm",
-        (ApprovalAction::ModeratorCosign, false) => "Co-sign",
+        (_, true)                        => "Sending…",
+        (ApprovalAction::AdminConfirm, false) => "Confirm",
     }
 }
 
@@ -41,23 +39,6 @@ pub fn AdminPanel(coop_id: String, on_tx_success: Callback<()>) -> impl IntoView
             <ApprovalsList
                 coop_id=coop_id
                 action=ApprovalAction::AdminConfirm
-                on_tx_success=on_tx_success
-            />
-        </Card>
-    }
-}
-
-#[component]
-pub fn ModeratorPanel(coop_id: String, on_tx_success: Callback<()>) -> impl IntoView {
-    view! {
-        <Card variant=CardVariant::Default hover=false>
-            <Badge color=BadgeColor::Yellow>"MODERATOR PANEL"</Badge>
-            <h3 class="t-display-sm" style="margin-top: var(--sp-4); margin-bottom: var(--sp-6)">
-                "Pending approval co-signatures"
-            </h3>
-            <ApprovalsList
-                coop_id=coop_id
-                action=ApprovalAction::ModeratorCosign
                 on_tx_success=on_tx_success
             />
         </Card>
@@ -104,8 +85,7 @@ fn ApprovalsList(
         set_active_id.set(Some(proposal_id));
         spawn_local(async move {
             let prepared: Result<RequestApprovalBundle, _> = match action {
-                ApprovalAction::AdminConfirm    => prepare_confirm_proposal(coop_id, proposal_id).await,
-                ApprovalAction::ModeratorCosign => prepare_cosign_proposal(coop_id, proposal_id).await,
+                ApprovalAction::AdminConfirm => prepare_confirm_proposal(coop_id, proposal_id).await,
             };
             match prepared {
                 Ok(b)  => privy_bridge::send_tx(&b.to, &b.data, Some(&b.gas_hex)),
@@ -174,8 +154,7 @@ fn ProposalRow(
     let proposer      = row.proposer.clone();
     let created_at    = row.created_at;
     let confirmations = row.confirmations;
-    let mod_cosigned  = row.moderator_cosigned;
-    let viewer_acted = viewer_has_acted(&row, action);
+    let viewer_acted  = viewer_has_acted(&row, action);
 
     let is_mine_pending = Memo::new(move |_| active_id.get() == Some(proposal_id));
     let any_pending     = Memo::new(move |_| active_id.get().is_some());
@@ -198,11 +177,6 @@ fn ProposalRow(
                 <Badge color=BadgeColor::Yellow>
                     {format!("{confirmations}/{threshold} confirmations")}
                 </Badge>
-                {if mod_cosigned {
-                    view! { <Badge color=BadgeColor::Green filled=true>"CO-SIGNED"</Badge> }.into_any()
-                } else {
-                    view! { <Badge color=BadgeColor::Red>"AWAITING CO-SIGN."</Badge> }.into_any()
-                }}
                 {viewer_acted.then(|| view! { <Badge color=BadgeColor::Green>"YOU ALREADY ACTED"</Badge> })}
             </div>
 

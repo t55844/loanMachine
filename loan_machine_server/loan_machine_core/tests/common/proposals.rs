@@ -41,8 +41,8 @@ fn next_unique_target() -> Address {
     Address::from(bytes)
 }
 
-/// Propose a wallet approval for a fresh target address. Returns
-/// `(target, proposal_id)`. Tests that care only about the proposal id
+/// Propose a wallet approval for a fresh target address via admin invitation.
+/// Returns `(target, proposal_id)`. Tests that care only about the proposal id
 /// can ignore the target.
 pub async fn propose_fresh_wallet_approval(env: &DeployedEnv) -> (Address, u64) {
     let target = next_unique_target();
@@ -61,16 +61,14 @@ pub async fn propose_wallet_approval(env: &DeployedEnv, target: Address) -> u64 
     let lm_addr: Address = env.loan_machine_address.parse().unwrap();
     let lm = LoanMachine::new(lm_addr, provider);
 
-    // `.from()` is harmless here (no admin check) but keeps simulate semantics
-    // identical to send, which matters once the contract is signed-by check.
-    let pid: U256 = lm.proposeWalletApproval(target)
+    let pid: U256 = lm.proposeApproveWalletAsAdmin(target)
         .from(env.approved_wallet)
         .call().await
-        .expect("simulate proposeWalletApproval").proposalId;
-    lm.proposeWalletApproval(target).send().await
-        .expect("send proposeWalletApproval")
+        .expect("simulate proposeApproveWalletAsAdmin")._0;
+    lm.proposeApproveWalletAsAdmin(target).send().await
+        .expect("send proposeApproveWalletAsAdmin")
         .watch().await
-        .expect("mine proposeWalletApproval");
+        .expect("mine proposeApproveWalletAsAdmin");
     pid.try_into().expect("proposalId fits u64")
 }
 

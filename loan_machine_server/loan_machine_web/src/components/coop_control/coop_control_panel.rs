@@ -146,7 +146,7 @@ pub(crate) fn CoopHeader(coop: CooperativeView) -> impl IntoView {
 // ── DISPATCH (the panel's only real job) ────────────────────
 use crate::components::vinculation::FirstVinculationForm;
 use crate::components::coop_control::approval_pending::ApprovalPending;
-use crate::components::coop_control::admin_panel::{AdminPanel, ModeratorPanel};
+use crate::components::coop_control::admin_panel::AdminPanel;
 use crate::components::coop_control::invite_member_panel::InviteMemberPanel;
 use crate::components::user::member_status::MemberStatusPanel;
 use crate::components::donation::transfer_panel::TransferPanel;
@@ -190,11 +190,6 @@ pub(crate) fn RoleSection(
         {is_admin.then(|| view! {
             <div style="margin-top: var(--sp-6)">
                 <AdminPanel coop_id=coop_id.clone() on_tx_success=on_state_changed />
-            </div>
-        })}
-        {is_moderator.then(|| view! {
-            <div style="margin-top: var(--sp-6)">
-                <ModeratorPanel coop_id=coop_id.clone() on_tx_success=on_state_changed />
             </div>
         })}
         {(is_admin || is_moderator).then(|| view! {

@@ -47,7 +47,7 @@ pub struct PendingApproval {
 }
 
 /// Returns the most recent ApproveWallet proposal for this wallet in this coop,
-/// or None if none exists. Caller checks executed/cosigned state from chain.
+/// or None if none exists. Caller checks executed state from chain.
 pub async fn fetch_pending_approval(
     subgraph:          &SubgraphService,
     loan_machine_addr: Address,

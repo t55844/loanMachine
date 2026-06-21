@@ -3,8 +3,8 @@ import { BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts"
 import {
   ProposalCreated, ProposalConfirmed, ProposalExecuted,
   AdminAdded, AdminRemoved, AdminTransferred, ThresholdChanged,
-  ProposalCosigned, WalletApproved, WalletRevoked,
-  MemberRegistered, AccessCodeRotated, CoopDeactivated, CoopReactivated,
+  WalletApproved, WalletRevoked,
+  MemberRegistered, CoopDeactivated, CoopReactivated,
   Donated, Withdrawn, Borrowed, Repaid,
   TotalDonationsUpdated, TotalBorrowedUpdated, AvailableBalanceUpdated, NewDonor,
   LoanRequisitionCreatedCancelled, LoanCovered, LoanFunded, LoanContractGenerated,
@@ -19,8 +19,8 @@ import {
   Cooperative,
   ProposalCreatedEvent, ProposalConfirmedEvent, ProposalExecutedEvent,
   AdminAddedEvent, AdminRemovedEvent, AdminTransferredEvent, ThresholdChangedEvent,
-  ProposalCosignedEvent, WalletApprovedEvent, WalletRevokedEvent,
-  MemberRegisteredEvent, AccessCodeRotatedEvent, CoopDeactivatedEvent, CoopReactivatedEvent,
+  WalletApprovedEvent, WalletRevokedEvent,
+  MemberRegisteredEvent, CoopDeactivatedEvent, CoopReactivatedEvent,
   DonatedEvent, WithdrawnEvent, BorrowedEvent, RepaidEvent,
   TotalDonationsUpdatedEvent, TotalBorrowedUpdatedEvent, AvailableBalanceUpdatedEvent, NewDonorEvent,
   LoanRequisitionCreatedCancelledEvent, LoanCoveredEvent, LoanFundedEvent,
@@ -132,16 +132,6 @@ export function handleThresholdChanged(event: ThresholdChanged): void {
 //                  WALLET APPROVAL
 // ═════════════════════════════════════════════════════════════
 
-export function handleProposalCosigned(event: ProposalCosigned): void {
-  let entity = new ProposalCosignedEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.proposalId      = event.params.proposalId
-  entity.moderatorId     = event.params.moderatorMemberId
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
 export function handleWalletApproved(event: WalletApproved): void {
   let entity = new WalletApprovedEvent(makeId(event))
   entity.cooperative     = coopId(event)
@@ -178,14 +168,6 @@ export function handleMemberRegistered(event: MemberRegistered): void {
   entity.allWallets = wallets
 
   entity.timestamp       = formatTimestamp(event.params.timestamp)
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
-}
-
-export function handleAccessCodeRotated(event: AccessCodeRotated): void {
-  let entity = new AccessCodeRotatedEvent(makeId(event))
-  entity.cooperative     = coopId(event)
   entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()

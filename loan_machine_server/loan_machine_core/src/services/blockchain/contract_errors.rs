@@ -34,11 +34,11 @@ pub fn translate_revert(data: &[u8]) -> String {
         [0x6a, 0x17, 0x07, 0x9f] => "You have already confirmed this proposal.".into(),
         [0x37, 0x1e, 0x2c, 0xc3] => "Proposal not found.".into(),
 
-        // ── Wallet approval / moderator ───────────────────────
-        [0xc6, 0xd4, 0x31, 0xc1] => "Wallet approval request not found.".into(),
-        [0x31, 0xd7, 0xd4, 0x65] => "This wallet approval has already been executed.".into(),
+        // ── Wallet approval ───────────────────────────────────
+        [0x51, 0x09, 0x67, 0x3e] => "This wallet is already approved.".into(),
+        [0xf4, 0x01, 0xf0, 0xf6] => "This wallet already has a pending approval proposal.".into(),
+        [0xbf, 0xc7, 0xb8, 0xe7] => "This proposal has expired.".into(),
         [0xf3, 0x9a, 0xa3, 0x32] => "Only the elected moderator can perform this action.".into(),
-        [0x42, 0x42, 0x64, 0x21] => "Administrator has not been proposed yet.".into(),
 
         // ── Coop lifecycle / membership ───────────────────────
         [0x47, 0x6e, 0xbc, 0x32] => "Cooperative already initialized.".into(),

@@ -104,17 +104,6 @@ type ThresholdChangedEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-# ── GOVERNANCE: WALLET APPROVAL CO-SIGN ───────────────────────
-
-type ProposalCosignedEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
-  proposalId: BigInt!
-  moderatorId: Bytes!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
 type WalletApprovedEvent @entity(immutable: true) {
   id: ID!
   cooperative: Cooperative!
@@ -141,13 +130,6 @@ type MemberRegisteredEvent @entity(immutable: true) {
   allWallets: [Bytes!]!
   isFirstWallet: Boolean!
   timestamp: String!
-  blockTimestamp: String!
-  transactionHash: Bytes!
-}
-
-type AccessCodeRotatedEvent @entity(immutable: true) {
-  id: ID!
-  cooperative: Cooperative!
   blockTimestamp: String!
   transactionHash: Bytes!
 }

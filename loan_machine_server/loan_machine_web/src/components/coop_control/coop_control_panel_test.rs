@@ -93,7 +93,7 @@ fn render_role_with_caps(
     is_moderator: bool,
 ) -> String {
     render_to_string(move || {
-        provide_gas_modal(); // needed by RequestApproval + FirstVinculationForm
+        provide_gas_modal(); // needed by FirstVinculationForm + InviteMemberPanel
         view! {
             <RoleSection
                 role=role
@@ -171,10 +171,10 @@ fn admin_capability_mounts_admin_panel() {
 }
 
 #[test]
-fn moderator_capability_mounts_moderator_panel() {
+fn moderator_capability_mounts_invite_panel() {
     let html = render_role_with_caps(ViewerRole::Member, false, true);
-    assert!(html.contains("MODERADOR") || html.contains("MODERATOR"),
-        "expected ModeratorPanel to render when is_moderator=true, got:\n{html}");
+    assert!(html.contains("INVITE MEMBER"),
+        "expected InviteMemberPanel to render when is_moderator=true, got:\n{html}");
 }
 
 #[test]

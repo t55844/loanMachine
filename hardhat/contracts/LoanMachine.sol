@@ -75,8 +75,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         bool    executed;
         uint256 createdAt;
         bool    requiresUnanimous;        // bootstrap = true
-        bool    requiresModeratorCosign;  // ApproveWallet in steady state = true
-        bytes32 moderatorCosignedBy;      // 0 until cosigned
     }
 
 
@@ -106,7 +104,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     event WalletApproved(address indexed wallet);
     event WalletRevoked(address indexed wallet);
-    event ProposalCosigned(uint256 indexed proposalId, bytes32 indexed moderatorMemberId);
 
     // =============================================================
     //                     GENERAL STORAGE
@@ -175,7 +172,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_ProposalNotFound();
 
     error LoanMachine_NotModerator();
-    error LoanMachine_ModeratorCosignRequired();
+    error LoanMachine_UseApproveWalletAsAdminFunction();
 
     error LoanMachine_AlreadyInitialized();
     error LoanMachine_NotApproved();
@@ -312,17 +309,14 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         ProposalType pType,
         bytes memory data,
         bool requiresUnanimous,
-        bool requiresModeratorCosign,
-        bool proposerCounts                             
+        bool proposerCounts
     ) internal returns (uint256 proposalId) {
         proposalId = proposalCounter++;
         proposals[proposalId] = Proposal({
             pType: pType, data: data,
-            confirmations: proposerCounts ? 1 : 0,      
+            confirmations: proposerCounts ? 1 : 0,
             executed: false, createdAt: block.timestamp,
-            requiresUnanimous: requiresUnanimous,
-            requiresModeratorCosign: requiresModeratorCosign,
-            moderatorCosignedBy: bytes32(0)
+            requiresUnanimous: requiresUnanimous
         });
 
         if (proposerCounts) {
@@ -337,39 +331,20 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         ProposalType pType,
         bytes calldata data
     ) external onlyAdmin returns (uint256 proposalId) {
-        if (pType == ProposalType.ApproveWallet) revert LoanMachine_ModeratorCosignRequired();
+        if (pType == ProposalType.ApproveWallet) revert LoanMachine_UseApproveWalletAsAdminFunction();
 
-        return _createProposal(pType, data, false, false, true);
-    }
-
-    function proposeWalletApproval(address wallet) external returns (uint256 proposalId) {
-        if (wallet == address(0))            revert LoanMachine_MemberIdOrWalletInvalid();
-        if (approvedWallets[wallet])         revert LoanMachine_WalletAlreadyApproved();
-
-        uint256 pendingId = pendingApprovalProposalId[wallet];
-        if (pendingId != 0) {
-            Proposal storage pending = proposals[pendingId];
-            if (block.timestamp <= pending.createdAt + PROPOSAL_EXPIRY)
-                revert LoanMachine_WalletApprovalAlreadyProposed();
-            delete pendingApprovalProposalId[wallet];
-        }
-
-        proposalId = _createProposal(
-            ProposalType.ApproveWallet, abi.encode(wallet),
-            false, true, false                                     
-        );
-        pendingApprovalProposalId[wallet] = proposalId;
+        return _createProposal(pType, data, false, true);
     }
 
     function proposeApproveWalletAsAdmin(address wallet) external onlyAdminOrModerator returns (uint256) {
-        if (wallet == address(0))   revert LoanMachine_MemberIdOrWalletInvalid();
+        if (wallet == address(0))    revert LoanMachine_MemberIdOrWalletInvalid();
         if (approvedWallets[wallet]) revert LoanMachine_WalletAlreadyApproved();
 
         bool proposerCounts = isAdmin[msg.sender];
         uint256 proposalId = _createProposal(
             ProposalType.ApproveWallet,
             abi.encode(wallet),
-            false, false, proposerCounts
+            false, proposerCounts
         );
         pendingApprovalProposalId[wallet] = proposalId;
         return proposalId;
@@ -392,36 +367,12 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         _maybeExecute(proposalId);
     }
 
-    function cosignProposal(
-        uint256 proposalId,
-        bytes32 moderatorMemberId
-    ) external {
-        Proposal storage p = proposals[proposalId];
-        if (p.createdAt == 0) revert LoanMachine_ProposalNotFound();
-        if (p.executed)       revert LoanMachine_ProposalAlreadyExecuted();
-        if (block.timestamp > p.createdAt + PROPOSAL_EXPIRY)
-            revert LoanMachine_ProposalExpired();
-        if (!p.requiresModeratorCosign) revert LoanMachine_ModeratorCosignRequired();
-
-        if (_rs.walletToMemberId[msg.sender] != moderatorMemberId)
-            revert LoanMachine_MemberIdOrWalletInvalid();
-        if (!_rs.isModerator[moderatorMemberId]) revert LoanMachine_NotModerator();
-
-        p.moderatorCosignedBy = moderatorMemberId;
-
-        emit ProposalCosigned(proposalId, moderatorMemberId);
-
-        _maybeExecute(proposalId);
-    }
-
     function _maybeExecute(uint256 proposalId) internal {
         Proposal storage p = proposals[proposalId];
 
         uint256 confirmsNeeded = p.requiresUnanimous ? admins.length : adminThreshold;
-        bool    confirmsMet    = p.confirmations >= confirmsNeeded;
-        bool    cosignMet      = !p.requiresModeratorCosign || p.moderatorCosignedBy != bytes32(0);
 
-        if (confirmsMet && cosignMet) {
+        if (p.confirmations >= confirmsNeeded) {
             _executeProposal(proposalId);
         }
     }
@@ -921,9 +872,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         uint256 confirmations,
         bool    executed,
         uint256 createdAt,
-        bool    requiresUnanimous,
-        bool    requiresModeratorCosign,
-        bytes32 moderatorCosignedBy
+        bool    requiresUnanimous
     ) {
         Proposal storage p = proposals[proposalId];
         return (
@@ -931,9 +880,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             p.confirmations,
             p.executed,
             p.createdAt,
-            p.requiresUnanimous,
-            p.requiresModeratorCosign,
-            p.moderatorCosignedBy
+            p.requiresUnanimous
         );
     }
 

@@ -1,42 +1,6 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/home/thorim/projects/loan-machine/hardhat/contracts/CoopAccount.sol": {
-      "lastModificationDate": 1780885881095,
-      "contentHash": "7d75d3e350bd32e1bcd5d21997528b8c",
-      "sourceName": "contracts/CoopAccount.sol",
-      "solcConfig": {
-        "version": "0.8.19",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 10
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.19"
-      ],
-      "artifacts": [
-        "CoopAccount"
-      ]
-    },
     "/home/thorim/projects/loan-machine/hardhat/contracts/CoopRegistry.sol": {
       "lastModificationDate": 1780885881095,
       "contentHash": "acc8133720ee73874b371c6db3fbe35a",
@@ -148,8 +112,8 @@
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/contracts/LoanMachine.sol": {
-      "lastModificationDate": 1782008983184,
-      "contentHash": "42fc6cb0b8de749c7f77c727896f21ac",
+      "lastModificationDate": 1782067556259,
+      "contentHash": "b2e28e59d85025aed3781e321ee10cae",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",

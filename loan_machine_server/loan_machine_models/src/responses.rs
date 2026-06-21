@@ -3,12 +3,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ApproveWalletProposalRow {
-    pub proposal_id:        u64,
-    pub proposer:           String,
-    pub created_at:         u64,
-    pub confirmations:      u32,
-    pub moderator_cosigned: bool,
-    pub viewer_confirmed:   bool,
+    pub proposal_id:      u64,
+    pub proposer:         String,
+    pub created_at:       u64,
+    pub confirmations:    u32,
+    pub viewer_confirmed: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -46,12 +45,11 @@ pub struct UserProfile {
 pub enum ApprovalStatus {
     None,
     Pending {
-        proposal_id:        u64,
-        created_at:         u64,
-        confirmations:      u32,
-        threshold:          u32,
-        total_admins:       u32,
-        moderator_cosigned: bool,
+        proposal_id:   u64,
+        created_at:    u64,
+        confirmations: u32,
+        threshold:     u32,
+        total_admins:  u32,
     },
     Approved,
 }

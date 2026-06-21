@@ -25,25 +25,18 @@ pub fn ApprovalPending(
             }>
                 {move || status_res.get().flatten().map(|status| match status {
                     ApprovalStatus::Pending {
-                        proposal_id, confirmations, threshold,
-                        total_admins, moderator_cosigned, ..
+                        proposal_id, confirmations, threshold, total_admins, ..
                     } => view! {
                         <div class="flex-col gap-4" style="margin-top: var(--sp-4)">
                             <p class="t-mono-xs t-muted">
-                                "Your request has been registered. Wait until the administrators
-                                confirm and a moderator co-signs."
+                                "Your invitation has been registered. Wait until enough administrators
+                                confirm the proposal."
                             </p>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4)">
-                                <StatBlock
-                                    label="Admin confirmations"
-                                    value=format!("{}/{} (threshold {})", confirmations, total_admins, threshold)
-                                />
-                                <StatBlock
-                                    label="Moderator co-signed"
-                                    value=if moderator_cosigned { "Yes".into() } else { "No".into() }
-                                />
-                            </div>
+                            <StatBlock
+                                label="Admin confirmations"
+                                value=format!("{}/{} (threshold {})", confirmations, total_admins, threshold)
+                            />
 
                             <div class="stat-block">
                                 <span class="stat-label">"Proposal ID"</span>

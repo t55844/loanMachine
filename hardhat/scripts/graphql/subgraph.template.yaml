@@ -56,12 +56,10 @@ templates:
         - AdminTransferredEvent
         - ThresholdChangedEvent
         # Wallet approval
-        - ProposalCosignedEvent
         - WalletApprovedEvent
         - WalletRevokedEvent
         # Membership
         - MemberRegistered
-        - AccessCodeRotatedEvent
         - CoopDeactivatedEvent
         - CoopReactivatedEvent
         # Financial
@@ -114,9 +112,7 @@ templates:
         - event: ThresholdChanged(uint256,uint256)
           handler: handleThresholdChanged
 
-        # Wallet approval co-sign
-        - event: ProposalCosigned(indexed uint256,indexed bytes32)
-          handler: handleProposalCosigned
+        # Wallet approval
         - event: WalletApproved(indexed address)
           handler: handleWalletApproved
         - event: WalletRevoked(indexed address)
@@ -125,8 +121,6 @@ templates:
         # Membership
         - event: MemberRegistered(indexed bytes32,indexed address,address[],bool,uint256)
           handler: handleMemberRegistered
-        - event: AccessCodeRotated()
-          handler: handleAccessCodeRotated
         - event: CoopDeactivated()
           handler: handleCoopDeactivated
         - event: CoopReactivated()

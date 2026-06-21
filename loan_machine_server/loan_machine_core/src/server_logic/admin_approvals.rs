@@ -11,13 +11,10 @@ use crate::services::blockchain::{BlockchainError, BlockchainService};
 use crate::services::subgraph::SubgraphService;
 use crate::server_logic::subgraph_queries::approve_wallet_proposals::fetch_pending_approve_wallet_proposals;
 
-use crate::server_logic::helpers::resolve_member_id;
-
 #[derive(Debug, Error)]
 pub enum AdminApprovalError {
     #[error("invalid coop id: {0}")] InvalidCoopId(String),
     #[error("invalid target wallet address")] InvalidTargetWallet,
-    #[error("viewer is not vinculated; cannot cosign")] NotVinculated,
     #[error("not authorized: admin or moderator required")] NotAuthorized,
     #[error(transparent)] Blockchain(#[from] BlockchainError),
     #[error(transparent)] Subgraph(#[from] crate::services::subgraph::SubgraphError),
@@ -44,8 +41,7 @@ pub async fn list_pending_approvals_logic(
 
     let proposals = raw.into_iter().map(|p| ApproveWalletProposalRow {
         proposal_id: p.proposal_id, proposer: p.proposer, created_at: p.created_at,
-        confirmations: p.confirmations, moderator_cosigned: p.moderator_cosigned,
-        viewer_confirmed: p.viewer_confirmed,
+        confirmations: p.confirmations, viewer_confirmed: p.viewer_confirmed,
     }).collect();
 
     Ok(ApproveWalletPending {
@@ -70,43 +66,6 @@ pub async fn prepare_confirm_proposal_logic(
     let wallet_addr = wallet_address::to_alloy(&wallet);
 
     let call = contract.confirmProposal(U256::from(proposal_id));
-    let gas  = call.clone().from(wallet_addr).estimate_gas().await
-        .map_err(BlockchainError::from_call)?;
-    let data_bytes = call.calldata().clone();
-
-    Ok(RequestApprovalBundle {
-        to:      format!("{lm_addr:#x}"),
-        data:    format!("0x{}", hex::encode(&data_bytes)),
-        gas_hex: format!("0x{gas:x}"),
-    })
-}
-
-pub async fn prepare_cosign_proposal_logic(
-    subgraph:    &SubgraphService,
-    blockchain:  &BlockchainService,
-    coop_id_hex: &str,
-    proposal_id: u64,
-    wallet:      WalletAddress,
-) -> Result<RequestApprovalBundle, AdminApprovalError> {
-    let (_coop_id_b32, lm_addr, provider, contract) = coop_context!(
-        blockchain:      blockchain,
-        coop_id_hex:     coop_id_hex,
-        invalid_coop_id: AdminApprovalError::InvalidCoopId(coop_id_hex.into()),
-        contract,
-    );
-    let wallet_addr = wallet_address::to_alloy(&wallet);
-
-    let member_id_b32 = resolve_member_id(
-            subgraph, provider.as_ref(), lm_addr, &wallet
-            ).await?
-            .unwrap_or(B256::ZERO);
-    let is_member = member_id_b32 != B256::ZERO;
-    
-    if !is_member {
-        return Err(AdminApprovalError::NotVinculated);
-    }
-
-    let call = contract.cosignProposal(U256::from(proposal_id), member_id_b32);
     let gas  = call.clone().from(wallet_addr).estimate_gas().await
         .map_err(BlockchainError::from_call)?;
     let data_bytes = call.calldata().clone();

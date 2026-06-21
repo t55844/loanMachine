@@ -15,9 +15,6 @@ query PendingForUser($coopId: String!, $wallet: Bytes!) {
   confirmedByMe: proposalConfirmedEvents(where: {cooperative: $coopId, admin: $wallet}) {
     proposalId
   }
-  cosigned: proposalCosignedEvents(where: {cooperative: $coopId}) {
-    proposalId
-  }
 }"#;
 
 #[derive(Serialize)]
@@ -32,10 +29,9 @@ struct Row { #[serde(rename = "proposalId")] proposal_id: String }
 
 #[derive(Deserialize)]
 struct Data {
-    created:                                              Vec<Row>,
-    executed:                                             Vec<Row>,
-    #[serde(rename = "confirmedByMe")] confirmed_by_me:   Vec<Row>,
-    cosigned:                                             Vec<Row>,
+    created:                                            Vec<Row>,
+    executed:                                           Vec<Row>,
+    #[serde(rename = "confirmedByMe")] confirmed_by_me: Vec<Row>,
 }
 
 /// Count ApproveWallet proposals where the viewer has an action to take.
@@ -57,15 +53,12 @@ pub async fn count_actionable_proposals(
 
     let executed:  HashSet<&str> = data.executed.iter().map(|r| r.proposal_id.as_str()).collect();
     let confirmed: HashSet<&str> = data.confirmed_by_me.iter().map(|r| r.proposal_id.as_str()).collect();
-    let cosigned:  HashSet<&str> = data.cosigned.iter().map(|r| r.proposal_id.as_str()).collect();
 
     let mut count = 0u32;
     for c in &data.created {
         let id = c.proposal_id.as_str();
         if executed.contains(id) { continue; }
-        let admin_action = is_admin     && !confirmed.contains(id);
-        let mod_action   = is_moderator && !cosigned.contains(id);
-        if admin_action || mod_action { count += 1; }
+        if is_admin && !confirmed.contains(id) { count += 1; }
     }
     Ok(count)
 }
