@@ -116,4 +116,33 @@ pub async fn estimate_withdraw_gas(
         Ok(U256::from(gas))
     }
 
+pub fn encode_create_loan_requisition(
+    amount:        U256,
+    parcels_count: u32,
+    member_id:     FixedBytes<32>,
+    days_interval: u32,
+) -> Bytes {
+    Bytes::from(LoanMachine::createLoanRequisitionCall {
+        amount,
+        parcelscount:          parcels_count,
+        memberId:              member_id,
+        daysIntervalOfPayment: days_interval,
+    }.abi_encode())
+}
 
+pub async fn estimate_create_loan_requisition_gas(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    from:              Address,
+    amount:            U256,
+    parcels_count:     u32,
+    member_id:         FixedBytes<32>,
+    days_interval:     u32,
+) -> Result<U256, BlockchainError> {
+    let gas = LoanMachine::new(loan_machine_addr, provider.clone())
+        .createLoanRequisition(amount, parcels_count, member_id, days_interval)
+        .from(from)
+        .estimate_gas().await
+        .map_err(BlockchainError::from_gas_estimate)?;
+    Ok(U256::from(gas))
+}

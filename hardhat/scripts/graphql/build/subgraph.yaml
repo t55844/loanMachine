@@ -9,7 +9,7 @@ dataSources:
     source:
       address: "0xa966451b622431217FEb5745a16FF60e147f7c4D"
       abi: CoopRegistry
-      startBlock: 5
+      startBlock: 11
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6

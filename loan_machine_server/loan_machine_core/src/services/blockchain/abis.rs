@@ -69,7 +69,6 @@ sol! {
         // ── LOAN LIFECYCLE ───────────────────────────────────
         function createLoanRequisition(
             uint256 amount,
-            uint32  minimumCoverage,
             uint32  parcelscount,
             bytes32 memberId,
             uint32  daysIntervalOfPayment

@@ -657,7 +657,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     function createLoanRequisition(
         uint256 amount,
-        uint32  minimumCoverage,
         uint32  parcelscount,
         bytes32 memberId,
         uint32  daysIntervalOfPayment
@@ -668,8 +667,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         validAmount(amount)
         returns (uint256)
     {
-        if (minimumCoverage <= 70 || minimumCoverage > 100)
-            revert LoanMachine_InvalidCoveragePercentage();
         if (parcelscount < 1 || parcelscount > 12)
             revert LoanMachine_InvalidParcelsCount();
         if (daysIntervalOfPayment > 30)
@@ -688,7 +685,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         req.requisitionId         = requisitionId;
         req.borrower              = msg.sender;
         req.amount                = amount;
-        req.minimumCoverage       = minimumCoverage;
+        req.minimumCoverage       = 100;
         req.currentCoverage       = 0;
         req.status                = BorrowStatus.Pending;
         req.creationTime          = block.timestamp;

@@ -485,11 +485,6 @@
         },
         {
           "internalType": "uint32",
-          "name": "_minimumCoverage",
-          "type": "uint32"
-        },
-        {
-          "internalType": "uint32",
           "name": "_parcelsCount",
           "type": "uint32"
         },

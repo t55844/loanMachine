@@ -12,3 +12,4 @@ pub mod member_financials;
 pub mod donation;
 pub mod withdrawal;
 pub mod coop_financials;
+pub mod loan_requisition;
