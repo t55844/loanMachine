@@ -85,21 +85,23 @@ pub async fn fetch_my_requisitions_logic(
     let wallet_hex = format!("{:#x}", to_alloy(wallet)).to_lowercase();
     let raw        = fetch_my_requisitions(subgraph, &coop_id, &wallet_hex).await?;
 
-    // Enrich each item with current_coverage and creationTime from on-chain.
-    // Users have at most 3 open requisitions so the call count is bounded.
+    // Enrich each item with on-chain data (coverage, creationTime, status).
+    // `status` from the contract is authoritative — the subgraph lags after
+    // cancelLoanRequisition, which would otherwise keep the CANCEL button
+    // visible. At most 3 calls since users have at most 3 open requisitions.
     let mut items = Vec::with_capacity(raw.len());
     for r in raw {
         let req_id = r.requisition_id.parse::<U256>().unwrap_or(U256::ZERO);
-        let (current_coverage, created_at) =
+        let (current_coverage, created_at, status) =
             get_requisition_info(provider.as_ref(), loan_machine_addr, req_id)
                 .await
-                .unwrap_or((0, 0));
+                .unwrap_or((0, 0, 0));
 
         items.push(LoanRequisitionItem {
-            requisition_id:   r.requisition_id,
-            amount:           r.amount,
-            parcels_count:    r.parcels_count,
-            status:           r.status,
+            requisition_id: r.requisition_id,
+            amount:         r.amount,
+            parcels_count:  r.parcels_count,
+            status,
             current_coverage,
             created_at,
         });

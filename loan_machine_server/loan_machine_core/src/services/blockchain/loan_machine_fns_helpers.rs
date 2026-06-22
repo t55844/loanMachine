@@ -130,16 +130,19 @@ pub fn encode_create_loan_requisition(
     }.abi_encode())
 }
 
+/// Returns `(currentCoverage, creationTime, status)` from the contract.
+/// `status` is the authoritative on-chain value — always prefer it over the
+/// subgraph's status, which can lag after a cancelLoanRequisition tx.
 pub async fn get_requisition_info(
     provider:          &Provider,
     loan_machine_addr: Address,
     requisition_id:    U256,
-) -> Result<(u32, u64), BlockchainError> {
+) -> Result<(u32, u64, u8), BlockchainError> {
     let info = LoanMachine::new(loan_machine_addr, provider.clone())
         .getRequisitionInfo(requisition_id)
         .call().await
         .map_err(BlockchainError::from_call)?;
-    Ok((info.currentCoverage, info.creationTime.saturating_to::<u64>()))
+    Ok((info.currentCoverage, info.creationTime.saturating_to::<u64>(), info.status))
 }
 
 pub fn encode_cancel_loan_requisition(
