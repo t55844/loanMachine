@@ -73,6 +73,45 @@ pub async fn withdraw_as(
         .watch().await.expect("mine withdraw");
 }
 
+/// Send `createLoanRequisition` on-chain and return the resulting requisition ID.
+///
+/// Caller is responsible for ensuring `availableBalance >= amount` (donate first)
+/// and that the member has < 3 open requisitions before calling.
+pub async fn create_requisition_as(
+    env:            &DeployedEnv,
+    signer_key_hex: &str,
+    member_id:      FixedBytes<32>,
+    amount:         U256,
+    parcels_count:  u32,
+    days_interval:  u32,
+) -> U256 {
+    let signer = signer_from_hex(signer_key_hex);
+    let from   = signer.address();
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(EthereumWallet::from(signer))
+        .on_http(env.rpc_url.parse().unwrap());
+
+    let lm_addr: Address = env.loan_machine_address.parse().unwrap();
+    let lm = LoanMachine::new(lm_addr, provider);
+
+    // Simulate first to capture the return value (requisition ID).
+    // `.from` must be explicit — without it the eth_call uses address(0) as
+    // msg.sender, failing the validMember check.
+    let req_id = lm
+        .createLoanRequisition(amount, parcels_count, member_id, days_interval)
+        .from(from)
+        .call().await
+        .expect("simulate createLoanRequisition")
+        ._0;
+
+    lm.createLoanRequisition(amount, parcels_count, member_id, days_interval)
+        .send().await.expect("send createLoanRequisition")
+        .watch().await.expect("mine createLoanRequisition");
+
+    req_id
+}
+
 /// Mint `amount` of MockUSDT to the wallet derived from `signer_key_hex`.
 /// `MockUSDT.mint` is unrestricted, so any signer can mint to itself.
 pub async fn mint_usdt(env: &DeployedEnv, signer_key_hex: &str, amount: U256) {

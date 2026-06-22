@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::services::subgraph::{SubgraphError, SubgraphService};
-use loan_machine_models::responses::LoanRequisitionItem;
 
 const QUERY: &str = r#"
 query MyRequisitions($coopId: String!, $borrower: Bytes!) {

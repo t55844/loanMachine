@@ -9,3 +9,5 @@ pub use loan_requisition::LoanRequisitionForm;
 
 #[cfg(test)]
 pub mod loan_requisition_test;
+#[cfg(test)]
+pub mod my_requisitions_test;
