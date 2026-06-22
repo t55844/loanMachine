@@ -57,6 +57,7 @@ pub fn WithdrawalForm(
         if tx_status.get() != WithdrawalTxStatus::Idle {
             return;
         }
+        if loading.get() { return; }
         let Some(b) = bundle.get() else { return; };
 
         let b = b.clone();

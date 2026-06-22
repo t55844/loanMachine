@@ -1,6 +1,7 @@
 mod common;
 
 use common::{donate_as, withdraw_as, vinculate_second_admin, server_returning};
+use loan_machine_core::server_logic::loan_requisition::LoanRequisitionError::InvalidDaysInterval;
 
 use alloy::primitives::U256;
 use loan_machine_core::server_logic::loan_requisition::{
@@ -84,6 +85,42 @@ async fn zero_amount_returns_invalid_amount() {
     );
 }
 
+// ── server-layer interval guard ───────────────────────────────
+
+#[tokio::test]
+async fn zero_interval_returns_invalid_days_interval() {
+    let env    = common::get_deployed().await;
+    let server = server_returning(empty_subgraph()).await;
+    let sg     = SubgraphService::new(server.uri());
+
+    let result = create_loan_requisition_logic(
+        &sg, &env.blockchain, &env.coop_id_hex,
+        from_alloy(env.approved_wallet), "1000000".into(), 6, 0,
+    ).await;
+
+    assert!(
+        matches!(result, Err(InvalidDaysInterval)),
+        "expected InvalidDaysInterval for interval=0, got {result:?}",
+    );
+}
+
+#[tokio::test]
+async fn interval_above_30_returns_invalid_days_interval() {
+    let env    = common::get_deployed().await;
+    let server = server_returning(empty_subgraph()).await;
+    let sg     = SubgraphService::new(server.uri());
+
+    let result = create_loan_requisition_logic(
+        &sg, &env.blockchain, &env.coop_id_hex,
+        from_alloy(env.approved_wallet), "1000000".into(), 6, 31,
+    ).await;
+
+    assert!(
+        matches!(result, Err(InvalidDaysInterval)),
+        "expected InvalidDaysInterval for interval=31, got {result:?}",
+    );
+}
+
 // ── contract-level rejects (caught by estimate_gas simulation) ──
 
 #[tokio::test]
@@ -117,23 +154,6 @@ async fn parcels_count_above_max_returns_blockchain_error() {
     assert!(
         matches!(result, Err(LoanRequisitionError::Blockchain(_))),
         "expected Blockchain error for parcels=13, got {result:?}",
-    );
-}
-
-#[tokio::test]
-async fn interval_above_limit_returns_blockchain_error() {
-    let env    = common::get_deployed().await;
-    let server = server_returning(empty_subgraph()).await;
-    let sg     = SubgraphService::new(server.uri());
-
-    let result = create_loan_requisition_logic(
-        &sg, &env.blockchain, &env.coop_id_hex,
-        from_alloy(env.approved_wallet), "1000000".into(), 6, 31,
-    ).await;
-
-    assert!(
-        matches!(result, Err(LoanRequisitionError::Blockchain(_))),
-        "expected Blockchain error for interval=31, got {result:?}",
     );
 }
 

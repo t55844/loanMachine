@@ -8,3 +8,4 @@ pub mod pending_proposals_count;
 pub mod user_related_coops;
 pub mod approve_wallet_proposals;
 pub mod member_financials;
+pub mod my_requisitions;

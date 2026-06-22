@@ -193,6 +193,21 @@ pub struct LoanRequisitionBundle {
     pub gas_hex:              String,
 }
 
+/// A single loan requisition, enriched with on-chain state.
+///
+/// `status` is the raw `BorrowStatus` discriminant:
+///   0=Pending, 1=PartiallyCovered, 2=FullyCovered, 3=Active,
+///   4=Repaid, 5=Defaulted, 6=Cancelled
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LoanRequisitionItem {
+    pub requisition_id:   String,  // decimal string
+    pub amount:           String,  // raw USDT units
+    pub parcels_count:    u32,
+    pub status:           u8,
+    pub current_coverage: u32,     // 0–100 from getRequisitionInfo
+    pub created_at:       u64,     // Unix seconds from contract creationTime
+}
+
 /// Bundle returned to the founder for the deploy + initialize flow.
 /// The client signs `deploy_tx` first, gets the deployed address,
 /// then signs `initialize_calldata` against that address.

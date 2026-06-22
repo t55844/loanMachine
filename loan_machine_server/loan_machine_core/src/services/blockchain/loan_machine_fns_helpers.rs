@@ -130,6 +130,43 @@ pub fn encode_create_loan_requisition(
     }.abi_encode())
 }
 
+pub async fn get_requisition_info(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    requisition_id:    U256,
+) -> Result<(u32, u64), BlockchainError> {
+    let info = LoanMachine::new(loan_machine_addr, provider.clone())
+        .getRequisitionInfo(requisition_id)
+        .call().await
+        .map_err(BlockchainError::from_call)?;
+    Ok((info.currentCoverage, info.creationTime.saturating_to::<u64>()))
+}
+
+pub fn encode_cancel_loan_requisition(
+    requisition_id: U256,
+    member_id:      FixedBytes<32>,
+) -> Bytes {
+    Bytes::from(LoanMachine::cancelLoanRequisitionCall {
+        requisitionId: requisition_id,
+        memberId:      member_id,
+    }.abi_encode())
+}
+
+pub async fn estimate_cancel_loan_requisition_gas(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    from:              Address,
+    requisition_id:    U256,
+    member_id:         FixedBytes<32>,
+) -> Result<U256, BlockchainError> {
+    let gas = LoanMachine::new(loan_machine_addr, provider.clone())
+        .cancelLoanRequisition(requisition_id, member_id)
+        .from(from)
+        .estimate_gas().await
+        .map_err(BlockchainError::from_gas_estimate)?;
+    Ok(U256::from(gas))
+}
+
 pub async fn estimate_create_loan_requisition_gas(
     provider:          &Provider,
     loan_machine_addr: Address,

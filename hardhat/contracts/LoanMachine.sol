@@ -224,7 +224,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     }
 
     modifier validMember(bytes32 memberId, address wallet) {
-        if (memberId == bytes32(0) || _rs.walletToMemberId[wallet] == bytes32(0))
+        if (memberId == bytes32(0) || _rs.walletToMemberId[wallet] != memberId)
             revert LoanMachine_MemberIdOrWalletInvalid();
         _;
     }
@@ -669,7 +669,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     {
         if (parcelscount < 1 || parcelscount > 12)
             revert LoanMachine_InvalidParcelsCount();
-        if (daysIntervalOfPayment > 30)
+        if (daysIntervalOfPayment == 0 || daysIntervalOfPayment > 30)
             revert LoanMachine_IntervalOfPaymentAboveLimit();
         if (amount > availableBalance) revert LoanMachine_InsufficientFunds();
 

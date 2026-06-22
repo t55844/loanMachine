@@ -150,7 +150,7 @@ use crate::components::coop_control::admin_panel::AdminPanel;
 use crate::components::coop_control::invite_member_panel::InviteMemberPanel;
 use crate::components::user::member_status::MemberStatusPanel;
 use crate::components::donation::transfer_panel::TransferPanel;
-use crate::components::loan_requisition::LoanRequisitionForm;
+use crate::components::loan_requisition::LoanPanel;
 #[component]
 pub(crate) fn RoleSection(
     role: ViewerRole,
@@ -183,7 +183,7 @@ pub(crate) fn RoleSection(
                 <TransferPanel coop_id=coop_id.clone() on_tx_success=Callback::new(move |()| on_state_changed.run(())) />
             </div>
             <div style="margin-top: var(--sp-6)">
-                <LoanRequisitionForm coop_id=coop_id.clone() on_tx_success=move || on_state_changed.run(()) />
+                <LoanPanel coop_id=coop_id.clone() on_tx_success=Callback::new(move |()| on_state_changed.run(())) />
             </div>
         }.into_any(),
     };
