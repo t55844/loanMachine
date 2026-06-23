@@ -71,6 +71,7 @@ fund-used-wallets:
 	$(MAKE) fund-anvil-wallet WALLET=0x8Fb852022882B2AA3C3a0fE39f3169CdC01C887D
 	$(MAKE) fund-anvil-wallet WALLET=0x9535424e6F3F82C9c3aCA0d747C59E187f216Ac4
 	$(MAKE) fund-anvil-wallet WALLET=0x19dc8f07697c114ce0303272e494f8eb1bd635f1
+	$(MAKE) fund-anvil-wallet WALLET=0x29e92d42f7b6b8a70bbe9a44c4f8adff2d8412fb
 
 
 deploy-local:

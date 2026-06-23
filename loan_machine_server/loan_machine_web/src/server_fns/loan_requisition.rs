@@ -1,7 +1,9 @@
 use leptos::prelude::*;
 use leptos::server_fn::ServerFnError;
 
-use loan_machine_models::responses::{LoanRequisitionBundle, LoanRequisitionItem};
+use loan_machine_models::responses::{
+    LoanRequisitionBundle, LoanRequisitionItem, OpenMarketResponse,
+};
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
 pub async fn prepare_loan_requisition(
@@ -52,6 +54,52 @@ pub async fn get_my_requisitions(
     fetch_my_requisitions_logic(&state.subgraph, &state.blockchain_service, &coop_id, &wallet)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn get_open_market(
+    coop_id: String,
+) -> Result<OpenMarketResponse, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::loan_requisition::fetch_open_market_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? {
+        return Ok(OpenMarketResponse { items: vec![], user_withdrawable: "0".into() });
+    }
+    let wallet = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    fetch_open_market_logic(&state.subgraph, &state.blockchain_service, &coop_id, &wallet)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn prepare_cover_requisition(
+    coop_id:        String,
+    requisition_id: String,
+    coverage_pct:   u32,
+) -> Result<LoanRequisitionBundle, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::loan_requisition::prepare_cover_loan_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let auth   = Authenticated::require().await?;
+    let wallet = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    prepare_cover_loan_logic(
+        &state.subgraph,
+        &state.blockchain_service,
+        &coop_id,
+        wallet,
+        &requisition_id,
+        coverage_pct,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))
 }
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]

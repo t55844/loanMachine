@@ -424,6 +424,10 @@ export class LoanCovered__Params {
   get coverageAmount(): BigInt {
     return this._event.parameters[2].value.toBigInt();
   }
+
+  get currentCoverage(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
 }
 
 export class LoanFunded extends ethereum.Event {

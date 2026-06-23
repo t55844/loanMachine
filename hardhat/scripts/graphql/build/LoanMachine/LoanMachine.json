@@ -62,11 +62,6 @@
   },
   {
     "inputs": [],
-    "name": "LoanMachine_InvalidAccessCode",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "LoanMachine_InvalidAmount",
     "type": "error"
   },
@@ -103,11 +98,6 @@
   {
     "inputs": [],
     "name": "LoanMachine_MinimumPercentageCover",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "LoanMachine_ModeratorCosignRequired",
     "type": "error"
   },
   {
@@ -152,6 +142,11 @@
   },
   {
     "inputs": [],
+    "name": "LoanMachine_ProposalExpired",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "LoanMachine_ProposalNotFound",
     "type": "error"
   },
@@ -168,6 +163,11 @@
   {
     "inputs": [],
     "name": "LoanMachine_TokenTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LoanMachine_UseApproveWalletAsAdminFunction",
     "type": "error"
   },
   {
@@ -219,12 +219,6 @@
     "inputs": [],
     "name": "RS_WalletAlreadyVinculated",
     "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [],
-    "name": "AccessCodeRotated",
-    "type": "event"
   },
   {
     "anonymous": false,
@@ -591,6 +585,12 @@
         "internalType": "uint256",
         "name": "coverageAmount",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "currentCoverage",
+        "type": "uint32"
       }
     ],
     "name": "LoanCovered",
@@ -782,25 +782,6 @@
       }
     ],
     "name": "ProposalConfirmed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "moderatorMemberId",
-        "type": "bytes32"
-      }
-    ],
-    "name": "ProposalCosigned",
     "type": "event"
   },
   {
@@ -1271,24 +1252,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "moderatorMemberId",
-        "type": "bytes32"
-      }
-    ],
-    "name": "cosignProposal",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "requisitionId",
         "type": "uint256"
       },
@@ -1314,11 +1277,6 @@
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint32",
-        "name": "minimumCoverage",
-        "type": "uint32"
       },
       {
         "internalType": "uint32",
@@ -1837,16 +1795,6 @@
         "internalType": "bool",
         "name": "requiresUnanimous",
         "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "requiresModeratorCosign",
-        "type": "bool"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "moderatorCosignedBy",
-        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -2057,11 +2005,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "string",
-        "name": "accessCode",
-        "type": "string"
-      },
-      {
         "internalType": "bytes32",
         "name": "founderMemberId",
         "type": "bytes32"
@@ -2178,11 +2121,6 @@
         "internalType": "address",
         "name": "wallet",
         "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "accessCode",
-        "type": "string"
       }
     ],
     "name": "joinCoop",
@@ -2253,11 +2191,11 @@
         "type": "address"
       }
     ],
-    "name": "proposeWalletApproval",
+    "name": "proposeApproveWalletAsAdmin",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "proposalId",
+        "name": "",
         "type": "uint256"
       }
     ],

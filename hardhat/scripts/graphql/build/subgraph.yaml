@@ -9,7 +9,7 @@ dataSources:
     source:
       address: "0xa966451b622431217FEb5745a16FF60e147f7c4D"
       abi: CoopRegistry
-      startBlock: 5
+      startBlock: 2
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -21,9 +21,9 @@ dataSources:
         - MemberRegisteredEvent
       abis:
         - name: CoopRegistry
-          file: CoopRegistry/abis/CoopRegistry.json
+          file: CoopRegistry/CoopRegistry.json
         - name: LoanMachine
-          file: CoopRegistry/abis/LoanMachine.json
+          file: CoopRegistry/LoanMachine.json
       eventHandlers:
         - event: CoopRegistered(indexed bytes32,indexed address,string)
           handler: handleCoopRegistered
@@ -79,7 +79,7 @@ templates:
         - NewModeratorEvent
       abis:
         - name: LoanMachine
-          file: LoanMachine/abis/LoanMachine.json
+          file: LoanMachine/LoanMachine.json
       eventHandlers:
         - event: ProposalCreated(indexed uint256,indexed uint8,indexed address)
           handler: handleProposalCreated
@@ -124,7 +124,7 @@ templates:
         - event: LoanRequisitionCreatedCancelled(indexed uint256,indexed
             address,uint256,uint32,uint8)
           handler: handleLoanRequisitionCreatedCancelled
-        - event: LoanCovered(indexed uint256,indexed address,uint256)
+        - event: LoanCovered(indexed uint256,indexed address,uint256,uint32)
           handler: handleLoanCovered
         - event: LoanFunded(indexed uint256)
           handler: handleLoanFunded

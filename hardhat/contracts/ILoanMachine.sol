@@ -47,7 +47,7 @@ interface ILoanMachine {
     event AvailableBalanceUpdated(uint256 total);
     event NewDonor(address indexed donor);
     event LoanRequisitionCreatedCancelled(uint256 indexed requisitionId, address indexed borrower, uint256 amount, uint32 parcelsCount, BorrowStatus status);
-    event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount);
+    event LoanCovered(uint256 indexed requisitionId, address indexed lender, uint256 coverageAmount, uint32 currentCoverage);
     event LoanFunded(uint256 indexed requisitionId);
     event LoanContractGenerated(address indexed walletAddress, uint256 indexed requisitionId, ContractStatus status, uint32 parcelsPending, uint256 parcelsValues, uint256[] paymentDates, uint256 creationTime);
     event ParcelPaid(uint256 indexed requisitionId, uint256 parcelsRemaining);

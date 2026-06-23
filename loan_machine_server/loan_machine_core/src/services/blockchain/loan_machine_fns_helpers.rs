@@ -170,6 +170,47 @@ pub async fn estimate_cancel_loan_requisition_gas(
     Ok(U256::from(gas))
 }
 
+pub fn encode_cover_loan(
+    requisition_id:    U256,
+    coverage_pct:      u32,
+    member_id:         FixedBytes<32>,
+) -> Bytes {
+    Bytes::from(LoanMachine::coverLoanCall {
+        requisitionId:      requisition_id,
+        coveragePercentage: coverage_pct,
+        memberId:           member_id,
+    }.abi_encode())
+}
+
+pub async fn estimate_cover_loan_gas(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    from:              Address,
+    requisition_id:    U256,
+    coverage_pct:      u32,
+    member_id:         FixedBytes<32>,
+) -> Result<U256, BlockchainError> {
+    let gas = LoanMachine::new(loan_machine_addr, provider.clone())
+        .coverLoan(requisition_id, coverage_pct, member_id)
+        .from(from)
+        .estimate_gas().await
+        .map_err(BlockchainError::from_gas_estimate)?;
+    Ok(U256::from(gas))
+}
+
+/// Returns the user's withdrawable donation balance (donations – donationsInCoverage).
+pub async fn get_user_withdrawable(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    user:              Address,
+) -> Result<U256, BlockchainError> {
+    let f = LoanMachine::new(loan_machine_addr, provider.clone())
+        .getUserFinancials(user)
+        .call().await
+        .map_err(BlockchainError::from_call)?;
+    Ok(f.withdrawable)
+}
+
 pub async fn estimate_create_loan_requisition_gas(
     provider:          &Provider,
     loan_machine_addr: Address,

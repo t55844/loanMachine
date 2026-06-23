@@ -296,12 +296,19 @@ export function handleLoanRequisitionCreatedCancelled(event: LoanRequisitionCrea
   let entity = LoanRequisitionCreatedCancelledEvent.load(id)
 
   if (entity == null) {
+    // Creation path: set all immutable fields and initial mutable state.
     entity = new LoanRequisitionCreatedCancelledEvent(id)
-    entity.cooperative     = coopId(event)
-    entity.requisitionId   = event.params.requisitionId
-    entity.borrower        = event.params.borrower
-    entity.amount          = event.params.amount
-    entity.parcelsCount    = event.params.parcelsCount.toI32()
+    entity.cooperative        = coopId(event)
+    entity.requisitionId      = event.params.requisitionId
+    entity.borrower           = event.params.borrower
+    entity.amount             = event.params.amount
+    entity.parcelsCount       = event.params.parcelsCount.toI32()
+    entity.currentCoverage    = 0
+    entity.creationTimestamp  = event.block.timestamp
+  }
+  // On cancellation (status=6) the contract resets currentCoverage to 0.
+  if (event.params.status == 6) {
+    entity.currentCoverage = 0
   }
   entity.status          = event.params.status
   entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
@@ -310,14 +317,23 @@ export function handleLoanRequisitionCreatedCancelled(event: LoanRequisitionCrea
 }
 
 export function handleLoanCovered(event: LoanCovered): void {
-  let entity = new LoanCoveredEvent(makeId(event))
-  entity.cooperative     = coopId(event)
-  entity.requisitionId   = event.params.requisitionId
-  entity.lender          = event.params.lender
-  entity.coverageAmount  = event.params.coverageAmount
-  entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
-  entity.transactionHash = event.transaction.hash
-  entity.save()
+  let coveredEntity = new LoanCoveredEvent(makeId(event))
+  coveredEntity.cooperative     = coopId(event)
+  coveredEntity.requisitionId   = event.params.requisitionId
+  coveredEntity.lender          = event.params.lender
+  coveredEntity.coverageAmount  = event.params.coverageAmount
+  coveredEntity.blockTimestamp  = formatTimestamp(event.block.timestamp)
+  coveredEntity.transactionHash = event.transaction.hash
+  coveredEntity.save()
+
+  // Update the mutable requisition entity so listing queries need no chain calls.
+  let reqId = coopId(event) + "-" + event.params.requisitionId.toString()
+  let req = LoanRequisitionCreatedCancelledEvent.load(reqId)
+  if (req == null) return
+  let coverage = event.params.currentCoverage.toI32()
+  req.currentCoverage = coverage
+  req.status = coverage >= 100 ? 2 : 1  // 2=FullyCovered, 1=PartiallyCovered
+  req.save()
 }
 
 export function handleLoanFunded(event: LoanFunded): void {
@@ -327,6 +343,13 @@ export function handleLoanFunded(event: LoanFunded): void {
   entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()
+
+  // Loan moved to Active — remove it from the open market.
+  let reqId = coopId(event) + "-" + event.params.requisitionId.toString()
+  let req = LoanRequisitionCreatedCancelledEvent.load(reqId)
+  if (req == null) return
+  req.status = 3  // Active
+  req.save()
 }
 
 export function handleLoanContractGenerated(event: LoanContractGenerated): void {
@@ -377,6 +400,12 @@ export function handleLoanCompleted(event: LoanCompleted): void {
   entity.blockTimestamp  = formatTimestamp(event.block.timestamp)
   entity.transactionHash = event.transaction.hash
   entity.save()
+
+  let reqId = coopId(event) + "-" + event.params.requisitionId.toString()
+  let req = LoanRequisitionCreatedCancelledEvent.load(reqId)
+  if (req == null) return
+  req.status = 4  // Repaid
+  req.save()
 }
 
 export function handleLoanUncovered(event: LoanUncovered): void {

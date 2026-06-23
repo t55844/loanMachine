@@ -175,7 +175,7 @@ pub fn LoanRequisitionForm(
                 {move || {
                     let e = parcels_error.get();
                     if e.is_empty() { ().into_any() } else {
-                        view! { <span class="form-hint" style="color:var(--color-error)">{e}</span> }.into_any()
+                        view! { <span class="form-hint" style="color:var(--c-red)">{e}</span> }.into_any()
                     }
                 }}
 
@@ -188,7 +188,7 @@ pub fn LoanRequisitionForm(
                 {move || {
                     let e = interval_error.get();
                     if e.is_empty() { ().into_any() } else {
-                        view! { <span class="form-hint" style="color:var(--color-error)">{e}</span> }.into_any()
+                        view! { <span class="form-hint" style="color:var(--c-red)">{e}</span> }.into_any()
                     }
                 }}
 

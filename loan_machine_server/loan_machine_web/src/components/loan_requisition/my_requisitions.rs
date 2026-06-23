@@ -141,22 +141,28 @@ fn RequisitionRow(
     view! {
         <div style="display:flex; flex-direction:column; gap: var(--sp-2); \
                     padding: var(--sp-4); border-radius: var(--radius-md); \
-                    background: var(--color-surface-2)">
+                    background: var(--c-surface-2); border: var(--border-thin)">
 
             // ── header row ──────────────────────────────────
-            <div style="display:flex; justify-content:space-between; align-items:center">
-                <span class="t-mono-sm">
-                    <span class="t-muted">"#"</span>
-                    {item.requisition_id}
-                    " — "
-                    {amount_display}
-                </span>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: var(--sp-3)">
+                <div style="display:flex; flex-direction:column; gap: 2px">
+                    <span class="t-mono-xs t-muted">
+                        "REQ #"{item.requisition_id}
+                        " · "
+                        {item.parcels_count}" parcels"
+                        " · "
+                        {date_display}
+                    </span>
+                    <span class="t-mono-lg t-yellow" style="font-weight:700">
+                        {amount_display}
+                    </span>
+                </div>
                 <span
                     class="t-mono-xs"
                     style=format!(
-                        "padding: 2px 8px; border-radius: 4px; \
+                        "padding: 3px 10px; border-radius: var(--radius-full); flex-shrink:0; \
                          background: {color}22; color: {color}; \
-                         font-weight: 600; letter-spacing: 0.05em"
+                         font-weight: 700; letter-spacing: 0.07em; white-space: nowrap"
                     )
                 >
                     {label}
@@ -167,26 +173,25 @@ fn RequisitionRow(
             <div>
                 <div style="display:flex; justify-content:space-between; margin-bottom: 4px">
                     <span class="t-mono-xs t-muted">"Coverage"</span>
-                    <span class="t-mono-xs t-muted">{coverage}"%"</span>
+                    <span class="t-mono-sm t-bright" style="font-weight:600">
+                        {coverage}
+                        <span class="t-muted">"%  / 100%"</span>
+                    </span>
                 </div>
-                <div style="background: var(--color-surface-3); border-radius: 4px; \
-                            height: 6px; overflow: hidden">
+                <div style="background: var(--c-gray-3); border-radius: var(--radius-full); \
+                            height: 8px; overflow: hidden">
                     <div style=format!(
                         "background: {}; width: {}%; height: 100%; \
-                         transition: width 0.4s ease",
+                         transition: width 0.4s ease; border-radius: var(--radius-full)",
                         coverage_bar_color(coverage, item.status),
                         coverage,
                     )></div>
                 </div>
             </div>
 
-            // ── meta row ─────────────────────────────────────
-            <div style="display:flex; justify-content:space-between; align-items:center">
-                <span class="t-mono-xs t-muted">
-                    {item.parcels_count}" parcels · Created "{date_display}
-                </span>
-
-                {if cancellable { view! {
+            // ── cancel button ─────────────────────────────────
+            {if cancellable { view! {
+                <div style="display:flex; justify-content:flex-end">
                     <Button
                         variant=BtnVariant::Ghost
                         size=BtnSize::Sm
@@ -199,8 +204,8 @@ fn RequisitionRow(
                     >
                         "CANCEL"
                     </Button>
-                }.into_any()} else { ().into_any() }}
-            </div>
+                </div>
+            }.into_any()} else { ().into_any() }}
 
             // ── cancel error ──────────────────────────────────
             {move || {
@@ -224,22 +229,22 @@ fn is_cancellable(status: u8, current_coverage: u32) -> bool {
 
 fn status_display(status: u8) -> (&'static str, &'static str) {
     match status {
-        0 => ("PENDING",   "var(--color-warning)"),
-        1 => ("PARTIAL",   "var(--color-info)"),
-        2 => ("COVERED",   "var(--color-success)"),
-        3 => ("ACTIVE",    "var(--color-success)"),
-        4 => ("REPAID",    "var(--color-muted)"),
-        5 => ("DEFAULTED", "var(--color-error)"),
-        6 => ("CANCELLED", "var(--color-muted)"),
-        _ => ("UNKNOWN",   "var(--color-muted)"),
+        0 => ("PENDING",   "var(--c-yellow)"),
+        1 => ("PARTIAL",   "var(--c-gold)"),
+        2 => ("COVERED",   "var(--c-green)"),
+        3 => ("ACTIVE",    "var(--c-green)"),
+        4 => ("REPAID",    "var(--c-gray-4)"),
+        5 => ("DEFAULTED", "var(--c-red)"),
+        6 => ("CANCELLED", "var(--c-gray-4)"),
+        _ => ("UNKNOWN",   "var(--c-gray-4)"),
     }
 }
 
 fn coverage_bar_color(coverage: u32, status: u8) -> &'static str {
-    if status == 5 { return "var(--color-error)"; }
-    if coverage >= 100 { "var(--color-success)" }
-    else if coverage > 0 { "var(--color-info)" }
-    else { "var(--color-surface-3)" }
+    if status == 5 { return "var(--c-red)"; }
+    if coverage >= 100 { "var(--c-green)" }
+    else if coverage > 0 { "var(--c-gold)" }
+    else { "var(--c-gray-3)" }
 }
 
 fn fmt_usdt(raw: &str) -> String {

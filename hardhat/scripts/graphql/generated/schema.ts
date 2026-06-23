@@ -9,6 +9,7 @@ import {
   Bytes,
   BigInt,
   BigDecimal,
+  Int8,
 } from "@graphprotocol/graph-ts";
 
 export class Cooperative extends Entity {
@@ -2574,6 +2575,32 @@ export class LoanRequisitionCreatedCancelledEvent extends Entity {
 
   set status(value: i32) {
     this.set("status", Value.fromI32(value));
+  }
+
+  get currentCoverage(): i32 {
+    let value = this.get("currentCoverage");
+    if (!value || value.kind == ValueKind.NULL) {
+      return 0;
+    } else {
+      return value.toI32();
+    }
+  }
+
+  set currentCoverage(value: i32) {
+    this.set("currentCoverage", Value.fromI32(value));
+  }
+
+  get creationTimestamp(): BigInt {
+    let value = this.get("creationTimestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set creationTimestamp(value: BigInt) {
+    this.set("creationTimestamp", Value.fromBigInt(value));
   }
 
   get blockTimestamp(): string {

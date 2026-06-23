@@ -756,7 +756,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         int32 gain = (REPUTATION_GAIN_BY_COVERING_LOAN * int32(coveragePercentage)) / 10;
         _rs.reputationChange(memberId, gain, true);
 
-        emit LoanCovered(requisitionId, msg.sender, coverAmount);
+        emit LoanCovered(requisitionId, msg.sender, coverAmount, req.currentCoverage);
     }
 
     // =============================================================
@@ -1010,9 +1010,10 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     }
 
     function getWithdrawableBalance(address user) internal view returns (uint256) {
-        uint256 avail  = donations[user];
-        uint256 locked = donationsInCoverage[user];
-        return avail > locked ? avail - locked : 0;
+        // coverLoan already reduces donations[user] by the covered amount and moves it
+        // into donationsInCoverage[user]. Subtracting donationsInCoverage here again
+        // would double-count the deduction. The free withdrawable balance is donations[user].
+        return donations[user];
     }
 
     function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory) {
@@ -1088,7 +1089,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             borrowings[user],
             lastBorrowTime[user],
             locked,
-            avail > locked ? avail - locked : 0,
+            avail,  // same fix as getWithdrawableBalance — no second subtraction of locked
             IERC20(usdtToken).allowance(user, address(this))
         );
     }

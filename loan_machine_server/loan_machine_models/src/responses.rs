@@ -208,6 +208,24 @@ pub struct LoanRequisitionItem {
     pub created_at:       u64,     // Unix seconds from contract creationTime
 }
 
+/// A single open-market requisition (status Pending or PartiallyCovered).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OpenMarketItem {
+    pub requisition_id:   String,  // decimal string
+    pub amount:           String,  // raw USDT units
+    pub parcels_count:    u32,
+    pub current_coverage: u32,     // 0–100 (on-chain authoritative)
+    pub created_at:       u64,     // Unix seconds
+    pub borrower:         String,  // 0x-prefixed wallet address
+}
+
+/// Payload for the OPEN MARKET tab.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OpenMarketResponse {
+    pub items:             Vec<OpenMarketItem>,
+    pub user_withdrawable: String,  // raw USDT units, decimal string
+}
+
 /// Bundle returned to the founder for the deploy + initialize flow.
 /// The client signs `deploy_tx` first, gets the deployed address,
 /// then signs `initialize_calldata` against that address.

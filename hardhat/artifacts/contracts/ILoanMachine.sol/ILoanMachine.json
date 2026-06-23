@@ -217,6 +217,12 @@
           "internalType": "uint256",
           "name": "coverageAmount",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "currentCoverage",
+          "type": "uint32"
         }
       ],
       "name": "LoanCovered",

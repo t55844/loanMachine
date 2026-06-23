@@ -231,7 +231,9 @@ type LoanRequisitionCreatedCancelledEvent @entity(immutable: false) {
   borrower: Bytes!
   amount: BigInt!
   parcelsCount: Int!
-  status: Int!
+  status: Int!                  # updated by handleLoanCovered/Funded/Completed/Cancelled
+  currentCoverage: Int!         # 0–100; updated on each LoanCovered event
+  creationTimestamp: BigInt!    # Unix seconds; set once on creation
   blockTimestamp: String!
   transactionHash: Bytes!
 }
