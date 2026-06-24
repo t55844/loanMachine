@@ -85,6 +85,7 @@ fn StartElectionStep(
             on_confirm: Callback::new(move |_| {
                 privy_bridge::send_tx(&to, &data, Some(&gas));
             }),
+            on_cancel: None,
         }));
     });
 

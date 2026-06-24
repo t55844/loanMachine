@@ -117,6 +117,9 @@ fn RequisitionRow(
                 set_cancel_status.set(CancelStatus::Pending);
                 privy_bridge::send_tx(&b.loan_machine_address, &b.calldata, Some(&b.gas_hex));
             }),
+            on_cancel: Some(Callback::new(move |()| {
+                set_cancel_status.set(CancelStatus::Failed("Transaction cancelled.".into()));
+            })),
         }));
     });
 

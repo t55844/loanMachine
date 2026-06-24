@@ -144,29 +144,31 @@ sol! {
         );
 
         // Loan views
-        function getRequisitionInfo(uint256 requisitionId) external view returns (
-            uint256   requisitionId_,
-            address   borrower,
-            uint256   amount,
-            uint32    minimumCoverage,
-            uint32    currentCoverage,
-            uint8     status,
-            uint256   creationTime,
-            address[] coveringLenders,
-            uint32    parcelsCount
-        );
+        struct RequisitionInfo {
+            uint256   requisitionId;
+            address   borrower;
+            uint256   amount;
+            uint32    minimumCoverage;
+            uint32    currentCoverage;
+            uint8     status;
+            uint256   creationTime;
+            address[] coveringLenders;
+            uint32    parcelsCount;
+        }
+        function getRequisitionInfo(uint256 requisitionId) external view returns (RequisitionInfo memory);
 
-        function getLoanContract(uint256 requisitionId) external view returns (
-            address   walletAddress,
-            uint256   requisitionId_,
-            uint8     status,
-            uint32    parcelsCount,
-            uint32    parcelsPending,
-            uint256   parcelsValues,
-            uint256[] paymentDates,
-            uint256[] parcelsAmounts,
-            uint256   creationTime
-        );
+        struct LoanContract {
+            address   walletAddress;
+            uint256   requisitionId;
+            uint8     status;
+            uint32    parcelsCount;
+            uint32    parcelsPending;
+            uint256   parcelsValues;
+            uint256[] paymentDates;
+            uint256[] parcelsAmounts;
+            uint256   creationTime;
+        }
+        function getLoanContract(uint256 requisitionId) external view returns (LoanContract memory);
 
         function getNextPaymentAmount(uint256 requisitionId) external view returns (uint256 paymentAmount, bool canPay);
         function canPayRequisition(uint256 requisitionId, address borrower) external view returns (bool);

@@ -11,3 +11,5 @@ pub use loan_requisition::LoanRequisitionForm;
 pub mod loan_requisition_test;
 #[cfg(test)]
 pub mod my_requisitions_test;
+#[cfg(test)]
+pub mod pending_requisitions_test;

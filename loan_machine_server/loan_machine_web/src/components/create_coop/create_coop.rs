@@ -113,6 +113,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                 advance(CoopStep::WaitingDeploy);
                 privy_bridge::deploy_contract(&dd, &gd);
             }),
+            on_cancel: None,
         }));
     });
 
@@ -249,6 +250,7 @@ pub fn CreateCoopPage(#[prop(into)] founder_wallet: WalletAddress) -> impl IntoV
                                         on_confirm: Callback::new(move |_| {
                                             privy_bridge::send_tx(&a, &d, Some(&g));
                                         }),
+                                        on_cancel: None,
                                     }));
                                 })
                             />

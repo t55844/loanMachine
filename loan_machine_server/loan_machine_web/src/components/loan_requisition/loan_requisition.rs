@@ -80,6 +80,9 @@ pub fn LoanRequisitionForm(
                 set_tx_status.set(LoanTxStatus::Pending);
                 privy_bridge::send_tx(&b.loan_machine_address, &b.calldata, Some(&b.gas_hex));
             }),
+            on_cancel: Some(Callback::new(move |()| {
+                set_tx_status.set(LoanTxStatus::Failed("Transaction cancelled.".into()));
+            })),
         }));
     });
 

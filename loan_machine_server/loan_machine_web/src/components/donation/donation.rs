@@ -45,6 +45,9 @@ fn open_donate_modal(
             set_tx_status.set(DonationTxStatus::DonatePending);
             privy_bridge::send_tx(&b.loan_machine_address, &b.donate_calldata, Some(&b.gas_donate));
         }),
+        on_cancel: Some(Callback::new(move |()| {
+            set_tx_status.set(DonationTxStatus::Failed("Transaction cancelled.".into()));
+        })),
     }));
 }
 
@@ -103,6 +106,9 @@ pub fn DonationForm(
                 set_tx_status.set(DonationTxStatus::ApprovePending);
                 privy_bridge::send_tx(&b.usdt_address, &b.approve_calldata, Some(&b.gas_approve));
             }),
+            on_cancel: Some(Callback::new(move |()| {
+                set_tx_status.set(DonationTxStatus::Failed("Transaction cancelled.".into()));
+            })),
         }));
     });
  

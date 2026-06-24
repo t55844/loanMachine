@@ -86,7 +86,10 @@ pub async fn prepare_cover_requisition(
     use loan_machine_core::server_logic::loan_requisition::prepare_cover_loan_logic;
     use crate::server_fns::auth::Authenticated;
 
-    let auth   = Authenticated::require().await?;
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? {
+        return Err(ServerFnError::new("404 not found"));
+    }
     let wallet = auth.wallet().await?;
     let state  = expect_context::<AppState>();
 

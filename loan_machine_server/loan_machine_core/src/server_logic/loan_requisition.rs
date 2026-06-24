@@ -241,9 +241,7 @@ pub async fn prepare_cover_loan_logic(
     // which would make the gas estimate revert with LoanMachine_OverCoverage.
     // Catching it here gives a clear user-facing message instead.
     let (current_coverage, _, status) =
-        get_requisition_info(provider.as_ref(), loan_machine_addr, req_id)
-            .await
-            .unwrap_or((0, 0, 0));
+        get_requisition_info(provider.as_ref(), loan_machine_addr, req_id).await?;
 
     if status != 0 && status != 1 {
         return Err(LoanRequisitionError::LoanNotAvailable);

@@ -71,6 +71,9 @@ pub fn WithdrawalForm(
                 set_tx_status.set(WithdrawalTxStatus::Pending);
                 privy_bridge::send_tx(&b.loan_machine_address, &b.withdraw_calldata, Some(&b.gas_withdraw));
             }),
+            on_cancel: Some(Callback::new(move |()| {
+                set_tx_status.set(WithdrawalTxStatus::Failed("Transaction cancelled.".into()));
+            })),
         }));
     });
 

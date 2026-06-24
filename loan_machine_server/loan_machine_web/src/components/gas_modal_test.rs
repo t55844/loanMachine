@@ -140,6 +140,7 @@ fn open_html() -> String {
                 gas_hex: "0x5208".into(),  // 21_000
             }],
             on_confirm: Callback::new(|_| {}),
+            on_cancel:  None,
         }));
         view! { <GasModal /> }
     })
@@ -237,6 +238,7 @@ fn open_html_two_estimates() -> String {
                 GasEstimate { label: "Initialize Multisig".into(), gas_hex: "0x927c0".into()  }, // 600_000
             ],
             on_confirm: Callback::new(|_| {}),
+            on_cancel:  None,
         }));
         view! { <GasModal /> }
     })

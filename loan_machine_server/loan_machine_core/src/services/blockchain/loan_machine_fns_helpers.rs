@@ -141,7 +141,8 @@ pub async fn get_requisition_info(
     let info = LoanMachine::new(loan_machine_addr, provider.clone())
         .getRequisitionInfo(requisition_id)
         .call().await
-        .map_err(BlockchainError::from_call)?;
+        .map_err(BlockchainError::from_call)?
+        ._0;
     Ok((info.currentCoverage, info.creationTime.saturating_to::<u64>(), info.status))
 }
 

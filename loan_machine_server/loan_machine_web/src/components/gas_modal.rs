@@ -24,6 +24,7 @@ pub struct GasModalRequest {
     pub title:      String,
     pub estimates:  Vec<GasEstimate>,
     pub on_confirm: Callback<()>,
+    pub on_cancel:  Option<Callback<()>>,
 }
 
 // ── Context ──────────────────────────────────────────────────
@@ -65,10 +66,18 @@ pub fn GasModal() -> impl IntoView {
     // Stable handlers — created once at component mount, live as long as GasModal does.
     let on_backdrop_click = move |e: web_sys::MouseEvent| {
         if e.target().as_ref() == e.current_target().as_ref() {
+            if let Some(r) = req.get_untracked() {
+                if let Some(cb) = r.on_cancel { cb.run(()); }
+            }
             close.set(None);
         }
     };
-    let on_cancel = move || close.set(None);
+    let on_cancel = move || {
+        if let Some(r) = req.get_untracked() {
+            if let Some(cb) = r.on_cancel { cb.run(()); }
+        }
+        close.set(None);
+    };
     let on_confirm_click = move || {
         if let Some(r) = req.get_untracked() {
             r.on_confirm.run(());

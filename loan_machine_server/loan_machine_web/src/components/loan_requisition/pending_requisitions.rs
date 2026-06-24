@@ -123,6 +123,9 @@ fn OpenMarketRow(
                 set_cover_status.set(CoverStatus::Pending);
                 privy_bridge::send_tx(&b.loan_machine_address, &b.calldata, Some(&b.gas_hex));
             }),
+            on_cancel: Some(Callback::new(move |()| {
+                set_cover_status.set(CoverStatus::Failed("Transaction cancelled.".into()));
+            })),
         }));
     });
 
@@ -301,15 +304,15 @@ fn OpenMarketRow(
 
 // ── helpers ──────────────────────────────────────────────────
 
-fn max_affordable_pct(withdrawable: &str, amount: &str, remaining: u32) -> u32 {
+pub(crate) fn max_affordable_pct(withdrawable: &str, amount: &str, remaining: u32) -> u32 {
     let w: u128 = withdrawable.parse().unwrap_or(0);
     let a: u128 = amount.parse().unwrap_or(u128::MAX);
     if a == 0 { return 0; }
-    let max = (w.saturating_mul(100) / a) as u32;
-    max.min(remaining)
+    // Cap to `remaining` before casting to u32 to avoid truncation for large balances.
+    (w.saturating_mul(100) / a).min(u128::from(remaining)) as u32
 }
 
-fn open_status_display(current_coverage: u32) -> (&'static str, &'static str) {
+pub(crate) fn open_status_display(current_coverage: u32) -> (&'static str, &'static str) {
     if current_coverage == 0 {
         ("PENDING", "var(--c-yellow)")
     } else {
@@ -317,7 +320,7 @@ fn open_status_display(current_coverage: u32) -> (&'static str, &'static str) {
     }
 }
 
-fn coverage_color(coverage: u32) -> &'static str {
+pub(crate) fn coverage_color(coverage: u32) -> &'static str {
     if coverage >= 100 { "var(--c-green)" }
     else if coverage > 0 { "var(--c-gold)" }
     else { "var(--c-gray-3)" }
@@ -337,7 +340,7 @@ fn fmt_date(secs: u64) -> String {
     format!("{y}-{m:02}-{d:02}")
 }
 
-fn fmt_borrower(addr: &str) -> String {
+pub(crate) fn fmt_borrower(addr: &str) -> String {
     if addr.len() >= 12 {
         format!("{}…{}", &addr[..8], &addr[addr.len()-4..])
     } else {

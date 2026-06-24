@@ -124,10 +124,12 @@ async fn interval_above_30_returns_invalid_days_interval() {
     );
 }
 
-// ── contract-level rejects (caught by estimate_gas simulation) ──
+// ── server-layer parcels guard ────────────────────────────────
+// The server validates parcels_count before calling the chain,
+// so these return InvalidParcelsCount rather than a contract revert.
 
 #[tokio::test]
-async fn parcels_count_zero_returns_blockchain_error() {
+async fn parcels_count_zero_returns_invalid_parcels_count() {
     let env    = common::get_deployed().await;
     let server = server_returning(empty_subgraph()).await;
     let sg     = SubgraphService::new(server.uri());
@@ -138,13 +140,13 @@ async fn parcels_count_zero_returns_blockchain_error() {
     ).await;
 
     assert!(
-        matches!(result, Err(LoanRequisitionError::Blockchain(_))),
-        "expected Blockchain error for parcels=0, got {result:?}",
+        matches!(result, Err(LoanRequisitionError::InvalidParcelsCount)),
+        "expected InvalidParcelsCount for parcels=0, got {result:?}",
     );
 }
 
 #[tokio::test]
-async fn parcels_count_above_max_returns_blockchain_error() {
+async fn parcels_count_above_max_returns_invalid_parcels_count() {
     let env    = common::get_deployed().await;
     let server = server_returning(empty_subgraph()).await;
     let sg     = SubgraphService::new(server.uri());
@@ -155,8 +157,8 @@ async fn parcels_count_above_max_returns_blockchain_error() {
     ).await;
 
     assert!(
-        matches!(result, Err(LoanRequisitionError::Blockchain(_))),
-        "expected Blockchain error for parcels=13, got {result:?}",
+        matches!(result, Err(LoanRequisitionError::InvalidParcelsCount)),
+        "expected InvalidParcelsCount for parcels=13, got {result:?}",
     );
 }
 
@@ -253,10 +255,12 @@ async fn fetch_my_requisitions_enriches_items_with_on_chain_data() {
     // path while keeping the test stateless (no on-chain tx required).
     let env    = common::get_deployed().await;
     let server = server_returning(my_reqs_payload(&[serde_json::json!({
-        "requisitionId": "9999",
-        "amount":        "10000000",
-        "parcelsCount":  6,
-        "status":        0
+        "requisitionId":     "9999",
+        "amount":            "10000000",
+        "parcelsCount":      6,
+        "status":            0,
+        "currentCoverage":   0,
+        "creationTimestamp": "0",
     })])).await;
     let sg = SubgraphService::new(server.uri());
 

@@ -50,20 +50,20 @@ async fn list_returns_threshold_and_admin_count_from_chain() {
         "data": { "created": [], "executed": [], "confirmed": [] }
     })).await;
 
-    // Snapshot chain state BEFORE calling the logic to avoid a race with tests
-    // that mutate the admin list (e.g. prepare_confirm_rejects_already_executed
-    // adds a scratch admin). Reading after the logic call can yield a different
-    // count if another test committed a mutation in between.
+    let subgraph = SubgraphService::new(server.uri());
+    let r = list_pending_approvals_logic(
+        &subgraph, &env.blockchain, &env.coop_id_hex, from_alloy(env.approved_wallet)
+    ).await.expect("list");
+
+    // Snapshot chain state AFTER calling the logic so both reads hit the same
+    // block. Snapshotting before races with concurrent tests that mutate the
+    // admin list (e.g. prepare_confirm_rejects_already_executed adds a scratch
+    // admin), which caused the snapshot to show 2 while the logic already saw 3.
     let provider = ProviderBuilder::new().on_http(env.rpc_url.parse().unwrap());
     let lm_addr: Address = env.loan_machine_address.parse().unwrap();
     let lm = LoanMachine::new(lm_addr, provider);
     let expected_admins    = lm.getAdmins().call().await.unwrap()._0.len();
     let expected_threshold = lm.adminThreshold().call().await.unwrap()._0;
-
-    let subgraph = SubgraphService::new(server.uri());
-    let r = list_pending_approvals_logic(
-        &subgraph, &env.blockchain, &env.coop_id_hex, from_alloy(env.approved_wallet)
-    ).await.expect("list");
 
     assert!(r.proposals.is_empty());
     assert_eq!(r.threshold    as u64,   expected_threshold.try_into().unwrap_or(u64::MAX));
