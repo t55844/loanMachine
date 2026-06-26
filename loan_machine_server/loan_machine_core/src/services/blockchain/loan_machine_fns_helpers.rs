@@ -212,6 +212,78 @@ pub async fn get_user_withdrawable(
     Ok(f.withdrawable)
 }
 
+pub fn encode_repay(
+    requisition_id: U256,
+    amount:         U256,
+    member_id:      FixedBytes<32>,
+) -> Bytes {
+    Bytes::from(LoanMachine::repayCall {
+        requisitionId: requisition_id,
+        amount,
+        memberId: member_id,
+    }.abi_encode())
+}
+
+/// Returns all active (`status == 3`) loans for `borrower` in one RPC call.
+/// Each entry is `(requisition_id, status, parcels_count, parcels_pending, payment_dates, parcel_amounts, creation_time)`.
+/// Returns all active loans for `borrower` via `getActiveLoans` (one RPC call).
+/// The contract filters for `status == ContractStatus.Active && parcelsPending > 0`.
+/// Each entry: `(req_id, parcels_count, parcels_pending, parcels_values, payment_dates, parcel_amounts, created_at)`.
+pub async fn get_active_loans(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    borrower:          Address,
+) -> Result<Vec<(U256, u32, u32, U256, Vec<u64>, Vec<String>, u64)>, BlockchainError> {
+    let r = LoanMachine::new(loan_machine_addr, provider.clone())
+        .getActiveLoans(borrower)
+        .call().await
+        .map_err(BlockchainError::from_call)?;
+
+    Ok(r.activeLoans.into_iter().zip(r.ids).map(|(lc, req_id)| {
+        let payment_dates  = lc.paymentDates.iter().map(|d| d.saturating_to::<u64>()).collect();
+        let parcel_amounts = lc.parcelsAmounts.iter().map(|a| a.to_string()).collect();
+        (req_id, lc.parcelsCount, lc.parcelsPending, lc.parcelsValues, payment_dates, parcel_amounts, lc.creationTime.saturating_to::<u64>())
+    }).collect())
+}
+
+/// Returns `(status, parcels_count, parcels_pending, payment_dates, parcel_amounts, creation_time)`.
+pub async fn get_loan_contract_data(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    requisition_id:    U256,
+) -> Result<(u8, u32, u32, Vec<u64>, Vec<String>, u64), BlockchainError> {
+    let lc = LoanMachine::new(loan_machine_addr, provider.clone())
+        .getLoanContract(requisition_id)
+        .call().await
+        .map_err(BlockchainError::from_call)?
+        ._0;
+
+    let payment_dates   = lc.paymentDates.iter().map(|d| d.saturating_to::<u64>()).collect();
+    let parcel_amounts  = lc.parcelsAmounts.iter().map(|a| a.to_string()).collect();
+
+    Ok((
+        lc.status,
+        lc.parcelsCount,
+        lc.parcelsPending,
+        payment_dates,
+        parcel_amounts,
+        lc.creationTime.saturating_to::<u64>(),
+    ))
+}
+
+/// Returns `(next_payment_amount, can_pay)` from the contract.
+pub async fn get_next_payment(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    requisition_id:    U256,
+) -> Result<(U256, bool), BlockchainError> {
+    let r = LoanMachine::new(loan_machine_addr, provider.clone())
+        .getNextPaymentAmount(requisition_id)
+        .call().await
+        .map_err(BlockchainError::from_call)?;
+    Ok((r.paymentAmount, r.canPay))
+}
+
 pub async fn estimate_create_loan_requisition_gas(
     provider:          &Provider,
     loan_machine_addr: Address,

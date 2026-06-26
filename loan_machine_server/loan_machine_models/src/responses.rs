@@ -270,6 +270,42 @@ pub struct MemberFinancials {
     pub loan_machine_address: String,
 }
 
+/// A single parcel (installment) within an active loan.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LoanParcel {
+    pub index:    u32,
+    pub due_date: u64,    // Unix timestamp
+    pub amount:   String, // raw USDT units
+    pub is_paid:  bool,
+}
+
+/// An active loan owned by the current user, enriched with per-parcel schedule.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ActiveLoanItem {
+    pub requisition_id:      String,
+    pub total_amount:        String,  // raw USDT (original loan amount)
+    pub parcels_count:       u32,
+    pub parcels_pending:     u32,
+    pub next_payment_amount: String,  // raw USDT; "0" when not due
+    pub can_pay:             bool,
+    pub created_at:          u64,
+    pub parcels:             Vec<LoanParcel>,
+}
+
+/// Calldata + gas for a two-step repayment (approve USDT → repay loan).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RepaymentBundle {
+    /// "0x" when allowance is already sufficient and no approval is needed.
+    pub approve_calldata:     String,
+    pub usdt_address:         String,
+    pub repay_calldata:       String,
+    pub loan_machine_address: String,
+    pub gas_approve:          String,
+    pub gas_repay:            String,
+    /// Next payment amount (raw USDT, decimal string) — shown in the UI.
+    pub amount:               String,
+}
+
 /// Cooperative-wide money flow and status, as seen on the coop control panel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoopFinancials {

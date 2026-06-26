@@ -176,6 +176,7 @@ sol! {
         function getCoveringLenders(uint256 id)         external view returns (address[] memory);
         function getLenderCoverage(uint256 id, address l) external view returns (uint256);
         function getBorrowerRequisitions(address b)     external view returns (uint256[] memory);
+        function getActiveLoans(address borrower) external view returns (LoanContract[] memory activeLoans, uint256[] memory ids);
         function isBorrowerOverdue(uint256 requisitionId) external view returns (bool);
 
         function getRepaymentSummary(uint256 requisitionId) external view returns (
