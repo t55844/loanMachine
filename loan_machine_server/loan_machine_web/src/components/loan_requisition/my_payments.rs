@@ -374,7 +374,7 @@ fn ParcelRow(parcel: LoanParcel) -> impl IntoView {
 
 // ── helpers ───────────────────────────────────────────────────
 
-fn fmt_usdt(raw: &str) -> String {
+pub fn fmt_usdt(raw: &str) -> String {
     let n: u128 = raw.parse().unwrap_or(0);
     let whole    = n / 1_000_000;
     let frac     = n % 1_000_000;
@@ -382,7 +382,7 @@ fn fmt_usdt(raw: &str) -> String {
     else          { format!("{whole}.{frac:06} USDT") }
 }
 
-fn fmt_date(secs: u64) -> String {
+pub fn fmt_date(secs: u64) -> String {
     if secs == 0 { return "—".into(); }
     let (y, m, d) = civil_date((secs / 86_400) as i64);
     format!("{y}-{m:02}-{d:02}")
