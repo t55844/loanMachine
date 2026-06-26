@@ -224,6 +224,22 @@ pub fn encode_repay(
     }.abi_encode())
 }
 
+pub async fn estimate_repay_gas(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+    from:              Address,
+    requisition_id:    U256,
+    amount:            U256,
+    member_id:         FixedBytes<32>,
+) -> Result<U256, BlockchainError> {
+    let gas = LoanMachine::new(loan_machine_addr, provider.clone())
+        .repay(requisition_id, amount, member_id)
+        .from(from)
+        .estimate_gas().await
+        .map_err(BlockchainError::from_gas_estimate)?;
+    Ok(U256::from(gas))
+}
+
 /// Returns all active (`status == 3`) loans for `borrower` in one RPC call.
 /// Each entry is `(requisition_id, status, parcels_count, parcels_pending, payment_dates, parcel_amounts, creation_time)`.
 /// Returns all active loans for `borrower` via `getActiveLoans` (one RPC call).

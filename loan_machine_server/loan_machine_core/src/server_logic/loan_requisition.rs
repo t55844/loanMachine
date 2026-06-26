@@ -13,7 +13,7 @@ use crate::services::blockchain::loan_machine_fns_helpers::{
     encode_create_loan_requisition, estimate_create_loan_requisition_gas,
     encode_cancel_loan_requisition, estimate_cancel_loan_requisition_gas,
     encode_cover_loan, estimate_cover_loan_gas,
-    encode_repay, get_active_loans, get_next_payment,
+    encode_repay, estimate_repay_gas, get_active_loans, get_next_payment,
     get_requisition_info, get_user_withdrawable,
 };
 use crate::services::subgraph::{SubgraphError, SubgraphService};
@@ -21,7 +21,9 @@ use crate::server_logic::helpers::resolve_member_id;
 use crate::server_logic::subgraph_queries::my_requisitions::fetch_my_requisitions;
 use crate::server_logic::subgraph_queries::open_market::fetch_open_requisitions;
 
-const GAS_REPAY_FALLBACK: u64 = 200_000;
+// Used when allowance is not yet set and we cannot simulate `repay` (would revert on
+// transferFrom). Sized for loans with up to ~20 concurrent lenders.
+const GAS_REPAY_FALLBACK: u64 = 400_000;
 
 #[derive(Debug, Error)]
 pub enum LoanRequisitionError {
@@ -300,7 +302,7 @@ pub async fn fetch_my_active_loans_logic(
     let payments = futures::future::join_all(payment_futs).await;
 
     let items = loans.into_iter().zip(payments)
-        .map(|((req_id, parcels_count, parcels_pending, parcels_values, payment_dates, parcel_amounts, created_at), payment_result)| {
+        .map(|((req_id, parcels_count, parcels_pending, _parcels_values, payment_dates, parcel_amounts, created_at), payment_result)| {
             let (next_payment_amount, can_pay) = payment_result.unwrap_or_else(|e| {
                 tracing::warn!(requisition_id = %req_id, error = %e, "getNextPaymentAmount failed");
                 (U256::ZERO, false)
@@ -316,8 +318,13 @@ pub async fn fetch_my_active_loans_logic(
                 })
                 .collect();
 
-            // parcelsValues is the per-parcel amount; total = parcelsValues * parcelsCount.
-            let total_amount = (parcels_values * U256::from(parcels_count)).to_string();
+            // Sum parcelsAmounts (base+1 for first `remainder` parcels, base for the rest)
+            // to get the exact original loan amount. parcels_values * parcels_count would
+            // underreport by `amount % parcels_count` whenever that remainder is non-zero.
+            let total_amount = parcel_amounts.iter()
+                .filter_map(|s| s.parse::<U256>().ok())
+                .fold(U256::ZERO, |a, b| a + b)
+                .to_string();
 
             ActiveLoanItem {
                 requisition_id: req_id.to_string(),
@@ -368,15 +375,21 @@ pub async fn prepare_repayment_logic(
         .map_err(|_| LoanRequisitionError::Blockchain(BlockchainError::InvalidAddress))?;
 
     let allowance = get_erc20_allowance(provider.as_ref(), usdc_addr, wallet_addr, loan_machine_addr).await?;
-    let (approve_calldata, gas_approve) = if allowance >= payment_amount {
-        (alloy::primitives::Bytes::new(), U256::ZERO)
+
+    let repay_calldata = encode_repay(req_id, payment_amount, member_id);
+
+    let (approve_calldata, gas_approve, gas_repay) = if allowance >= payment_amount {
+        // No approve needed and allowance is already set, so we can simulate repay.
+        let gas = estimate_repay_gas(
+            provider.as_ref(), loan_machine_addr, wallet_addr, req_id, payment_amount, member_id,
+        ).await.unwrap_or(U256::from(GAS_REPAY_FALLBACK));
+        (alloy::primitives::Bytes::new(), U256::ZERO, gas)
     } else {
         let cd  = encode_approve(loan_machine_addr, payment_amount);
         let gas = estimate_approve_gas(provider.as_ref(), usdc_addr, loan_machine_addr, payment_amount, wallet_addr).await?;
-        (cd, gas)
+        // Cannot simulate repay yet (allowance not set); use fallback gas.
+        (cd, gas, U256::from(GAS_REPAY_FALLBACK))
     };
-
-    let repay_calldata = encode_repay(req_id, payment_amount, member_id);
 
     Ok(RepaymentBundle {
         approve_calldata:     format!("0x{}", hex::encode(approve_calldata.as_ref())),
@@ -384,7 +397,7 @@ pub async fn prepare_repayment_logic(
         repay_calldata:       format!("0x{}", hex::encode(repay_calldata.as_ref())),
         loan_machine_address: loan_machine_addr.to_string(),
         gas_approve:          format!("0x{:x}", gas_approve),
-        gas_repay:            format!("0x{GAS_REPAY_FALLBACK:x}"),
+        gas_repay:            format!("0x{:x}", gas_repay),
         amount:               payment_amount.to_string(),
     })
 }
