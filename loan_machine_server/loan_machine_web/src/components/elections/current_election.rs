@@ -25,6 +25,7 @@ use crate::server_fns::elections::prepare_open_election;
 use crate::wallet_auth::privy_bridge::{self, TxOutcome};
 
 use crate::components::elections::vote_election::VoteElection;
+use crate::components::elections::add_candidate::AddCandidate;
 
 #[component]
 pub fn CurrentElection(
@@ -242,6 +243,12 @@ fn ActiveElectionStep(
                         }).collect_view()}
                     </div>
                 </div>
+
+                <AddCandidate
+                    coop_id=coop_id.clone()
+                    election_id=view_data.id
+                    on_tx_success=on_tx_success
+                />
 
                 <VoteElection
                     coop_id=coop_id

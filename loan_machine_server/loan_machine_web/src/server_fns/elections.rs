@@ -119,6 +119,34 @@ pub async fn prepare_vote(
 
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn prepare_add_candidate(
+    coop_id:          String,
+    election_id:      u32,
+    candidate_wallet: WalletAddress,
+) -> Result<OpenElectionBundle, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::elections::prepare_add_candidate_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? { return Err(ServerFnError::new("404 not found")); }
+
+    let caller = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    prepare_add_candidate_logic(
+        &state.subgraph,
+        &state.blockchain_service,
+        &coop_id,
+        election_id,
+        candidate_wallet,
+        caller,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
 pub async fn get_last_closed_election(
     coop_id: String,
 ) -> Result<Option<ElectionView>, ServerFnError> {

@@ -211,6 +211,43 @@ pub async fn prepare_open_election_logic(
     })
 }
 
+pub async fn prepare_add_candidate_logic(
+    subgraph:         &SubgraphService,
+    blockchain:       &BlockchainService,
+    coop_id_hex:      &str,
+    election_id:      u32,
+    candidate_wallet: WalletAddress,
+    caller_wallet:    WalletAddress,
+) -> Result<OpenElectionBundle, ElectionError> {
+    let (_coop_id_b32, loan_machine_addr, provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ElectionError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
+
+    let candidate_id = resolve_member_id(subgraph, provider.as_ref(), loan_machine_addr, &candidate_wallet)
+        .await?
+        .ok_or_else(|| BlockchainError::WalletNotVinculated(candidate_wallet.clone()))?;
+
+    let caller_addr: Address = wallet_address::to_alloy(&caller_wallet);
+    let call = contract.addCandidate(election_id, candidate_id);
+
+    let gas = call.clone()
+        .from(caller_addr)
+        .estimate_gas()
+        .await
+        .map_err(BlockchainError::from_gas_estimate)?;
+
+    let data_bytes = call.calldata().clone();
+
+    Ok(OpenElectionBundle {
+        to:      format!("{loan_machine_addr:#x}"),
+        data:    format!("0x{}", hex::encode(&data_bytes)),
+        gas_hex: format!("0x{gas:x}"),
+    })
+}
+
 use crate::server_logic::subgraph_queries::last_closed_election::fetch_last_closed_election;
 
 pub async fn get_last_closed_election_logic(
