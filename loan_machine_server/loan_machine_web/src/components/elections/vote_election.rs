@@ -17,6 +17,7 @@ pub fn VoteElection(
 ) -> impl IntoView {
     let (input, set_input) = signal(String::new());
     let (error, set_error) = signal(String::new());
+    let (tx_pending, set_tx_pending) = signal(false);
 
     let cast_vote = Action::new(
         move |(coop_id, eid, cand): &(String, u32, WalletAddress)| {
@@ -41,6 +42,7 @@ pub fn VoteElection(
                 gas_hex: gas.clone(),
             }],
             on_confirm: Callback::new(move |_| {
+                set_tx_pending.set(true);
                 privy_bridge::send_tx(&to, &data, Some(&gas));
             }),
             on_cancel: None,
@@ -53,14 +55,18 @@ pub fn VoteElection(
         }
     });
 
-    privy_bridge::on_tx_outcome(move |outcome| match outcome {
-        TxOutcome::Complete(_) => {
-            set_error.set(String::new());
-            set_input.set(String::new());
-            on_tx_success.run(());
-        }
-        TxOutcome::Failed(err) => {
-            set_error.set(format!("Transaction failed: {err}"));
+    privy_bridge::on_tx_outcome(move |outcome| {
+        if !tx_pending.get_untracked() { return; }
+        set_tx_pending.set(false);
+        match outcome {
+            TxOutcome::Complete(_) => {
+                set_error.set(String::new());
+                set_input.set(String::new());
+                on_tx_success.run(());
+            }
+            TxOutcome::Failed(err) => {
+                set_error.set(format!("Transaction failed: {err}"));
+            }
         }
     });
 

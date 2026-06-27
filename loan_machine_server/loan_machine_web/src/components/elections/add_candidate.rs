@@ -16,6 +16,8 @@ pub fn AddCandidate(
     let (input, set_input) = signal(String::new());
     let (input_err, set_input_err) = signal(String::new());
     let (error, set_error) = signal(String::new());
+    // Guards the on_tx_outcome handler — true only while *this* component's tx is in flight.
+    let (tx_pending, set_tx_pending) = signal(false);
 
     let add_candidate = Action::new(
         move |(coop_id, eid, candidate): &(String, u32, WalletAddress)| {
@@ -40,6 +42,7 @@ pub fn AddCandidate(
                 gas_hex: gas.clone(),
             }],
             on_confirm: Callback::new(move |_| {
+                set_tx_pending.set(true);
                 privy_bridge::send_tx(&to, &data, Some(&gas));
             }),
             on_cancel: None,
@@ -52,15 +55,19 @@ pub fn AddCandidate(
         }
     });
 
-    privy_bridge::on_tx_outcome(move |outcome| match outcome {
-        TxOutcome::Complete(_) => {
-            set_error.set(String::new());
-            set_input.set(String::new());
-            set_input_err.set(String::new());
-            on_tx_success.run(());
-        }
-        TxOutcome::Failed(err) => {
-            set_error.set(format!("Transaction failed: {err}"));
+    privy_bridge::on_tx_outcome(move |outcome| {
+        if !tx_pending.get_untracked() { return; }
+        set_tx_pending.set(false);
+        match outcome {
+            TxOutcome::Complete(_) => {
+                set_error.set(String::new());
+                set_input.set(String::new());
+                set_input_err.set(String::new());
+                on_tx_success.run(());
+            }
+            TxOutcome::Failed(err) => {
+                set_error.set(format!("Transaction failed: {err}"));
+            }
         }
     });
 
