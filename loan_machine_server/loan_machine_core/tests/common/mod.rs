@@ -22,6 +22,7 @@ pub use proposals::{
 };
 pub use elections::{
     bootstrap_admin1_as_moderator, vinculate_second_admin, admin2_member_id,
+    vinculate_third_admin, admin3_member_id,
     open_election, cast_vote_as_second_admin, bootstrap_active_election,
 };
 pub use financials::{donate_as, withdraw_as, mint_usdt, create_requisition_as, cover_as, cancel_requisition_as, get_withdrawable, repay_as};
