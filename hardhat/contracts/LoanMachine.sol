@@ -665,7 +665,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
         if (req.currentCoverage >= req.minimumCoverage) {
             req.status = BorrowStatus.FullyCovered;
-            loanRequisitionNumber[_rs.walletToMemberId[req.borrower]] = 0;
+            bytes32 borrowerMemberId = _rs.walletToMemberId[req.borrower];
+            if (loanRequisitionNumber[borrowerMemberId] > 0) loanRequisitionNumber[borrowerMemberId]--;
             _generateLoanContract(requisitionId);
             _fundLoan(requisitionId);
         } else {

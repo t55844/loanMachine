@@ -112,8 +112,8 @@
       ]
     },
     "/home/thorim/projects/loan-machine/hardhat/contracts/LoanMachine.sol": {
-      "lastModificationDate": 1782606087643,
-      "contentHash": "05af9d304901b43efe1c2af1bee88b09",
+      "lastModificationDate": 1782615643502,
+      "contentHash": "a8c6268f96f638c1abf5bb517a9f0872",
       "sourceName": "contracts/LoanMachine.sol",
       "solcConfig": {
         "version": "0.8.19",
