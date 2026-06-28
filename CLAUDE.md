@@ -161,3 +161,4 @@ cargo leptos watch -p loan_machine_web
 - [`docs/auth.md`](docs/auth.md) — Privy auth subsystem detail
 - [`docs/money_handling.md`](docs/money_handling.md) — financial rules and coverage math
 - [`docs/cpf_cnpj_identity.md`](docs/cpf_cnpj_identity.md) — identity hashing design
+- [`docs/server-port-plan.md`](docs/server-port-plan.md) — layer-by-layer plan for migrating loan_machine_server from Alloy/EVM to Solana/Anchor
