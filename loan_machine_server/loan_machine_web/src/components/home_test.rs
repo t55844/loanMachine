@@ -3,8 +3,9 @@
 // Run with:  cargo test --features ssr
 
 use leptos::prelude::*;
-use crate::components::home::{ HeroSection, HowItWorksSection, TransparencySection, CtaSection, HomeFooter};
-
+use crate::components::home::{
+    HeroSection, FeaturesSection, CtaSection, HomeFooter,
+};
 
 fn render_hero() -> String {
     let owner = Owner::new();
@@ -14,94 +15,142 @@ fn render_hero() -> String {
 }
 
 #[test]
-fn hero_section_headline() {
-
+fn hero_section_has_hero_class() {
     assert!(render_hero().contains(r#"class="hero""#));
-    assert!(render_hero().contains("Active Community"));
-    assert!(render_hero().contains("CREDIT"));
-    assert!(render_hero().contains("SOLIDARITY"));
-    assert!(render_hero().contains("ON THE BLOCKCHAIN"));
-    assert!(render_hero().contains(r#"class="t-yellow""#));
-    assert!(render_hero().contains("SOLIDARITY"));
+}
+
+#[test]
+fn hero_headline_contains_keywords() {
+    let html = render_hero();
+    assert!(html.contains("COOPERATIVE"));
+    assert!(html.contains("LENDING"));
+    assert!(html.contains("ON CHAIN"));
+    assert!(html.contains(r#"class="t-yellow""#));
 }
 
 #[test]
 fn hero_section_description_paragraph() {
     let html = render_hero();
-    assert!(html.contains("A collective and transparent lending machine."));
-    assert!(html.contains("Every transaction recorded immutably."));
-    assert!(html.contains("Governed by its own members."));
+    assert!(html.contains("transparent, member-governed loan platform"));
+    assert!(html.contains("no central custody"));
 }
 
 #[test]
 fn hero_section_cta_buttons() {
-     let html = render_hero();
-     assert!(html.contains("JOIN THE COOPERATIVE"));
-     assert!(html.contains(r#"class="btn btn-primary btn-lg""#));
+    let html = render_hero();
+    assert!(html.contains("JOIN THE COOPERATIVE"));
+    assert!(html.contains(r#"class="btn btn-primary btn-lg""#));
+    assert!(html.contains("SEE FEATURES"));
+    assert!(html.contains(r##"href="#features""##));
+}
+
+fn render_features() -> String {
+    let owner = Owner::new();
+    owner.with(|| {
+        view! { <FeaturesSection /> }.to_html()
+    })
 }
 
 #[test]
-fn hero_section_ghost_link() {
-     let html = render_hero();
-     assert!(html.contains("HOW IT WORKS"));
-     assert!(html.contains(r##"href="#how-it-works""##));
-     assert!(html.contains(r#"class="btn btn-ghost btn-lg""#));
+fn features_section_anchor_and_title() {
+    let html = render_features();
+    assert!(html.contains(r#"id="features""#));
+    assert!(html.contains("PLATFORM FEATURES"));
 }
 
 #[test]
-fn hero_section_stats_blocks() {
-     let html = render_hero();
-     assert!(html.contains("Active Members"));
-     assert!(html.contains("0+"));
-     assert!(html.contains("Total Donated"));
-     assert!(html.contains("$ 0"));
-     assert!(html.contains("Loans"));
-     assert!(html.contains(">0<")); // bare zero, not "0+" or "$ 0"
-}
-
-fn render_how_it_works() -> String {
-    view! { <HowItWorksSection /> }.to_html()
+fn features_carousel_has_six_slides() {
+    let html = render_features();
+    // 6 buttons + 1 container all reference "carousel-dot"
+    assert!(html.matches("carousel-dot").count() >= 6);
+    // Exactly one slide and one dot are active at SSR time (index 0)
+    assert_eq!(html.matches("carousel-slide-active").count(), 1);
+    assert_eq!(html.matches("carousel-dot-active").count(), 1);
 }
 
 #[test]
-fn how_it_works_section() {
-    assert!(render_how_it_works().contains(r#"id="how-it-works""#));
-    assert!(render_how_it_works().contains("HOW IT WORKS"));
-    assert!(render_how_it_works().contains(">01<"));
-    assert!(render_how_it_works().contains(">02<"));
-    assert!(render_how_it_works().contains(">03<"));
+fn features_carousel_has_arrows_and_dots() {
+    let html = render_features();
+    assert!(html.contains("carousel-arrow-prev"));
+    assert!(html.contains("carousel-arrow-next"));
+    assert!(html.contains("carousel-dot"));
 }
 
 #[test]
-fn how_it_works_card_content() {
-    // ── HOW IT WORKS: card titles ─────────────────────────────────────────
-    assert!(render_how_it_works().contains("JOIN THE COOP"));
-    assert!(render_how_it_works().contains("CONTRIBUTE"));
-    assert!(render_how_it_works().contains("ACCESS CREDIT"));
-    // ── HOW IT WORKS: card body copy ──────────────────────────────────────
-    assert!(render_how_it_works().contains("Your digital wallet is created automatically"));
-    assert!(render_how_it_works().contains("Make a donation in USDT to the collective fund."));
-    assert!(render_how_it_works().contains("Request loans covered by your cooperative's members."));
-}
-
-fn render_transparency() -> String {
-    view! { <TransparencySection /> }.to_html()
+fn features_slide_order_coop_dashboard_first() {
+    // In the reversed order, Coop Dashboard is slide 0 (first in DOM)
+    let html = render_features();
+    let coop_pos = html.find("COOPERATIVE DASHBOARD").unwrap_or(usize::MAX);
+    let donate_pos = html.find("DONATE").unwrap_or(usize::MAX);
+    assert!(coop_pos < donate_pos, "Coop Dashboard must appear before Donate in the DOM");
 }
 
 #[test]
-fn transparency_contracts_on_chain() {
-    let html = render_transparency();
-    assert!(html.contains("On-Chain Contracts"));
-    assert!(html.contains("100%"));
+fn features_slide_order_donate_last() {
+    let html = render_features();
+    let request_pos = html.find("REQUEST A LOAN").unwrap_or(usize::MAX);
+    let open_pos    = html.find("OPEN MARKET").unwrap_or(usize::MAX);
+    let donate_pos  = html.find("DONATE &amp; WITHDRAW").unwrap_or(usize::MAX); // HTML-escaped
+    assert!(request_pos < donate_pos);
+    assert!(open_pos    < donate_pos);
 }
 
 #[test]
-fn trasparency_audit_traits(){
-    let html = render_transparency();
-    assert!(html.contains("Auditable Code"));
-    assert!(html.contains("No Central Custody"));
-    assert!(html.contains("Member Governance"));
-    assert_eq!(render_transparency().matches("✓").count(), 3);
+fn features_all_six_present() {
+    let html = render_features();
+    assert!(html.contains("COOPERATIVE DASHBOARD"));
+    assert!(html.contains("MY PAYMENTS"));
+    assert!(html.contains("MY LOANS"));
+    assert!(html.contains("REQUEST A LOAN"));
+    assert!(html.contains("OPEN MARKET"));
+    assert!(html.contains("DONATE &amp; WITHDRAW")); // & is HTML-escaped from "DONATE & WITHDRAW"
+}
+
+#[test]
+fn features_coop_dashboard_mock_content() {
+    let html = render_features();
+    assert!(html.contains("MONEY FLOW"));
+    assert!(html.contains("TOTAL DONATIONS"));
+    assert!(html.contains("OUTSTANDING LOANS"));
+    assert!(html.contains("1119300 USDT"));
+}
+
+#[test]
+fn features_my_payments_mock_content() {
+    let html = render_features();
+    assert!(html.contains("Repayment progress"));
+    assert!(html.contains("33.333333 USDT"));
+    assert!(html.contains("PAY"));
+}
+
+#[test]
+fn features_my_loans_mock_content() {
+    let html = render_features();
+    assert!(html.contains("MY LOAN REQUISITIONS"));
+    assert!(html.contains("CANCEL"));
+    assert!(html.contains("mock-tab-active"));
+}
+
+#[test]
+fn features_request_loan_mock_content() {
+    let html = render_features();
+    assert!(html.contains("AMOUNT (USDT)"));
+    assert!(html.contains("NUMBER OF INSTALLMENTS"));
+    assert!(html.contains("PAYMENT INTERVAL (DAYS)"));
+}
+
+#[test]
+fn features_open_market_mock_content() {
+    let html = render_features();
+    assert!(html.contains("Your contribution"));
+    assert!(html.contains("COVER 13%"));
+}
+
+#[test]
+fn features_donate_mock_content() {
+    let html = render_features();
+    assert!(html.contains("Two signatures are required"));
+    assert!(html.contains("WITHDRAW"));
 }
 
 fn render_cta() -> String {
@@ -113,18 +162,18 @@ fn render_cta() -> String {
 
 #[test]
 fn cta_section() {
-        let html = render_cta();
-        assert!(html.contains("READY TO"));
-        assert!(html.contains("JOIN IN?"));
-        assert!(render_cta().contains("JOIN IN?"));
-        assert!(render_cta().contains("You will need your cooperative's access code to link up."));
-        assert!(render_cta().contains("GET STARTED"));
-        assert!( render_cta().contains(r#"class="btn btn-primary btn-lg""#));
+    let html = render_cta();
+    assert!(html.contains("READY TO"));
+    assert!(html.contains("JOIN IN?"));
+    assert!(html.contains("You will need your cooperative's access code to link up."));
+    assert!(html.contains("GET STARTED"));
+    assert!(html.contains(r#"class="btn btn-primary btn-lg""#));
 }
 
 fn render_footer() -> String {
-    view! { <HomeFooter  /> }.to_html()
+    view! { <HomeFooter /> }.to_html()
 }
+
 #[test]
 fn footer_section() {
     assert!(render_footer().contains("LOAN MACHINE"));

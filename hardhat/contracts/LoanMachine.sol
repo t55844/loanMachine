@@ -181,7 +181,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_InvalidParcelsCount();
     error LoanMachine_TokenTransferFailed();
     error LoanMachine_MemberIdOrWalletInvalid();
-    error LoanMachine_MinimumPercentageCover();
     error LoanMachine_InsufficientWithdrawableBalance();
     error LoanMachine_OnlyBorrowerCanCancelRequisition();
     error LoanMachine_RequisitionNotCancellable();
@@ -227,7 +226,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     modifier validCoverage(uint32 pct) {
         if (pct == 0 || pct > 100) revert LoanMachine_InvalidCoveragePercentage();
-        if (pct <= 9)              revert LoanMachine_MinimumPercentageCover();
         _;
     }
 

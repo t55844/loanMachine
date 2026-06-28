@@ -86,7 +86,10 @@ pub fn App() -> impl IntoView {
 fn HomeRoute() -> impl IntoView {
     let session = use_wallet().session;
     move || match session.get() {
-        WalletSession::Connected { .. } => view! { <CoopChoicePage /> }.into_any(),
+        WalletSession::Connected { .. } => view! { <HomePage on_login=|| {
+                #[cfg(target_arch = "wasm32")]
+                crate::wallet_auth::privy_bridge::login();
+            } /> }.into_any(),
         WalletSession::Disconnected     => view! {
             <HomePage on_login=|| {
                 #[cfg(target_arch = "wasm32")]
