@@ -99,8 +99,10 @@ pub struct VoteBundle  {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ElectionView {
     pub id:               u32,
-    /// Each entry is a bytes32 hex string, e.g. "0xab12...".
+    /// Parallel to `candidate_votes`: resolved wallet addresses.
     pub candidates:       Vec<String>,
+    /// Parallel to `candidates`: votes received by each candidate.
+    pub candidate_votes:  Vec<i32>,
     pub start_time:       u64,
     pub end_time:         u64,
     pub is_active:        bool,
@@ -268,6 +270,52 @@ pub struct MemberFinancials {
     /// USDT allowance granted to the LoanMachine contract.
     pub allowance:         String,
     pub loan_machine_address: String,
+}
+
+/// A single parcel (installment) within an active loan.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LoanParcel {
+    pub index:    u32,
+    pub due_date: u64,    // Unix timestamp
+    pub amount:   String, // raw USDT units
+    pub is_paid:  bool,
+}
+
+/// An active loan owned by the current user, enriched with per-parcel schedule.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ActiveLoanItem {
+    pub requisition_id:      String,
+    pub total_amount:        String,  // raw USDT (original loan amount)
+    pub parcels_count:       u32,
+    pub parcels_pending:     u32,
+    pub next_payment_amount: String,  // raw USDT; "0" when not due
+    pub can_pay:             bool,
+    pub is_overdue:          bool,
+    pub created_at:          u64,
+    pub parcels:             Vec<LoanParcel>,
+}
+
+/// A single entry from the on-chain debt watchlist (admin view).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DebtWatchlistItem {
+    pub requisition_id: String,
+    pub borrower:       String,   // wallet address hex
+    pub next_due_date:  u64,
+    pub is_overdue:     bool,
+}
+
+/// Calldata + gas for a two-step repayment (approve USDT → repay loan).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RepaymentBundle {
+    /// "0x" when allowance is already sufficient and no approval is needed.
+    pub approve_calldata:     String,
+    pub usdt_address:         String,
+    pub repay_calldata:       String,
+    pub loan_machine_address: String,
+    pub gas_approve:          String,
+    pub gas_repay:            String,
+    /// Next payment amount (raw USDT, decimal string) — shown in the UI.
+    pub amount:               String,
 }
 
 /// Cooperative-wide money flow and status, as seen on the coop control panel.

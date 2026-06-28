@@ -1,7 +1,7 @@
 mod common;
 use crate::common::{
     confirm_as_second_admin, mount_query,
-    propose_add_admin, propose_fresh_wallet_approval,
+    propose_fresh_wallet_approval,
 };
 
 use alloy::primitives::{keccak256, Address, U256};
@@ -214,17 +214,15 @@ async fn prepare_confirm_rejects_already_executed() {
     let env = common::get_deployed().await;
 
     // admin1 auto-confirms on propose, admin2 confirms → threshold (2) met → executes.
-    // scratch_admin joins the multisig; it tries to confirm the executed proposal
-    // (checks `executed` before `hasConfirmedProposal` in the contract).
-    //
-    // NOTE: this mutates chain state — scratch_admin_address joins the
-    // multisig. That's why the from-chain test compares against
-    // `getAdmins()` instead of hardcoding 2.
-    let pid = propose_add_admin(&env, env.scratch_admin_address).await;
+    // scratch_admin_address then tries to confirm the already-executed proposal.
+    let (_, pid) = propose_fresh_wallet_approval(&env).await;
     confirm_as_second_admin(&env, pid).await;
 
+    // Use second_admin (a real admin): the contract checks `executed` before
+    // `hasConfirmedProposal`, so even though admin2 already confirmed, the
+    // "already executed" error fires first.
     let err = prepare_confirm_proposal_logic(
-        &env.blockchain, &env.coop_id_hex, pid, from_alloy(env.scratch_admin_address)
+        &env.blockchain, &env.coop_id_hex, pid, from_alloy(env.second_admin)
     ).await.unwrap_err();
 
     assert_eq!(expect_revert_msg(err), "This proposal has already been executed.");

@@ -8,7 +8,7 @@
 //
 // v3 CHANGES:
 // - memberId: uint32 → bytes32 (keccak256(COOP_SALT ++ wallet_bytes))
-// - Single admin → multisig (proposeAction/confirmProposal)
+// - Single admin → multisig (confirmProposal)
 // - Wallet approval: admin + moderator co-signature
 // - Withdrawal: immediate, single-step withdraw()
 // - Views: consolidated into getCoopStats() and getUserFinancials()
@@ -33,15 +33,6 @@ sol! {
         ) external;
 
         // ── MULTISIG ADMIN ───────────────────────────────────
-        // ProposalType enum: 0=TransferAdmin, 1=AddAdmin, 2=ApproveWallet,
-        // 3=RemoveAdmin, 4=RevokeWallet, 5=Deactivate,
-        // 6=Reactivate, 7=SetAuthorizedCaller, 8=ChangeThreshold
-
-        function proposeAction(
-            uint8 pType,
-            bytes calldata data
-        ) external returns (uint256 proposalId);
-
         function confirmProposal(uint256 proposalId) external;
 
         // ── WALLET APPROVAL (admin/moderator invite) ─────────
@@ -99,7 +90,6 @@ sol! {
             bytes32 candidateId,
             bytes32 memberId
         ) external;
-        function closeElection(uint32 electionId) external;
 
         // ── CONSOLIDATED VIEWS ───────────────────────────────
         function getCoopStats() external view returns (
@@ -176,6 +166,7 @@ sol! {
         function getCoveringLenders(uint256 id)         external view returns (address[] memory);
         function getLenderCoverage(uint256 id, address l) external view returns (uint256);
         function getBorrowerRequisitions(address b)     external view returns (uint256[] memory);
+        function getActiveLoans(address borrower) external view returns (LoanContract[] memory activeLoans, uint256[] memory ids);
         function isBorrowerOverdue(uint256 requisitionId) external view returns (bool);
 
         function getRepaymentSummary(uint256 requisitionId) external view returns (
@@ -185,6 +176,15 @@ sol! {
             uint256 totalParcels,
             bool    isActive
         );
+
+        // Debt watchlist
+        struct DebtWatchItem {
+            uint256 requisitionId;
+            address borrower;
+            uint256 nextDueDate;
+            bool    isOverdue;
+        }
+        function getDebtWatchlist() external view returns (DebtWatchItem[] memory);
 
         // Election views
         function getCurrentElectionId() external view returns (int32);

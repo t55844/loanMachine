@@ -1,7 +1,8 @@
 // loan_machine_core/src/server_logic/elections.rs
 //
 
-use alloy::primitives::{Address, B256};
+use alloy::primitives::{Address, B256, FixedBytes};
+use futures::future::join_all;
 use thiserror::Error;
 
 use loan_machine_models::responses::{ElectionView, OpenElectionBundle};
@@ -53,16 +54,29 @@ pub async fn get_current_election_logic(
     let info = contract.getElectionInfo(current_id as u32).call().await
         .map_err(BlockchainError::from_call)?;
 
-    // Translate every candidate memberId → wallet. Fall back to hex if the
-    // subgraph hasn't indexed the member yet.
-    let mut candidates_wallets = Vec::with_capacity(info.candidates.len());
-    for c in &info.candidates {
-        let pretty = match resolve_member_wallet(subgraph, loan_machine_addr, *c).await {
-            Some(w) => w.to_string(),
-            None    => b32_to_hex(c),
-        };
-        candidates_wallets.push(pretty);
-    }
+    let candidate_ids: Vec<FixedBytes<32>> = info.candidates.to_vec();
+
+    // Concurrently resolve wallet addresses and vote counts for every candidate.
+    let wallet_futs = candidate_ids.iter().map(|c| {
+        resolve_member_wallet(subgraph, loan_machine_addr, *c)
+    });
+    let votes_futs = candidate_ids.iter().map(|c| {
+        let c = *c;
+        let contract = contract.clone();
+        async move {
+            contract.getCandidateVotes(c).call().await
+                .map(|r| r._0)
+                .unwrap_or(0)
+        }
+    });
+
+    let (wallets, votes): (Vec<_>, Vec<i32>) =
+        futures::join!(join_all(wallet_futs), join_all(votes_futs));
+
+    let candidates_wallets: Vec<String> = wallets.into_iter()
+        .zip(candidate_ids.iter())
+        .map(|(maybe_w, c)| maybe_w.map(|w| w.to_string()).unwrap_or_else(|| b32_to_hex(c)))
+        .collect();
 
     let winner_wallet = if info.winnerId == B256::ZERO {
         String::new()
@@ -76,6 +90,7 @@ pub async fn get_current_election_logic(
     Ok(Some(ElectionView {
         id:               info.id,
         candidates:       candidates_wallets,
+        candidate_votes:  votes,
         start_time:       info.startTime.try_into().unwrap_or(u64::MAX),
         end_time:         info.endTime.try_into().unwrap_or(u64::MAX),
         is_active:        info.isActive,
@@ -201,6 +216,43 @@ pub async fn prepare_open_election_logic(
         .estimate_gas()
         .await
         .map_err(BlockchainError::from_call)?;
+
+    let data_bytes = call.calldata().clone();
+
+    Ok(OpenElectionBundle {
+        to:      format!("{loan_machine_addr:#x}"),
+        data:    format!("0x{}", hex::encode(&data_bytes)),
+        gas_hex: format!("0x{gas:x}"),
+    })
+}
+
+pub async fn prepare_add_candidate_logic(
+    subgraph:         &SubgraphService,
+    blockchain:       &BlockchainService,
+    coop_id_hex:      &str,
+    election_id:      u32,
+    candidate_wallet: WalletAddress,
+    caller_wallet:    WalletAddress,
+) -> Result<OpenElectionBundle, ElectionError> {
+    let (_coop_id_b32, loan_machine_addr, provider, contract) = coop_context!(
+        blockchain:      blockchain,
+        coop_id_hex:     coop_id_hex,
+        invalid_coop_id: ElectionError::InvalidCoopId(coop_id_hex.into()),
+        contract,
+    );
+
+    let candidate_id = resolve_member_id(subgraph, provider.as_ref(), loan_machine_addr, &candidate_wallet)
+        .await?
+        .ok_or_else(|| BlockchainError::WalletNotVinculated(candidate_wallet.clone()))?;
+
+    let caller_addr: Address = wallet_address::to_alloy(&caller_wallet);
+    let call = contract.addCandidate(election_id, candidate_id);
+
+    let gas = call.clone()
+        .from(caller_addr)
+        .estimate_gas()
+        .await
+        .map_err(BlockchainError::from_gas_estimate)?;
 
     let data_bytes = call.calldata().clone();
 

@@ -1,12 +1,13 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use loan_machine_models::responses::{ApproveWalletPending, ApproveWalletProposalRow, RequestApprovalBundle};
+use loan_machine_models::responses::{ApproveWalletPending, ApproveWalletProposalRow, DebtWatchlistItem, RequestApprovalBundle};
 
 use crate::components::ui::*;
 use crate::server_fns::admin_approvals::{
     list_pending_approvals, prepare_confirm_proposal,
 };
+use crate::server_fns::coop_financials::get_debt_watchlist;
 use crate::wallet_auth::privy_bridge;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -30,18 +31,28 @@ pub(crate) fn action_button_label(action: ApprovalAction, is_sending: bool) -> &
 
 #[component]
 pub fn AdminPanel(coop_id: String, on_tx_success: Callback<()>) -> impl IntoView {
+    let watchlist_coop_id = coop_id.clone();
     view! {
-        <Card variant=CardVariant::Default hover=false>
-            <Badge color=BadgeColor::Gold>"ADMIN PANEL"</Badge>
-            <h3 class="t-display-sm" style="margin-top: var(--sp-4); margin-bottom: var(--sp-6)">
-                "Pending wallet approvals"
-            </h3>
-            <ApprovalsList
-                coop_id=coop_id
-                action=ApprovalAction::AdminConfirm
-                on_tx_success=on_tx_success
-            />
-        </Card>
+        <>
+            <Card variant=CardVariant::Default hover=false>
+                <Badge color=BadgeColor::Gold>"ADMIN PANEL"</Badge>
+                <h3 class="t-display-sm" style="margin-top: var(--sp-4); margin-bottom: var(--sp-6)">
+                    "Pending wallet approvals"
+                </h3>
+                <ApprovalsList
+                    coop_id=coop_id
+                    action=ApprovalAction::AdminConfirm
+                    on_tx_success=on_tx_success
+                />
+            </Card>
+            <Card variant=CardVariant::Default hover=false>
+                <Badge color=BadgeColor::Red>"OVERDUE LOANS"</Badge>
+                <h3 class="t-display-sm" style="margin-top: var(--sp-4); margin-bottom: var(--sp-6)">
+                    "Debt watchlist"
+                </h3>
+                <DebtWatchlist coop_id=watchlist_coop_id />
+            </Card>
+        </>
     }
 }
 
@@ -193,4 +204,80 @@ fn ProposalRow(
             })}
         </div>
     }
+}
+
+// ── Debt Watchlist ─────────────────────────────────────────────────────────────
+
+#[component]
+fn DebtWatchlist(#[prop(into)] coop_id: String) -> impl IntoView {
+    let items = LocalResource::new(move || {
+        let id = coop_id.clone();
+        async move { get_debt_watchlist(id).await }
+    });
+
+    view! {
+        <Suspense fallback=|| view! { <span class="spinner" /> }>
+            {move || items.get().map(|res| match res {
+                Err(e) => view! {
+                    <Alert kind=AlertKind::Error>{e.to_string()}</Alert>
+                }.into_any(),
+                Ok(list) if list.is_empty() => view! {
+                    <p class="t-mono-sm t-muted">"No overdue loans."</p>
+                }.into_any(),
+                Ok(list) => view! {
+                    <div class="flex-col gap-4">
+                        {list.into_iter().map(|item| view! {
+                            <WatchlistRow item=item />
+                        }).collect_view()}
+                    </div>
+                }.into_any(),
+            })}
+        </Suspense>
+    }
+}
+
+#[component]
+fn WatchlistRow(item: DebtWatchlistItem) -> impl IntoView {
+    let due_str = fmt_due_date(item.next_due_date);
+    view! {
+        <div class="stat-block">
+            <div class="flex-between mb-2">
+                <DataLabel>{format!("Loan #{}", item.requisition_id)}</DataLabel>
+                <Badge color=BadgeColor::Red>"OVERDUE"</Badge>
+            </div>
+            <div class="form-group">
+                <label class="form-label">"Borrower"</label>
+                <HashDisplay value=item.borrower />
+            </div>
+            <p class="t-mono-xs t-muted" style="margin-top: var(--sp-2)">
+                {format!("Was due: {due_str}")}
+            </p>
+        </div>
+    }
+}
+
+pub(crate) fn fmt_due_date(unix_secs: u64) -> String {
+    // Format as YYYY-MM-DD HH:MM UTC from a Unix timestamp.
+    let secs  = unix_secs % 60;
+    let mins  = (unix_secs / 60) % 60;
+    let hours = (unix_secs / 3600) % 24;
+    let days  = unix_secs / 86400;
+    // Days since 1970-01-01 → Gregorian date (proleptic, ignoring leap seconds).
+    let (y, m, d) = days_to_ymd(days);
+    format!("{y:04}-{m:02}-{d:02} {hours:02}:{mins:02}:{secs:02} UTC")
+}
+
+pub(crate) fn days_to_ymd(days: u64) -> (u64, u64, u64) {
+    // Civil calendar algorithm (Howard Hinnant).
+    let z = days + 719468;
+    let era = z / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y   = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp  = (5 * doy + 2) / 153;
+    let d   = doy - (153 * mp + 2) / 5 + 1;
+    let m   = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y   = if m <= 2 { y + 1 } else { y };
+    (y, m, d)
 }

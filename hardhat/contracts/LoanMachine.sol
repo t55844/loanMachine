@@ -99,8 +99,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     event ProposalConfirmed(uint256 indexed proposalId, address indexed admin, uint256 confirmations);
     event ProposalExecuted(uint256 indexed proposalId, ProposalType indexed pType);
     event AdminAdded(address indexed admin);
-    event AdminRemoved(address indexed admin);
-    event ThresholdChanged(uint256 oldThreshold, uint256 newThreshold);
 
     event WalletApproved(address indexed wallet);
     event WalletRevoked(address indexed wallet);
@@ -113,10 +111,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     mapping(address => bool) private approvedWallets;
     address[] private memberWallets;
-
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-    event CoopDeactivated();
-    event CoopReactivated();
 
     // =============================================================
     //               REPUTATION STORAGE
@@ -171,9 +165,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_AlreadyConfirmed();
     error LoanMachine_ProposalNotFound();
 
-    error LoanMachine_NotModerator();
-    error LoanMachine_UseApproveWalletAsAdminFunction();
-
     error LoanMachine_AlreadyInitialized();
     error LoanMachine_NotApproved();
     error LoanMachine_AlreadyMember();
@@ -190,7 +181,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
     error LoanMachine_InvalidParcelsCount();
     error LoanMachine_TokenTransferFailed();
     error LoanMachine_MemberIdOrWalletInvalid();
-    error LoanMachine_MinimumPercentageCover();
     error LoanMachine_InsufficientWithdrawableBalance();
     error LoanMachine_OnlyBorrowerCanCancelRequisition();
     error LoanMachine_RequisitionNotCancellable();
@@ -236,7 +226,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
     modifier validCoverage(uint32 pct) {
         if (pct == 0 || pct > 100) revert LoanMachine_InvalidCoveragePercentage();
-        if (pct <= 9)              revert LoanMachine_MinimumPercentageCover();
         _;
     }
 
@@ -327,15 +316,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         _maybeExecute(proposalId);
     }
 
-    function proposeAction(
-        ProposalType pType,
-        bytes calldata data
-    ) external onlyAdmin returns (uint256 proposalId) {
-        if (pType == ProposalType.ApproveWallet) revert LoanMachine_UseApproveWalletAsAdminFunction();
-
-        return _createProposal(pType, data, false, true);
-    }
-
     function proposeApproveWalletAsAdmin(address wallet) external onlyAdminOrModerator returns (uint256) {
         if (wallet == address(0))    revert LoanMachine_MemberIdOrWalletInvalid();
         if (approvedWallets[wallet]) revert LoanMachine_WalletAlreadyApproved();
@@ -381,40 +361,11 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         Proposal storage p = proposals[proposalId];
         p.executed = true;
 
-        if (p.pType == ProposalType.TransferAdmin) {
-            (address oldAdmin, address newAdmin) = abi.decode(p.data, (address, address));
-            _replaceAdmin(oldAdmin, newAdmin);
-        } else if (p.pType == ProposalType.AddAdmin) {
-            address newAdmin = abi.decode(p.data, (address));
-            _addAdmin(newAdmin);
-        } else if (p.pType == ProposalType.RemoveAdmin) {
-            address toRemove = abi.decode(p.data, (address));
-            _removeAdmin(toRemove);
-        } else if (p.pType == ProposalType.RevokeWallet) {
-            address wallet = abi.decode(p.data, (address));
-            approvedWallets[wallet] = false;
-            emit WalletRevoked(wallet);
-        } else if (p.pType == ProposalType.ApproveWallet){
+        if (p.pType == ProposalType.ApproveWallet) {
             address wallet = abi.decode(p.data, (address));
             approvedWallets[wallet] = true;
             delete pendingApprovalProposalId[wallet];
             emit WalletApproved(wallet);
-        } else if (p.pType == ProposalType.Deactivate) {
-            active = false;
-            emit CoopDeactivated();
-        } else if (p.pType == ProposalType.Reactivate) {
-            active = true;
-            emit CoopReactivated();
-        } else if (p.pType == ProposalType.SetAuthorizedCaller) {
-            (address caller, bool authorized) = abi.decode(p.data, (address, bool));
-            authorizedCallers[caller] = authorized;
-            emit AuthorizedCallerUpdated(caller, authorized);
-        } else if (p.pType == ProposalType.ChangeThreshold) {
-            uint256 newThreshold = abi.decode(p.data, (uint256));
-            if (newThreshold == 0 || newThreshold > admins.length)
-                revert LoanMachine_InvalidThreshold();
-            emit ThresholdChanged(adminThreshold, newThreshold);
-            adminThreshold = newThreshold;
         }
 
         emit ProposalExecuted(proposalId, p.pType);
@@ -427,36 +378,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         emit AdminAdded(a);
     }
 
-    function _removeAdmin(address a) internal {
-        if (!isAdmin[a]) revert LoanMachine_NotAdmin();
-        if (admins.length <= adminThreshold) revert LoanMachine_NotEnoughAdmins();
-        isAdmin[a] = false;
-        for (uint256 i = 0; i < admins.length; i++) {
-            if (admins[i] == a) {
-                admins[i] = admins[admins.length - 1];
-                admins.pop();
-                break;
-            }
-        }
-        emit AdminRemoved(a);
-    }
-
-    function _replaceAdmin(address oldAdmin, address newAdmin) internal {
-        if (!isAdmin[oldAdmin]) revert LoanMachine_NotAdmin();
-        if (isAdmin[newAdmin])  revert LoanMachine_AlreadyAdmin();
-        isAdmin[oldAdmin] = false;
-        isAdmin[newAdmin] = true;
-        for (uint256 i = 0; i < admins.length; i++) {
-            if (admins[i] == oldAdmin) {
-                admins[i] = newAdmin;
-                break;
-            }
-        }
-        emit AdminRemoved(oldAdmin);
-        emit AdminAdded(newAdmin);
-        emit AdminTransferred(oldAdmin, newAdmin);
-    }
-    
     // =============================================================
     //                         WITHDRAWAL
     // =============================================================
@@ -531,10 +452,6 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         validMember(memberId, msg.sender)
     {
         _rs.voteForModerator(electionId, candidateId, memberId);
-    }
-
-    function closeElection(uint32 electionId) external {
-        _rs.closeElection(electionId);
     }
 
     // =============================================================
@@ -746,7 +663,8 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
 
         if (req.currentCoverage >= req.minimumCoverage) {
             req.status = BorrowStatus.FullyCovered;
-            loanRequisitionNumber[_rs.walletToMemberId[req.borrower]] = 0;
+            bytes32 borrowerMemberId = _rs.walletToMemberId[req.borrower];
+            if (loanRequisitionNumber[borrowerMemberId] > 0) loanRequisitionNumber[borrowerMemberId]--;
             _generateLoanContract(requisitionId);
             _fundLoan(requisitionId);
         } else {
@@ -801,8 +719,13 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
         LoanRequisition storage req = loanRequisitions[requisitionId];
         address borrower = req.borrower;
 
-        borrowings[borrower]     += req.amount;
-        totalBorrowed            += req.amount;
+        // Track only what will actually be repaid (parcelsValues * n), not req.amount.
+        // Integer division means req.amount = base*n + remainder, but repay() always
+        // requires exactly parcelsValues (= base), so the remainder is never collected.
+        LoanContract storage loan = loanContracts[requisitionId];
+        uint256 totalRepayable    = loan.parcelsValues * loan.parcelsCount;
+        borrowings[borrower]     += totalRepayable;
+        totalBorrowed            += totalRepayable;
         availableBalance         -= req.amount;
         lastBorrowTime[borrower]  = block.timestamp;
         req.status = BorrowStatus.Active;
@@ -819,7 +742,7 @@ contract LoanMachine is ILoanMachine, IReputationSystem, ReentrancyGuard {
             isOverdue:     false
         }));
 
-        emit Borrowed(borrower, req.amount, borrowings[borrower]);
+        emit Borrowed(borrower, req.amount, totalRepayable);
         emit TotalBorrowedUpdated(totalBorrowed);
         emit AvailableBalanceUpdated(availableBalance);
         emit LoanFunded(requisitionId);

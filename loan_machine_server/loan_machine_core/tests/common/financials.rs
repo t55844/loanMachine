@@ -176,6 +176,35 @@ pub async fn get_withdrawable(env: &DeployedEnv, wallet_addr: Address) -> u128 {
         .saturating_to::<u128>()
 }
 
+/// Approve the loan machine for `parcel_amount` then call `repay(req_id, amount, member_id)`.
+/// The borrower must have the USDT balance (received from `_fundLoan` after 100% coverage).
+pub async fn repay_as(
+    env:            &DeployedEnv,
+    signer_key_hex: &str,
+    member_id:      FixedBytes<32>,
+    req_id:         U256,
+    parcel_amount:  U256,
+) {
+    let signer = signer_from_hex(signer_key_hex);
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(EthereumWallet::from(signer))
+        .on_http(env.rpc_url.parse().unwrap());
+
+    let lm_addr:   Address = env.loan_machine_address.parse().unwrap();
+    let usdt_addr: Address = env.usdt_address.parse().unwrap();
+
+    MockUSDT::new(usdt_addr, provider.clone())
+        .approve(lm_addr, parcel_amount)
+        .send().await.expect("send approve for repay")
+        .watch().await.expect("mine approve for repay");
+
+    LoanMachine::new(lm_addr, provider)
+        .repay(req_id, parcel_amount, member_id)
+        .send().await.expect("send repay")
+        .watch().await.expect("mine repay");
+}
+
 /// Mint `amount` of MockUSDT to the wallet derived from `signer_key_hex`.
 /// `MockUSDT.mint` is unrestricted, so any signer can mint to itself.
 pub async fn mint_usdt(env: &DeployedEnv, signer_key_hex: &str, amount: U256) {

@@ -25,6 +25,7 @@ use crate::server_fns::elections::prepare_open_election;
 use crate::wallet_auth::privy_bridge::{self, TxOutcome};
 
 use crate::components::elections::vote_election::VoteElection;
+use crate::components::elections::add_candidate::AddCandidate;
 
 #[component]
 pub fn CurrentElection(
@@ -229,7 +230,10 @@ fn ActiveElectionStep(
                         {format!("Candidates ({})", candidate_count)}
                     </label>
                     <div class="flex-col gap-3" style="margin-top: var(--sp-3)">
-                        {view_data.candidates.into_iter().enumerate().map(|(i, c)| view! {
+                        {view_data.candidates.into_iter()
+                            .zip(view_data.candidate_votes.into_iter().chain(std::iter::repeat(0)))
+                            .enumerate()
+                            .map(|(i, (c, v))| view! {
                             <div style="display: flex; align-items: center; gap: var(--sp-3)">
                                 <span
                                     class="badge badge-yellow"
@@ -238,10 +242,19 @@ fn ActiveElectionStep(
                                     {(i + 1).to_string()}
                                 </span>
                                 <HashDisplay value=c />
+                                <span class="t-mono-xs t-muted" style="flex-shrink: 0; margin-left: auto">
+                                    {format!("{v} votes")}
+                                </span>
                             </div>
                         }).collect_view()}
                     </div>
                 </div>
+
+                <AddCandidate
+                    coop_id=coop_id.clone()
+                    election_id=view_data.id
+                    on_tx_success=on_tx_success
+                />
 
                 <VoteElection
                     coop_id=coop_id

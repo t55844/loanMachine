@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::server_fn::ServerFnError;
 
 use loan_machine_models::responses::{
-    LoanRequisitionBundle, LoanRequisitionItem, OpenMarketResponse,
+    ActiveLoanItem, LoanRequisitionBundle, LoanRequisitionItem, OpenMarketResponse, RepaymentBundle,
 };
 
 #[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
@@ -122,6 +122,54 @@ pub async fn prepare_cancel_requisition(
         &state.subgraph,
         &state.blockchain_service,
         &coop_id,
+        wallet,
+        &requisition_id,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn get_my_active_loans(
+    coop_id: String,
+) -> Result<Vec<ActiveLoanItem>, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::loan_requisition::fetch_my_active_loans_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? {
+        return Ok(vec![]);
+    }
+    let wallet = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    fetch_my_active_loans_logic(&state.subgraph, &state.blockchain_service, &coop_id, &wallet)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server(client = crate::wallet_auth::server_fn_client::AuthedBrowserClient)]
+pub async fn prepare_repayment(
+    coop_id:        String,
+    requisition_id: String,
+) -> Result<RepaymentBundle, ServerFnError> {
+    use loan_machine_core::config::AppState;
+    use loan_machine_core::server_logic::loan_requisition::prepare_repayment_logic;
+    use crate::server_fns::auth::Authenticated;
+
+    let auth = Authenticated::require().await?;
+    if !auth.is_member(&coop_id).await? {
+        return Err(ServerFnError::new("404 not found"));
+    }
+    let wallet = auth.wallet().await?;
+    let state  = expect_context::<AppState>();
+
+    prepare_repayment_logic(
+        &state.subgraph,
+        &state.blockchain_service,
+        &coop_id,
+        &state.usdc_address.0,
         wallet,
         &requisition_id,
     )

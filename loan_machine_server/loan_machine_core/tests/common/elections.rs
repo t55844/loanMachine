@@ -7,7 +7,7 @@
 //! `LoanMachine::new`'s `Http<Client>` bound.
 
 use alloy::network::EthereumWallet;
-use alloy::primitives::{keccak256, Address, FixedBytes};
+use alloy::primitives::{keccak256, Address, FixedBytes, U256};
 use alloy::providers::ProviderBuilder;
 use alloy::signers::local::PrivateKeySigner;
 
@@ -23,6 +23,10 @@ fn signer_from_hex(hex_key: &str) -> PrivateKeySigner {
 
 pub fn admin2_member_id() -> FixedBytes<32> {
     keccak256(b"test-admin2-member-id")
+}
+
+pub fn admin3_member_id() -> FixedBytes<32> {
+    keccak256(b"test-admin3-member-id")
 }
 
 /// Vinculate admin2 as a member via `joinCoop`. Idempotent under
@@ -180,4 +184,86 @@ pub async fn bootstrap_active_election(env: &DeployedEnv) -> (u32, FixedBytes<32
         .try_into().expect("election_id >= 0 immediately after open");
 
     (election_id, admin2_id)
+}
+
+/// Approve and vinculate admin3 as a member. Idempotent under `third_admin_lock`.
+///
+/// Flow:
+///   1. admin1 proposes wallet approval for admin3  (under `platform_admin_lock`)
+///   2. admin2 confirms → proposal executes          (under `second_admin_lock`)
+///   3. admin3 calls `joinCoop`
+///
+/// Lock order: third_admin_lock → platform_admin_lock (released) → second_admin_lock (released).
+/// No two locks are held simultaneously.
+pub async fn vinculate_third_admin(env: &DeployedEnv) -> FixedBytes<32> {
+    let _guard = env.third_admin_lock.lock().await;
+
+    let lm_addr: Address = env.loan_machine_address.parse().unwrap();
+
+    // Idempotency check.
+    {
+        let signer = signer_from_hex(&env.third_admin_key_hex);
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(EthereumWallet::from(signer))
+            .on_http(env.rpc_url.parse().unwrap());
+        let lm = LoanMachine::new(lm_addr, provider);
+        let existing = lm.getMemberId(env.third_admin).call().await
+            .expect("getMemberId(admin3)")._0;
+        if existing != FixedBytes::ZERO {
+            return existing;
+        }
+    }
+
+    // Step 1: admin1 proposes approval. Held under `platform_admin_lock` to avoid
+    // a race between `.call()` (simulate PID) and `.send()` (actual proposal).
+    let pid: u64 = {
+        let _platform_guard = env.platform_admin_lock.lock().await;
+        let signer = signer_from_hex(&env.platform_admin_key_hex);
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(EthereumWallet::from(signer))
+            .on_http(env.rpc_url.parse().unwrap());
+        let lm = LoanMachine::new(lm_addr, provider);
+        let pid: U256 = lm
+            .proposeApproveWalletAsAdmin(env.third_admin)
+            .from(env.approved_wallet)
+            .call().await
+            .expect("simulate proposeApproveWalletAsAdmin(admin3)")
+            ._0;
+        lm.proposeApproveWalletAsAdmin(env.third_admin)
+            .send().await.expect("send proposeApproveWalletAsAdmin(admin3)")
+            .watch().await.expect("mine proposeApproveWalletAsAdmin(admin3)");
+        pid.try_into().expect("proposalId fits u64")
+    }; // platform_admin_lock released here
+
+    // Step 2: admin2 confirms (second_admin_lock acquired inside confirm_as_second_admin).
+    {
+        let _second_guard = env.second_admin_lock.lock().await;
+        let signer = signer_from_hex(&env.second_admin_key_hex);
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(EthereumWallet::from(signer))
+            .on_http(env.rpc_url.parse().unwrap());
+        let lm = LoanMachine::new(lm_addr, provider);
+        lm.confirmProposal(U256::from(pid))
+            .send().await.expect("send confirmProposal(admin3 approval)")
+            .watch().await.expect("mine confirmProposal(admin3 approval)");
+    }
+
+    // Step 3: admin3 joins the coop.
+    let id = admin3_member_id();
+    {
+        let signer = signer_from_hex(&env.third_admin_key_hex);
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(EthereumWallet::from(signer))
+            .on_http(env.rpc_url.parse().unwrap());
+        let lm = LoanMachine::new(lm_addr, provider);
+        lm.joinCoop(id, env.third_admin)
+            .send().await.expect("send joinCoop(admin3)")
+            .watch().await.expect("mine joinCoop(admin3)");
+    }
+
+    id
 }
