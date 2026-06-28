@@ -84,3 +84,9 @@ info.txt
 *mk_update.py
 
 *target
+*target*
+*/target/*
+*/target*
+*target/*
+
+
