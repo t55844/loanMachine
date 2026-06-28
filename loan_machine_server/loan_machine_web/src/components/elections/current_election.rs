@@ -230,7 +230,10 @@ fn ActiveElectionStep(
                         {format!("Candidates ({})", candidate_count)}
                     </label>
                     <div class="flex-col gap-3" style="margin-top: var(--sp-3)">
-                        {view_data.candidates.into_iter().enumerate().map(|(i, c)| view! {
+                        {view_data.candidates.into_iter()
+                            .zip(view_data.candidate_votes.into_iter().chain(std::iter::repeat(0)))
+                            .enumerate()
+                            .map(|(i, (c, v))| view! {
                             <div style="display: flex; align-items: center; gap: var(--sp-3)">
                                 <span
                                     class="badge badge-yellow"
@@ -239,6 +242,9 @@ fn ActiveElectionStep(
                                     {(i + 1).to_string()}
                                 </span>
                                 <HashDisplay value=c />
+                                <span class="t-mono-xs t-muted" style="flex-shrink: 0; margin-left: auto">
+                                    {format!("{v} votes")}
+                                </span>
                             </div>
                         }).collect_view()}
                     </div>

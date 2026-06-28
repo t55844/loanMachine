@@ -99,8 +99,10 @@ pub struct VoteBundle  {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ElectionView {
     pub id:               u32,
-    /// Each entry is a bytes32 hex string, e.g. "0xab12...".
+    /// Parallel to `candidate_votes`: resolved wallet addresses.
     pub candidates:       Vec<String>,
+    /// Parallel to `candidates`: votes received by each candidate.
+    pub candidate_votes:  Vec<i32>,
     pub start_time:       u64,
     pub end_time:         u64,
     pub is_active:        bool,
@@ -288,8 +290,18 @@ pub struct ActiveLoanItem {
     pub parcels_pending:     u32,
     pub next_payment_amount: String,  // raw USDT; "0" when not due
     pub can_pay:             bool,
+    pub is_overdue:          bool,
     pub created_at:          u64,
     pub parcels:             Vec<LoanParcel>,
+}
+
+/// A single entry from the on-chain debt watchlist (admin view).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DebtWatchlistItem {
+    pub requisition_id: String,
+    pub borrower:       String,   // wallet address hex
+    pub next_due_date:  u64,
+    pub is_overdue:     bool,
 }
 
 /// Calldata + gas for a two-step repayment (approve USDT → repay loan).

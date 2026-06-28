@@ -325,19 +325,6 @@
     {
       "inputs": [
         {
-          "internalType": "uint32",
-          "name": "electionId",
-          "type": "uint32"
-        }
-      ],
-      "name": "closeElection",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "bytes32",
           "name": "candidateId",
           "type": "bytes32"

@@ -18,7 +18,7 @@ pub use payloads::{
 pub use services::{make_deployment_service, make_identity_from_env, platform_admin_signer};
 pub use proposals::{
     confirm_as_second_admin, confirm_as_third_admin,
-    propose_add_admin, propose_wallet_approval, propose_fresh_wallet_approval,
+    propose_wallet_approval, propose_fresh_wallet_approval,
 };
 pub use elections::{
     bootstrap_admin1_as_moderator, vinculate_second_admin, admin2_member_id,

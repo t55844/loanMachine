@@ -316,3 +316,40 @@ pub async fn estimate_create_loan_requisition_gas(
         .map_err(BlockchainError::from_gas_estimate)?;
     Ok(U256::from(gas))
 }
+
+pub async fn get_debt_watchlist(
+    provider:          &Provider,
+    loan_machine_addr: Address,
+) -> Result<Vec<(U256, Address, u64, bool)>, BlockchainError> {
+    let items = LoanMachine::new(loan_machine_addr, provider.clone())
+        .getDebtWatchlist()
+        .call()
+        .await
+        .map_err(BlockchainError::from_call)?
+        ._0;
+    Ok(items.into_iter().map(|it| (
+        it.requisitionId,
+        it.borrower,
+        it.nextDueDate.saturating_to::<u64>(),
+        it.isOverdue,
+    )).collect())
+}
+
+/// Returns the latest block's Unix timestamp from the chain.
+/// Falls back to the server wall clock if the RPC call fails.
+pub async fn get_chain_timestamp(provider: &Provider) -> u64 {
+    use alloy::providers::Provider as _;
+    let val: serde_json::Value = provider
+        .raw_request("eth_getBlockByNumber".into(), ("latest", false))
+        .await
+        .unwrap_or_default();
+    val["timestamp"]
+        .as_str()
+        .and_then(|s| u64::from_str_radix(s.trim_start_matches("0x"), 16).ok())
+        .unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        })
+}

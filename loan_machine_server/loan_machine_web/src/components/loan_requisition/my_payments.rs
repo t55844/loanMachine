@@ -105,6 +105,7 @@ fn LoanPaymentCard(
     let paid_count    = item.parcels_count.saturating_sub(item.parcels_pending);
     let next_amount   = fmt_usdt(&item.next_payment_amount);
     let can_pay       = item.can_pay;
+    let is_overdue    = item.is_overdue;
 
     let set_gas_modal = use_gas_modal();
     let (repay_status, set_repay_status) = signal(RepayStatus::Idle);
@@ -203,15 +204,34 @@ fn LoanPaymentCard(
                         {amount_label}
                     </span>
                 </div>
-                <span
-                    class="t-mono-xs"
-                    style="padding: 3px 10px; border-radius: var(--radius-full); flex-shrink:0; \
-                           background: var(--c-green)22; color: var(--c-green); \
-                           font-weight: 700; letter-spacing: 0.07em"
-                >
-                    "ACTIVE"
-                </span>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px; flex-shrink:0">
+                    <span
+                        class="t-mono-xs"
+                        style="padding: 3px 10px; border-radius: var(--radius-full); \
+                               background: var(--c-green)22; color: var(--c-green); \
+                               font-weight: 700; letter-spacing: 0.07em"
+                    >
+                        "ACTIVE"
+                    </span>
+                    {is_overdue.then(|| view! {
+                        <span
+                            class="t-mono-xs"
+                            style="padding: 3px 10px; border-radius: var(--radius-full); \
+                                   background: var(--c-red, #ef4444)22; color: var(--c-red, #ef4444); \
+                                   font-weight: 700; letter-spacing: 0.07em"
+                        >
+                            "OVERDUE"
+                        </span>
+                    })}
+                </div>
             </div>
+
+            {is_overdue.then(|| view! {
+                <Alert kind=AlertKind::Error>
+                    "This installment is overdue. Please make a payment as soon as possible to \
+                     avoid further reputation loss."
+                </Alert>
+            })}
 
             // ── progress bar ─────────────────────────────────
             {

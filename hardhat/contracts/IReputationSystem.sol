@@ -52,7 +52,6 @@ interface IReputationSystem {
     function openElection(bytes32 candidateId, bytes32 opponent) external;
     function addCandidate(uint32 electionId, bytes32 candidateId) external;
     function voteForModerator(uint32 electionId, bytes32 candidateId, bytes32 memberId) external;
-    function closeElection(uint32 electionId) external;
 
     // Views
     function isModerator(bytes32 memberId) external view returns (bool);

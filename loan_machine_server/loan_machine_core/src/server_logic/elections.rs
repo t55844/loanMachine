@@ -1,7 +1,8 @@
 // loan_machine_core/src/server_logic/elections.rs
 //
 
-use alloy::primitives::{Address, B256};
+use alloy::primitives::{Address, B256, FixedBytes};
+use futures::future::join_all;
 use thiserror::Error;
 
 use loan_machine_models::responses::{ElectionView, OpenElectionBundle};
@@ -53,16 +54,29 @@ pub async fn get_current_election_logic(
     let info = contract.getElectionInfo(current_id as u32).call().await
         .map_err(BlockchainError::from_call)?;
 
-    // Translate every candidate memberId → wallet. Fall back to hex if the
-    // subgraph hasn't indexed the member yet.
-    let mut candidates_wallets = Vec::with_capacity(info.candidates.len());
-    for c in &info.candidates {
-        let pretty = match resolve_member_wallet(subgraph, loan_machine_addr, *c).await {
-            Some(w) => w.to_string(),
-            None    => b32_to_hex(c),
-        };
-        candidates_wallets.push(pretty);
-    }
+    let candidate_ids: Vec<FixedBytes<32>> = info.candidates.to_vec();
+
+    // Concurrently resolve wallet addresses and vote counts for every candidate.
+    let wallet_futs = candidate_ids.iter().map(|c| {
+        resolve_member_wallet(subgraph, loan_machine_addr, *c)
+    });
+    let votes_futs = candidate_ids.iter().map(|c| {
+        let c = *c;
+        let contract = contract.clone();
+        async move {
+            contract.getCandidateVotes(c).call().await
+                .map(|r| r._0)
+                .unwrap_or(0)
+        }
+    });
+
+    let (wallets, votes): (Vec<_>, Vec<i32>) =
+        futures::join!(join_all(wallet_futs), join_all(votes_futs));
+
+    let candidates_wallets: Vec<String> = wallets.into_iter()
+        .zip(candidate_ids.iter())
+        .map(|(maybe_w, c)| maybe_w.map(|w| w.to_string()).unwrap_or_else(|| b32_to_hex(c)))
+        .collect();
 
     let winner_wallet = if info.winnerId == B256::ZERO {
         String::new()
@@ -76,6 +90,7 @@ pub async fn get_current_election_logic(
     Ok(Some(ElectionView {
         id:               info.id,
         candidates:       candidates_wallets,
+        candidate_votes:  votes,
         start_time:       info.startTime.try_into().unwrap_or(u64::MAX),
         end_time:         info.endTime.try_into().unwrap_or(u64::MAX),
         is_active:        info.isActive,

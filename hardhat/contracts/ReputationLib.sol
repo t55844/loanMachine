@@ -251,31 +251,8 @@ library ReputationLib {
         rs.moderatorVotesReceived[candidateId] += weight;
         e.totalVotesCast += weight;
 
-        int32 rep = rs.memberReputation[memberId];
-        if (rep > 0) e.potentialRemainingVotes -= rep;
-
         emit VoteCast(electionId, candidateId, memberId, weight);
         _checkAndCloseElectionIfUnbeatable(rs, electionId);
-    }
-
-    function closeElection(
-        ReputationStorage storage rs,
-        uint32 electionId
-    ) internal {
-        if (electionId >= rs.elections.length) revert RS_ElectionNotActive();
-
-        IReputationSystem.ElectionStatus storage e = rs.elections[electionId];
-        if (!e.active)                revert RS_ElectionNotActive();
-        if (e.candidates.length == 0) revert RS_NoCandidates();
-
-        e.active = false;
-
-        (bytes32 winnerId, int32 winVotes,,) = _getTopTwoCandidates(rs, electionId);
-        rs.isModerator[winnerId] = true;
-        e.winnerId     = winnerId;
-        e.winningVotes = winVotes;
-
-        emit ElectionClosed(electionId, winnerId, winVotes);
     }
 
     // ─── ELECTION INTERNALS ──────────────────────────────────
@@ -299,7 +276,9 @@ library ReputationLib {
         (bytes32 first, int32 fVotes,, int32 sVotes) = _getTopTwoCandidates(rs, electionId);
         if (first == bytes32(0)) return;
 
-        if (fVotes > sVotes + e.potentialRemainingVotes) {
+        int32 remaining = rs.totalPotentialVotes - e.totalVotesCast;
+        if (remaining < 0) remaining = 0;
+        if (fVotes > sVotes + remaining) {
             e.active       = false;
             e.winnerId     = first;
             e.winningVotes = fVotes;

@@ -13,7 +13,7 @@ use crate::services::blockchain::loan_machine_fns_helpers::{
     encode_create_loan_requisition, estimate_create_loan_requisition_gas,
     encode_cancel_loan_requisition, estimate_cancel_loan_requisition_gas,
     encode_cover_loan, estimate_cover_loan_gas,
-    encode_repay, estimate_repay_gas, get_active_loans, get_next_payment,
+    encode_repay, estimate_repay_gas, get_active_loans, get_chain_timestamp, get_next_payment,
     get_requisition_info, get_user_withdrawable,
 };
 use crate::services::subgraph::{SubgraphError, SubgraphService};
@@ -292,14 +292,14 @@ pub async fn fetch_my_active_loans_logic(
         return Ok(vec![]);
     }
 
-    // Fan out getNextPaymentAmount for all active loans concurrently.
-    let payment_futs: Vec<_> = loans.iter().map(|(req_id, ..)| {
-        let req_id   = *req_id;
-        let provider = provider.clone();
-        async move { get_next_payment(provider.as_ref(), loan_machine_addr, req_id).await }
-    }).collect();
-
-    let payments = futures::future::join_all(payment_futs).await;
+    let (payments, now): (Vec<_>, u64) = futures::join!(
+        futures::future::join_all(loans.iter().map(|(req_id, ..)| {
+            let req_id   = *req_id;
+            let provider = provider.clone();
+            async move { get_next_payment(provider.as_ref(), loan_machine_addr, req_id).await }
+        })),
+        get_chain_timestamp(provider.as_ref()),
+    );
 
     let items = loans.into_iter().zip(payments)
         .map(|((req_id, parcels_count, parcels_pending, _parcels_values, payment_dates, parcel_amounts, created_at), payment_result)| {
@@ -309,6 +309,7 @@ pub async fn fetch_my_active_loans_logic(
             });
 
             let paid_count = parcels_count.saturating_sub(parcels_pending) as usize;
+            let is_overdue = payment_dates.get(paid_count).map(|&d| now > d).unwrap_or(false);
             let parcels = payment_dates.iter().zip(parcel_amounts.iter()).enumerate()
                 .map(|(i, (date, amount))| LoanParcel {
                     index:    i as u32,
@@ -333,6 +334,7 @@ pub async fn fetch_my_active_loans_logic(
                 parcels_pending,
                 next_payment_amount: next_payment_amount.to_string(),
                 can_pay,
+                is_overdue,
                 created_at,
                 parcels,
             }

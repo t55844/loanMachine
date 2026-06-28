@@ -65,6 +65,7 @@ pub async fn fetch_last_closed_election(
     Ok(Some(ElectionView {
         id:               row.election_id as u32,
         candidates:       Vec::new(),     // not stored on the close event
+        candidate_votes:  Vec::new(),     // ditto
         start_time:       0,              // ditto — only have close time
         end_time,
         is_active:        false,
